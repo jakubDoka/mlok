@@ -2,16 +2,10 @@ package main
 
 import (
 	"gobatch/ggl"
-	"gobatch/mt"
-	_ "image/png"
-	"log"
-	"segmentation/src/core/tm"
-
-	"golang.org/x/image/colornames"
+	"gobatch/ggl/txt"
+	"gobatch/mat"
+	"gogen/str"
 )
-
-const windowWidth = 800
-const windowHeight = 600
 
 func main() {
 	window, err := ggl.NWindow(nil)
@@ -19,25 +13,29 @@ func main() {
 		panic(err)
 	}
 
-	texture, err := ggl.LoadTexture("square.png")
-	if err != nil {
-		log.Fatalln(err)
+	m := txt.NMarkdown()
+
+	t := ggl.NTexture(&txt.Atlas7x13.Pic)
+
+	b := ggl.NBatch2D(t, nil, nil)
+
+	p := txt.Paragraph{
+		Width: 100,
+		Text:  str.NString("Hello there, as you can see i can draw !green[green] !g[text] and also !33333300[transparent] text"),
 	}
 
-	batch := ggl.NBatch2D(texture, nil, nil)
-	sprite := ggl.NSprite2D(texture.Frame())
-	tm := tm.NTime()
+	m.Parse(&p)
+
+	p.Update(0, 0, 0)
+
+	p.Draw(b)
+
+	window.SetCamera2D(mat.IM2.Scaled(mat.V2{}, 2))
+
+	b.Draw(window)
+
 	for !window.ShouldClose() {
-		window.Clear2D(mt.ToRGBA(colornames.Aliceblue))
-
-		for i := 0; i < 50000; i++ {
-			sprite.Draw(batch, mt.NMat2(mt.NV2(1000, 1000), mt.NV2(.5, .5), 2), mt.Alpha(1))
-		}
-
-		batch.Draw(window)
-		batch.Clear()
-
+		b.Draw(window)
 		window.Update()
-		tm.Update()
 	}
 }

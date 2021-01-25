@@ -1,4 +1,4 @@
-package mt
+package mat
 
 import (
 	"fmt"
@@ -10,16 +10,16 @@ import (
 //
 // Create vectors with the V constructor:
 //
-//   u := pixel.NV2(1, 2)
-//   v := pixel.NV2(8, -3)
+//   u := mat.NV2(1, 2)
+//   v := mat.NV2(8, -3)
 //
 // Use various methods to manipulate them:
 //
 //   w := u.Add(v)
 //   fmt.Println(w)        // V2(9, -1)
 //   fmt.Println(u.Sub(v)) // V2(-7, 5)
-//   u = pixel.NV2(2, 3)
-//   v = pixel.NV2(8, 1)
+//   u = mat.NV2(2, 3)
+//   v = mat.NV2(8, 1)
 //   if u.X < 0 {
 //	     fmt.Println("this won't happen")
 //   }
@@ -27,6 +27,12 @@ import (
 type V2 struct {
 	X, Y float64
 }
+
+// Vector related constants
+var (
+	Origin2 = V2{}
+	Scale2  = V2{1, 1}
+)
 
 // NV2 returns a new 2D vector with the given coordinates.
 func NV2(x, y float64) V2 {
@@ -40,7 +46,7 @@ func Rad2(angle, length float64) V2 {
 
 // String returns the string representation of the vector u.
 //
-//   u := pixel.V(4.5, -1.3)
+//   u := mat.V(4.5, -1.3)
 //   u.String()     // returns "V2(4.5, -1.3)"
 //   fmt.Println(u) // V2(4.5, -1.3)
 func (u V2) String() string {
@@ -197,7 +203,7 @@ func (u V2) AngleTo(v V2) float64 {
 // Map applies the function f to both x and y components of the vector u and returns the modified
 // vector.
 //
-//   u := pixel.V(10.5, -1.5)
+//   u := mat.V(10.5, -1.5)
 //   v := u.Map(math.Floor)   // v is V2(10, -2), both components of u floored
 func (u V2) Map(f func(float64) float64) V2 {
 	return V2{
@@ -259,7 +265,7 @@ func (m Mat2) Raw() [9]float32 {
 
 // String returns a string representation of the Mat2.
 //
-//   m := pixel.IM
+//   m := mat.IM2
 //   fmt.Println(m) // Mat2(1 0 0 | 0 1 0)
 func (m Mat2) String() string {
 	return fmt.Sprintf(
@@ -373,6 +379,14 @@ func NAABB(minX, minY, maxX, maxY float64) AABB {
 	}
 }
 
+// ToAABB converts image.Rectangle to AABB
+func ToAABB(r image.Rectangle) AABB {
+	return AABB{
+		V2{float64(r.Min.X), float64(r.Min.Y)},
+		V2{float64(r.Max.X), float64(r.Max.Y)},
+	}
+}
+
 // Cube returns AABB with center in c and width and height both equal to size * 2
 func Cube(c V2, size float64) AABB {
 	return AABB{V2{c.X - size, c.Y - size}, V2{c.X + size, c.Y + size}}
@@ -409,7 +423,7 @@ func (r AABB) ToVec() V2 {
 
 // String returns the string representation of the AABB.
 //
-//   r := pixel.NAABB(100, 50, 200, 300)
+//   r := mat.NAABB(100, 50, 200, 300)
 //   r.String()     // returns "AABB(100, 50, 200, 300)"
 //   fmt.Println(r) // AABB(100, 50, 200, 300)
 func (r AABB) String() string {
@@ -499,7 +513,7 @@ func (r AABB) Contains(u V2) bool {
 	return r.Min.X <= u.X && u.X <= r.Max.X && r.Min.Y <= u.Y && u.Y <= r.Max.Y
 }
 
-// Union returns the minimal AABB which covers both r and s. Rects r and s must be normalized.
+// Union returns the minimal AABB which covers both r and s. AABBs r and s must be normalized.
 func (r AABB) Union(s AABB) AABB {
 	return NAABB(
 		math.Min(r.Min.X, s.Min.X),
@@ -509,7 +523,7 @@ func (r AABB) Union(s AABB) AABB {
 	)
 }
 
-// Intersect returns the maximal AABB which is covered by both r and s. Rects r and s must be normalized.
+// Intersect returns the maximal AABB which is covered by both r and s. AABBs r and s must be normalized.
 //
 // If r and s don't overlap, this function returns a zero-rectangle.
 func (r AABB) Intersect(s AABB) AABB {
@@ -558,4 +572,45 @@ func (r AABB) LocalVertices() [4]V2 {
 	}
 
 	return v
+}
+
+// VecBounds2 gets the smallest rectangle in witch all provided points fit in
+func VecBounds2(vectors ...V2) (base AABB) {
+	base.Min.X = math.MaxFloat64
+	base.Min.Y = math.MaxFloat64
+	base.Max.X = -math.MaxFloat64
+	base.Max.Y = -math.MaxFloat64
+
+	for _, v := range vectors {
+		if base.Min.X > v.X {
+			base.Min.X = v.X
+		}
+		if base.Min.Y > v.Y {
+			base.Min.Y = v.Y
+		}
+		if base.Max.X < v.X {
+			base.Max.X = v.X
+		}
+		if base.Max.Y < v.Y {
+			base.Max.Y = v.Y
+		}
+	}
+
+	return base
+}
+
+// Ray2 is a standard 2D raycast, it supports calculating intersections with all collizion shapes
+type Ray2 struct {
+	A, B V2
+}
+
+// Tran2 is standard 2D transform with some utility, it plays well with ggl.Sprite2D
+type Tran2 struct {
+	Pos, Scl V2
+	Rot      float64
+}
+
+// Mat returns matrix reperesenting transform
+func (t *Tran2) Mat() Mat2 {
+	return NMat2(t.Pos, t.Scl, t.Rot)
 }

@@ -13,7 +13,8 @@ package ggl
 
 import (
 	"fmt"
-	"gobatch/mt"
+	"gobatch/mat"
+	"gobatch/refl"
 	"image"
 	"image/draw"
 	"io/ioutil"
@@ -65,30 +66,8 @@ func VerifyVertexData(v VertexData) error {
 		return fmt.Errorf("the VertexSize returns invalid value, expected: %v, got: %v", tp.Elem().Size()/componentByteSize, v.VertexSize())
 	}
 
-	if err := AssertHomogeneity(reflect.TypeOf(v), reflect.TypeOf(float64(0))); err != nil {
+	if err := refl.AssertHomogeneity(reflect.TypeOf(v), reflect.TypeOf(float64(0))); err != nil {
 		return fmt.Errorf("slice element contains other datatypes other then float64: %v", err)
-	}
-
-	return nil
-}
-
-// AssertHomogeneity returns whether struct contains only sup datatype
-func AssertHomogeneity(val, sup reflect.Type) error {
-
-	if sup == val {
-		return nil
-	} else if val.Kind() == reflect.Slice {
-		return AssertHomogeneity(val.Elem(), sup)
-	} else if val.Kind() != reflect.Struct {
-		return fmt.Errorf("type contains %v when only %v is expected", val.Name(), sup.Name())
-	}
-
-	fn := val.NumField()
-
-	for i := 0; i < fn; i++ {
-		if err := AssertHomogeneity(val.Field(i).Type, sup); err != nil {
-			return err
-		}
 	}
 
 	return nil
@@ -185,13 +164,18 @@ func NVBO(vertexSizes ...int32) VBO {
 //
 // panics if buffer vertexSize does not match with data vertex size
 func (v *VBO) SetData(data VertexData, mode uint32) {
+
 	v.Start()
 	vertSz := data.VertexSize()
 	if vertSz != v.vertexSize {
 		panic(fmt.Errorf("unexpected vertex size, buffer expects %v, but vertex data with vertexSize %v was inputted", v.vertexSize, vertSz))
 	}
 
-	gl.BufferData(gl.ARRAY_BUFFER, data.Len()*vertSz*componentByteSize, gl.Ptr(data), mode)
+	if data.Len() == 0 {
+		gl.BufferData(gl.ARRAY_BUFFER, 0, nil, mode)
+	} else {
+		gl.BufferData(gl.ARRAY_BUFFER, data.Len()*vertSz*componentByteSize, gl.Ptr(data), mode)
+	}
 }
 
 // Setup sets up the buffer structure, can be used only once
@@ -446,8 +430,8 @@ func (t *Texture) SubImage(region image.Rectangle) *image.RGBA {
 }
 
 // Frame returns texture frame, origin is always at [0, 0]
-func (t *Texture) Frame() mt.AABB {
-	return mt.NAABB(0, 0, float64(t.W), float64(t.H))
+func (t *Texture) Frame() mat.AABB {
+	return mat.NAABB(0, 0, float64(t.W), float64(t.H))
 }
 
 // Start ...
@@ -480,6 +464,23 @@ func (t Texture) Drop() {
 type TextureParam struct {
 	First  uint32
 	Second int32
+}
+
+// FlipRGBA flips image along the Y-axis
+func FlipRGBA(r *image.RGBA) {
+	height := r.Rect.Dy()
+	hh := height / 2
+	row := r.Rect.Dx() * 4
+	tmp := make([]byte, row)
+	for i := 0; i < hh; i++ {
+		nw := row * i
+		iv := row * (height - 1 - i)
+		a, b := r.Pix[nw:nw+row], r.Pix[iv:iv+row]
+
+		copy(tmp, a)
+		copy(a, b)
+		copy(b, tmp)
+	}
 }
 
 // DefaultTextureConfig use this if you don't know what to use

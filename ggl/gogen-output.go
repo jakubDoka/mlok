@@ -5,10 +5,10 @@ package ggl
 // struct satisfying VertexData interface. Its a gogen TEMPLATE:
 //
 // 	/*gen(
-//		VS2D<Vertex2D, 8, VS2D>
+//		VS2D<Vertex2D, 9, VS2D>
 //	)*/
 //
-// this block generates VS2D with Vertex2D and 8 is the size of Vertex2D,
+// this block generates VertexSlice with Vertex2D and 8 is the size of Vertex2D,
 // VS2D is name of generated struct divided by float64 byte size for more info
 // search github.com/jakubDoka/gogen.
 type VS2D []Vertex2D
@@ -30,42 +30,42 @@ func (v VS2D) Len() int {
 
 // VertexSize implements VertexData interface
 func (v VS2D) VertexSize() int {
-	return 8
+	return 9
 }
 
 
 // Data2D is Vertex and indice collector, mainly utility that handles vertex offsets
 type Data2D struct {
 	Vertexes VS2D
-	indices  Indices
+	Indices  Indices
 }
 
-// Clear clears t batch but leaves allocated data
+// Clear clears t batch but leaves allocated Data2D
 func (d *Data2D) Clear() {
 	d.Vertexes.Clear()
-	d.indices.Clear()
+	d.Indices.Clear()
 }
 
-// Accept accepts vertex data, this is only correct way of feeding batch with Vertexes
-// along side indices, if you don't use indices append directly to Data2D
-func (d *Data2D) Accept(data VS2D, indices Indices) {
-	l1 := len(d.indices)
+// Accept accepts vertex Data2D, this is only correct way of feeding batch with Vertexes
+// along side indices, if you don't use indices append directly to Data
+func (d *Data2D) Accept(Data2D VS2D, indices Indices) {
+	l1 := len(d.Indices)
 	l2 := uint32(d.Vertexes.Len())
 
-	d.Vertexes = append(d.Vertexes, data...)
-	d.indices = append(d.indices, indices...)
+	d.Vertexes = append(d.Vertexes, Data2D...)
+	d.Indices = append(d.Indices, indices...)
 
-	l3 := len(d.indices)
+	l3 := len(d.Indices)
 	for i := l1; i < l3; i++ {
-		d.indices[i] += l2
+		d.Indices[i] += l2
 	}
 }
 
 
-// Batch2D is main drawer, it performs direct draw to canvas and is used as target for Sprite
-// Batch2D acts like canvas i some ways but performance difference of drawing batch to canvas and
-// drawing canvas to canvas is significant. if you need image to remain use canvas, as its name hints
-// it in deed works like its called.
+// Batch2D is main drawer, it performs direct draw to canvas and is used as target for Sprite.
+// Batch2D acts like canvas i some ways but performance difference of drawing Batch2D to canvas and
+// drawing canvas to canvas is significant. If you need image to ber redrawn ewer frame draw Batch2D
+// to canvas and use canvas for drawing.
 type Batch2D struct {
 	Data2D
 
@@ -74,10 +74,10 @@ type Batch2D struct {
 	texture *Texture
 }
 
-// NBatch2D allows constructing batch with custom Buffer and Program for applying
-// per batch shader and related buffer structure. Passing nil absolutely fine,
+// NBatch2D allows constructing Batch2D with custom Buffer and Program for applying
+// per Batch2D shader and related buffer structure. Passing nil absolutely fine,
 // as canvas or vindow will use theier own, if you don't even need texture use struct
-// literal (Batch2D{}) to construct batch
+// literal (Batch{}) to construct Batch2D
 func NBatch2D(texture *Texture, buffer *Buffer, program *Program) *Batch2D {
 	return &Batch2D{
 		texture: texture,
@@ -86,8 +86,13 @@ func NBatch2D(texture *Texture, buffer *Buffer, program *Program) *Batch2D {
 	}
 }
 
-// Draw draws all data to target
+// Draw draws all Data2D to target
 func (b *Batch2D) Draw(target Target) {
-	target.Accept(b.Vertexes, b.indices, b.texture, b.program, b.buffer)
+	target.Accept(b.Vertexes, b.Indices, b.texture, b.program, b.buffer)
+}
+
+// Program returns Batch2D program, it can be nil
+func (b *Batch2D) Program() *Program {
+	return b.program
 }
 

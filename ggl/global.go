@@ -1,7 +1,7 @@
 package ggl
 
 import (
-	"gobatch/mt"
+	"gobatch/mat"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
 )
@@ -31,10 +31,10 @@ const (
 	Stencil ClearMode = gl.STENCIL_BUFFER_BIT
 )
 
-var color mt.RGBA
+var color mat.RGBA
 
 // Clear clears currently bound framebuffer with given mode
-func Clear(c mt.RGBA, mode ClearMode) {
+func Clear(c mat.RGBA, mode ClearMode) {
 	if color != c {
 		gl.ClearColor(float32(c.R), float32(c.G), float32(c.B), float32(c.A))
 		color = c

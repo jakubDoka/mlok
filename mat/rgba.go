@@ -1,4 +1,4 @@
-package mt
+package mat
 
 import (
 	"errors"
@@ -26,6 +26,16 @@ func LerpColor(a, b RGBA, t float64) RGBA {
 type RGBA struct {
 	R, G, B, A float64
 }
+
+// Color constants
+var (
+	Transparent = RGBA{}
+	Black       = RGB(0, 0, 0)
+	White       = RGB(1, 1, 1)
+	Red         = RGB(1, 0, 0)
+	Green       = RGB(0, 1, 0)
+	Blue        = RGB(0, 0, 1)
+)
 
 // RGB returns a fully opaque RGBA color with the given RGB values.
 //
@@ -108,7 +118,7 @@ var ErrInvalidHex = errors.New("byte is not a hex code")
 // ErrTooShort is returned by HexToRGBA if hex string is too short to parse a color
 var ErrTooShort = errors.New("hex string is too short (min is 6)")
 
-// HexToRGBA converts hex string to pixel.RGBA
+// HexToRGBA converts hex string to RGBA
 func HexToRGBA(s string) (c RGBA, err error) {
 	if len(s) < 6 {
 		return c, ErrTooShort

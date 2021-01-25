@@ -1,7 +1,7 @@
 package ggl
 
 import (
-	"gobatch/mt"
+	"gobatch/mat"
 	"log"
 	"time"
 
@@ -27,16 +27,16 @@ type Setup interface {
 //
 type Window struct {
 	*glfw.Window
-	Mask mt.RGBA
+	Mask mat.RGBA
 	Canvas
 
 	cursorInsideWindow bool
 
 	prevInp, currInp, tempInp struct {
-		mouse   mt.V2
+		mouse   mat.V2
 		buttons [KeyLast + 1]bool
 		repeat  [KeyLast + 1]bool
-		scroll  mt.V2
+		scroll  mat.V2
 		typed   string
 	}
 }
@@ -99,7 +99,7 @@ func NWindow(config *WindowConfig) (*Window, error) {
 
 	win := Window{
 		Window: window,
-		Mask:   mt.Alpha(1),
+		Mask:   mat.Alpha(1),
 	}
 
 	win.initInput()
@@ -116,7 +116,7 @@ func NWindow(config *WindowConfig) (*Window, error) {
 	)
 
 	win.SetSizeCallback(func(w *glfw.Window, width, height int) {
-		win.Canvas.Resize(mt.NAABB(0, 0, float64(width), float64(height)))
+		win.Canvas.Resize(mat.NAABB(0, 0, float64(width), float64(height)))
 	})
 
 	config.Setup.Modify(&win)
@@ -127,7 +127,7 @@ func NWindow(config *WindowConfig) (*Window, error) {
 // Update updates the window so you can see it changing
 func (w *Window) Update() {
 	width, height := w.GetSize()
-	w.Canvas.Render2D(mt.IM2, w.Mask, int32(width), int32(height))
+	w.Canvas.Render2D(mat.IM2, w.Mask, int32(width), int32(height))
 	w.SwapBuffers()
 	glfw.PollEvents()
 }
@@ -175,12 +175,12 @@ func (w *Window) Repeated(button Button) bool {
 }
 
 // MousePos returns the current mouse position in the Window's Bounds.
-func (w *Window) MousePos() mt.V2 {
+func (w *Window) MousePos() mat.V2 {
 	return w.currInp.mouse
 }
 
 // MousePrevPos returns the previous mouse position in the Window's Bounds.
-func (w *Window) MousePrevPos() mt.V2 {
+func (w *Window) MousePrevPos() mat.V2 {
 	return w.prevInp.mouse
 }
 
@@ -190,7 +190,7 @@ func (w *Window) MouseIsInside() bool {
 }
 
 // MouseScroll returns the mouse scroll amount (in both axes) since the last call to Window.Update.
-func (w *Window) MouseScroll() mt.V2 {
+func (w *Window) MouseScroll() mat.V2 {
 	return w.currInp.scroll
 }
 
@@ -514,7 +514,7 @@ func (w *Window) initInput() {
 	})
 
 	w.Window.SetCursorPosCallback(func(_ *glfw.Window, x, y float64) {
-		w.tempInp.mouse = mt.NV2(x, float64(w.H)-y)
+		w.tempInp.mouse = mat.NV2(x, float64(w.H)-y)
 	})
 
 	w.Window.SetScrollCallback(func(_ *glfw.Window, xoff, yoff float64) {
@@ -555,7 +555,7 @@ func (w *Window) doUpdateInput() {
 	w.currInp = w.tempInp
 
 	w.tempInp.repeat = [KeyLast + 1]bool{}
-	w.tempInp.scroll = mt.V2{}
+	w.tempInp.scroll = mat.V2{}
 	w.tempInp.typed = ""
 
 }
@@ -564,76 +564,4 @@ func (w *Window) doUpdateInput() {
 type WindowHint struct {
 	Hint  glfw.Hint
 	Value int
-}
-
-// Setup2D is basic 2D game rendering setup, if you would like to change some part of it just embed it
-// in your setup struct and override methods
-type Setup2D struct{}
-
-// VertexShader implements Setup interface
-func (s Setup2D) VertexShader() string {
-	return `
-	#version 330
-	
-	layout (location = 0) in vec2 vert;
-	layout (location = 1) in vec2 tex;
-	layout (location = 2) in vec4 mask;
-	
-	uniform mat3 camera2D;
-	uniform vec2 viewportSize;
-	uniform vec2 textureSize;
-	
-	out vec2 fragTex;
-	out vec4 fragMask;
-	void main() {
-		fragMask = mask;
-		fragTex = tex/textureSize;
-		gl_Position = vec4(camera2D * vec3(vert/viewportSize, 0), 1);
-	}
-	`
-}
-
-// FragmentShader implements Setup interface
-func (s Setup2D) FragmentShader() string {
-	return `
-	#version 330
-
-	uniform sampler2D tex;
-	uniform int useTexture;
-
-	in vec2 fragTex;
-	in vec4 fragMask;
-
-	out vec4 outputColor;
-
-	void main() {
-		if (useTexture == 1) {
-			outputColor = texture(tex, fragTex) * fragMask;
-		} else {
-			outputColor = fragMask;
-		}
-	}
-	`
-}
-
-// Program implements Setup interface
-func (s Setup2D) Program() Program {
-	prog, err := NProgramFromSource(s.VertexShader(), s.FragmentShader())
-	if err != nil {
-		panic(err)
-	}
-
-	return *prog
-}
-
-// Buffer implements Setup interface
-func (s Setup2D) Buffer() Buffer {
-	return NBuffer(2, 2, 4)
-}
-
-// Modify implements Setup interface
-func (s Setup2D) Modify(win *Window) {
-	win.SetCamera2D(&mt.IM2)
-	gl.Enable(gl.BLEND)
-	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 }

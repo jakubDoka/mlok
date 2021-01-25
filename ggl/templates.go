@@ -1,111 +1,103 @@
 package ggl
 
-import "gobatch/mt"
-
 const elementsize = 0
 
-// Vertex2D is essentia vertex struct for 2D rendering
-type Vertex2D struct {
-	Pos, Tex mt.V2
-	Color    mt.RGBA
-}
-
 /*gen(
-	VertexSlice<Vertex2D, 8, VS2D>
-	Data<VS2D, Data2D>
-	Batch<Data2D, Batch2D>
+	vertexSlice<Vertex2D, 9, VS2D>
+	data<VS2D, Data2D>
+	batch<Data2D, NBatch2D, Batch2D>
 )*/
 
 //def(
-//rules VertexSlice<interface{}, elementsize>
+//rules vertexSlice<interface{}, elementsize>
 
-// VertexSlice implements essential utility methods for any
+// vertexSlice implements essential utility methods for any
 // struct satisfying VertexData interface. Its a gogen TEMPLATE:
 //
 // 	/*gen(
-//		VertexSlice<Vertex2D, 8, VS2D>
+//		vertexSlice<Vertex2D, 9, VS2D>
 //	)*/
 //
 // this block generates VertexSlice with Vertex2D and 8 is the size of Vertex2D,
 // VS2D is name of generated struct divided by float64 byte size for more info
 // search github.com/jakubDoka/gogen.
-type VertexSlice []interface{}
+type vertexSlice []interface{}
 
 // Rewrite revrites elements from index to o values
-func (v VertexSlice) Rewrite(o VertexSlice, idx int) {
+func (v vertexSlice) Rewrite(o vertexSlice, idx int) {
 	copy(v[idx:], o)
 }
 
 // Clear clears slice
-func (v *VertexSlice) Clear() {
+func (v *vertexSlice) Clear() {
 	*v = (*v)[:0]
 }
 
 // Len implements VertexData interface
-func (v VertexSlice) Len() int {
+func (v vertexSlice) Len() int {
 	return len(v)
 }
 
 // VertexSize implements VertexData interface
-func (v VertexSlice) VertexSize() int {
+func (v vertexSlice) VertexSize() int {
 	return elementsize
 }
 
 //)
 
 //def(
-//rules Data<VertexSlice>
+//rules data<vertexSlice>
 
-// Data is Vertex and indice collector, mainly utility that handles vertex offsets
-type Data struct {
-	Vertexes VertexSlice
-	indices  Indices
+// data is Vertex and indice collector, mainly utility that handles vertex offsets
+type data struct {
+	Vertexes vertexSlice
+	Indices  Indices
 }
 
 // Clear clears t batch but leaves allocated data
-func (d *Data) Clear() {
+func (d *data) Clear() {
 	d.Vertexes.Clear()
-	d.indices.Clear()
+	d.Indices.Clear()
 }
 
 // Accept accepts vertex data, this is only correct way of feeding batch with Vertexes
 // along side indices, if you don't use indices append directly to Data
-func (d *Data) Accept(data VertexSlice, indices Indices) {
-	l1 := len(d.indices)
+func (d *data) Accept(data vertexSlice, indices Indices) {
+	l1 := len(d.Indices)
 	l2 := uint32(d.Vertexes.Len())
 
 	d.Vertexes = append(d.Vertexes, data...)
-	d.indices = append(d.indices, indices...)
+	d.Indices = append(d.Indices, indices...)
 
-	l3 := len(d.indices)
+	l3 := len(d.Indices)
 	for i := l1; i < l3; i++ {
-		d.indices[i] += l2
+		d.Indices[i] += l2
 	}
 }
 
 //)
 
 //def(
-//rules Batch<Data>
+//rules batch<data, nbatch>
 
-// Batch is main drawer, it performs direct draw to canvas and is used as target for Sprite
-// Batch acts like canvas i some ways but performance difference of drawing batch to canvas and
-// drawing canvas to canvas is significant. if you need image to remain use canvas, as its name hints
-// it in deed works like its called.
-type Batch struct {
-	Data
+// batch is main drawer, it performs direct draw to canvas and is used as target for Sprite.
+// batch acts like canvas i some ways but performance difference of drawing batch to canvas and
+// drawing canvas to canvas is significant. If you need image to ber redrawn ewer frame draw batch
+// to canvas and use canvas for drawing.
+type batch struct {
+	data
 
 	buffer  *Buffer
 	program *Program
 	texture *Texture
 }
 
-// NBatch allows constructing batch with custom Buffer and Program for applying
+// nbatch allows constructing batch with custom Buffer and Program for applying
 // per batch shader and related buffer structure. Passing nil absolutely fine,
 // as canvas or vindow will use theier own, if you don't even need texture use struct
 // literal (Batch{}) to construct batch
-func NBatch(texture *Texture, buffer *Buffer, program *Program) *Batch {
-	return &Batch{
+func nbatch(texture *Texture, buffer *Buffer, program *Program) *batch {
+	return &batch{
 		texture: texture,
 		buffer:  buffer,
 		program: program,
@@ -113,12 +105,12 @@ func NBatch(texture *Texture, buffer *Buffer, program *Program) *Batch {
 }
 
 // Draw draws all data to target
-func (b *Batch) Draw(target Target) {
-	target.Accept(b.Vertexes, b.indices, b.texture, b.program, b.buffer)
+func (b *batch) Draw(target Target) {
+	target.Accept(b.Vertexes, b.Indices, b.texture, b.program, b.buffer)
 }
 
 // Program returns batch program, it can be nil
-func (b *Batch) Program() *Program {
+func (b *batch) Program() *Program {
 	return b.program
 }
 

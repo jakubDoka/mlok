@@ -2,7 +2,7 @@ package ggl
 
 import (
 	"fmt"
-	"gobatch/mt"
+	"gobatch/mat"
 	"io/ioutil"
 	"strings"
 
@@ -18,8 +18,7 @@ type Target interface {
 // Canvas allows of screen drawing, drawing to canvas produces draw calls. Its the abstraction
 // over opengl framebuffer. It stores drawn image in given texture, if you want to capture it use
 // Image method on texture. Program that canvas uses is applied on resulting image but also on triangles
-// drawn by batch that does not have custom program. Same goes for Buffer. you can also set canvas state,
-// see SetPixels method.
+// drawn by batch that does not have custom program. Same goes for Buffer.
 type Canvas struct {
 	Ptr
 
@@ -27,7 +26,7 @@ type Canvas struct {
 	Program
 	Buffer Buffer
 
-	ClearColor mt.RGBA
+	ClearColor mat.RGBA
 
 	data2D   Data2D
 	sprite2D Sprite2D
@@ -62,7 +61,7 @@ func NCanvas(texture Texture, program Program, buffer Buffer) *Canvas {
 	}
 
 	c.Resize(texture.Frame())
-	program.SetCamera2D(&mt.IM2)
+	program.SetCamera2D(mat.IM2)
 
 	return c
 }
@@ -96,12 +95,12 @@ func (c *Canvas) Accept(data VertexData, indices Indices, texture *Texture, prog
 }
 
 // Clear2D clears canvas in 2D mode
-func (c *Canvas) Clear2D(color mt.RGBA) {
+func (c *Canvas) Clear2D(color mat.RGBA) {
 	c.Clear(color, Color)
 }
 
 // Clear clears canvas with given color
-func (c *Canvas) Clear(color mt.RGBA, mode ClearMode) {
+func (c *Canvas) Clear(color mat.RGBA, mode ClearMode) {
 	c.Start()
 	Clear(color, mode)
 }
@@ -129,24 +128,24 @@ func setCanvas(nc uint32) {
 
 // Draw2D draws canvas to another target as a 2D sprite
 //
-// 	c.Render2D(t, mt.IM2, mt.Alpha(1)) //draws framebuffer to the center of a screen as it is to t
-// 	c.Render2D(t, mt.IM2.Scaled(mt.V2{}, 2), mt.RGB(1, 0, 0)) //draws framebuffer scaled up with red mask to t
+// 	c.Render2D(t, mat.IM2, mat.Alpha(1)) //draws framebuffer to the center of a screen as it is to t
+// 	c.Render2D(t, mat.IM2.Scaled(mat.V2{}, 2), mat.RGB(1, 0, 0)) //draws framebuffer scaled up with red mask to t
 //
 // method makes draw call
-func (c *Canvas) Draw2D(t Target, mat mt.Mat2, mask mt.RGBA) {
+func (c *Canvas) Draw2D(t Target, mat mat.Mat2, mask mat.RGBA) {
 	c.data2D.Clear()
 	c.sprite2D.Draw(&c.data2D, mat, mask)
 
-	t.Accept(c.data2D.Vertexes, c.data2D.indices, &c.Texture, &c.Program, &c.Buffer)
+	t.Accept(c.data2D.Vertexes, c.data2D.Indices, &c.Texture, &c.Program, &c.Buffer)
 }
 
 // Render2D renders canvas to main framebuffer (window framebuffer) as a 2D sprite:
 //
-// 	c.Render2D(mt.IM2, mt.Alpha(1)) //draws framebuffer to the center of a screen as it is
-// 	c.Render2D(mt.IM2.Scaled(mt.V2{}, 2), mt.RGB(1, 0, 0)) //draws framebuffer scaled up with red mask
+// 	c.Render2D(mat.IM2, mat.Alpha(1)) //draws framebuffer to the center of a screen as it is
+// 	c.Render2D(mat.IM2.Scaled(mat.V2{}, 2), mat.RGB(1, 0, 0)) //draws framebuffer scaled up with red mask
 //
 // method makes draw call
-func (c *Canvas) Render2D(mat mt.Mat2, mask mt.RGBA, w, h int32) {
+func (c *Canvas) Render2D(mat mat.Mat2, mask mat.RGBA, w, h int32) {
 	c.data2D.Clear()
 	c.sprite2D.Draw(&c.data2D, mat, mask)
 	EndCanvas()
@@ -158,11 +157,11 @@ func (c *Canvas) Render2D(mat mt.Mat2, mask mt.RGBA, w, h int32) {
 	c.Program.SetTextureSize(c.W, c.H)
 	c.Program.SetUseTexture(true)
 
-	c.Buffer.Draw(c.data2D.Vertexes, c.data2D.indices, Stream)
+	c.Buffer.Draw(c.data2D.Vertexes, c.data2D.Indices, Stream)
 }
 
 // Resize resizes the canvas to given frame, canvas viewport is also set, that why you are passing frame,
-func (c *Canvas) Resize(frame mt.AABB) {
+func (c *Canvas) Resize(frame mat.AABB) {
 	c.Start()
 	c.Texture.Resize(int32(frame.W()), int32(frame.H()), nil)
 	c.sprite2D = NSprite2D(frame.Moved(frame.Min.Inv()))
@@ -214,7 +213,7 @@ func (b *Buffer) Drop() {
 // Program is handle to opengl shader program
 type Program struct {
 	Ptr
-	viewpot mt.V2
+	viewpot mat.V2
 	texture bool
 }
 
@@ -280,7 +279,7 @@ func NProgram(vertex, fragment Shader) (*Program, error) {
 // SetTextureSize sets "textureSize" in vertex shader, if the size is already equal to
 // given values it does nothing
 func (p *Program) SetTextureSize(w, h int32) {
-	sz := mt.NV2(float64(w), float64(h))
+	sz := mat.NV2(float64(w), float64(h))
 	if p.viewpot == sz {
 		return
 	}
@@ -292,7 +291,7 @@ func (p *Program) SetTextureSize(w, h int32) {
 // SetViewportSize sets "viewportSize" in vertex shader, if the size is already equal to
 // given values it does nothing
 func (p *Program) SetViewportSize(w, h int32) {
-	sz := mt.NV2(float64(w), float64(h)).Scaled(.5)
+	sz := mat.NV2(float64(w), float64(h)).Scaled(.5)
 	if p.viewpot == sz {
 		return
 	}
@@ -302,8 +301,8 @@ func (p *Program) SetViewportSize(w, h int32) {
 }
 
 // SetCamera2D sets "camera2D" field in fragment shader
-func (p *Program) SetCamera2D(mat *mt.Mat2) {
-	p.SetMat2("camera2D", mat)
+func (p *Program) SetCamera2D(mat mat.Mat2) {
+	p.SetMat2("camera2D", &mat)
 }
 
 // SetUseTexture sets "useTexture" in fragment shader, its noop if
@@ -326,12 +325,12 @@ func (p *Program) SetInt(name string, i int32) {
 }
 
 // SetV2 sets vec2 uniform
-func (p *Program) SetV2(name string, v mt.V2) {
+func (p *Program) SetV2(name string, v mat.V2) {
 	gl.ProgramUniform2f(p.ptr, p.adr(name), float32(v.X), float32(v.Y))
 }
 
 // SetMat2 sets mat3 uniform
-func (p *Program) SetMat2(name string, m *mt.Mat2) {
+func (p *Program) SetMat2(name string, m *mat.Mat2) {
 	mat := m.Raw()
 	gl.ProgramUniformMatrix3fv(p.ptr, p.adr(name), 1, false, &mat[0])
 }
