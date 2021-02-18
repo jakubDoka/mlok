@@ -3,9 +3,9 @@ package ggl
 const elementsize = 0
 
 /*gen(
-	vertexSlice<Vertex2D, 9, VS2D>
-	data<VS2D, Data2D>
-	batch<Data2D, NBatch2D, Batch2D>
+	vertexSlice<Vertex, 9, VS>
+	data<VS, Data>
+	batch<Data, NBatch, Batch>
 )*/
 
 //def(
@@ -15,11 +15,11 @@ const elementsize = 0
 // struct satisfying VertexData interface. Its a gogen TEMPLATE:
 //
 // 	/*gen(
-//		vertexSlice<Vertex2D, 9, VS2D>
+//		vertexSlice<Vertex, 9, VS>
 //	)*/
 //
-// this block generates VertexSlice with Vertex2D and 8 is the size of Vertex2D,
-// VS2D is name of generated struct divided by float64 byte size for more info
+// this block generates VertexSlice with Vertex and 8 is the size of Vertex,
+// VS is name of generated struct divided by float64 byte size for more info
 // search github.com/jakubDoka/gogen.
 type vertexSlice []interface{}
 
@@ -49,9 +49,17 @@ func (v vertexSlice) VertexSize() int {
 //rules data<vertexSlice>
 
 // data is Vertex and indice collector, mainly utility that handles vertex offsets
+// it also stores one aditionall slice as space for preporsessing
 type data struct {
 	Vertexes vertexSlice
 	Indices  Indices
+}
+
+// Copy copies data to another resulting into two deeply equal objects
+func (d *data) Copy(dst *data) {
+	dst.Clear()
+	dst.Indices = append(dst.Indices, d.Indices...)
+	dst.Vertexes = append(dst.Vertexes, d.Vertexes...)
 }
 
 // Clear clears t batch but leaves allocated data
@@ -105,7 +113,7 @@ func nbatch(texture *Texture, buffer *Buffer, program *Program) *batch {
 }
 
 // Draw draws all data to target
-func (b *batch) Draw(target Target) {
+func (b *batch) Draw(target RenderTarget) {
 	target.Accept(b.Vertexes, b.Indices, b.texture, b.program, b.buffer)
 }
 

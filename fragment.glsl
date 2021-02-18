@@ -1,6 +1,6 @@
 #version 330
 
-uniform sampler2D tex;
+uniform sampler tex;
 uniform int useTexture;
 
 in vec2 fragTex;

@@ -1,8 +1,6 @@
 package txt
 
-import (
-	"gogen/templates"
-)
+import "github.com/jakubDoka/gogen/templates"
 
 // Effs is a standard Vector type with utility methods
 type Effs []Effect
@@ -172,7 +170,6 @@ func (v Effs) Find(find func(e Effect) bool) (idx int, res Effect) {
 	return
 }
 
-
 // FEffs is a standard Vector type with utility methods
 type FEffs []*FontEffect
 
@@ -340,4 +337,3 @@ func (v FEffs) Find(find func(e *FontEffect) bool) (idx int, res *FontEffect) {
 	idx = -1
 	return
 }
-

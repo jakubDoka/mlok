@@ -17,6 +17,7 @@ import (
 	"gobatch/refl"
 	"image"
 	"image/draw"
+	_ "image/png" // to support png
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -81,6 +82,13 @@ type Indices []uint32
 // Clear clears indices
 func (i *Indices) Clear() {
 	*i = (*i)[:0]
+}
+
+// Shift shifts all indices by delta
+func (i Indices) Shift(delta uint32) {
+	for idx := range i {
+		i[idx] += delta
+	}
 }
 
 // VAO abstracts over opengl vertex array
@@ -148,7 +156,7 @@ type VBO struct {
 //	layout (location = 1) in vec2 tex;
 //	layout (location = 2) in vec4 mask;
 //
-// bdw this is default 2D buffer setup
+// bdw this is default  buffer setup
 func NVBO(vertexSizes ...int32) VBO {
 	v := VBO{}
 	gl.GenBuffers(1, &v.ptr)
@@ -164,7 +172,6 @@ func NVBO(vertexSizes ...int32) VBO {
 //
 // panics if buffer vertexSize does not match with data vertex size
 func (v *VBO) SetData(data VertexData, mode uint32) {
-
 	v.Start()
 	vertSz := data.VertexSize()
 	if vertSz != v.vertexSize {
@@ -307,7 +314,7 @@ func LoadTexture(p string) (*Texture, error) {
 
 	img, _, err := image.Decode(imgFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to decode %q: %v", p, err)
 	}
 
 	return NTexture(img), nil
@@ -322,7 +329,7 @@ func NTexture(img image.Image) *Texture {
 // paramethers are then in code set like:
 //
 // 	for _, p := range params {
-//		gl.TexParameteri(gl.TEXTURE_2D, p.First, p.Second)
+//		gl.TexParameteri(gl.TEXTURE_, p.First, p.Second)
 //	}
 //
 // Note that even though this function takes image.Image it will always convert it to image.RGBA
@@ -367,6 +374,8 @@ func (t *Texture) Resize(w, h int32, pixels []byte) {
 		if t.W == w && t.H == h {
 			return
 		}
+		ptr = gl.Ptr(make([]byte, w*h*4))
+
 	} else {
 		ptr = gl.Ptr(pixels)
 	}
@@ -431,7 +440,7 @@ func (t *Texture) SubImage(region image.Rectangle) *image.RGBA {
 
 // Frame returns texture frame, origin is always at [0, 0]
 func (t *Texture) Frame() mat.AABB {
-	return mat.NAABB(0, 0, float64(t.W), float64(t.H))
+	return mat.A(0, 0, float64(t.W), float64(t.H))
 }
 
 // Start ...

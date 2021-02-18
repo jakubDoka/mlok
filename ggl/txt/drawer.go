@@ -3,16 +3,17 @@ package txt
 import (
 	"gobatch/ggl"
 	"gobatch/mat"
-	"gogen/str"
 	"math"
 	"unicode"
+
+	"github.com/jakubDoka/gogen/str"
 )
 
 // Drawer draws text for TextBox
 type Drawer struct {
 	*Atlas
-	Region mat.V2
-	glyph  ggl.Sprite2D
+	Region mat.Vec
+	glyph  ggl.Sprite
 	tab    float64
 }
 
@@ -22,7 +23,7 @@ func NDrawer(atlas *Atlas) *Drawer {
 		Atlas: atlas,
 	}
 
-	t.glyph.Update(mat.IM2, mat.Alpha(1))
+	t.glyph.Update(mat.IM, mat.Alpha(1))
 	t.glyph.SetIntensity(1)
 
 	t.tab = t.Glyph(' ').Advance * 4
@@ -101,12 +102,12 @@ func (d *Drawer) Draw(p *Paragraph, start, end int) {
 // ControlRune changes dot accordingly if inputted rune is control rune, also returns whether
 // change happened, it also appends a new dot to slice
 func (d *Drawer) ControlRune(r rune, p *Paragraph) bool {
-	var nDot mat.V2
+	var nDot mat.Vec
 
 	switch r {
 	case '\n':
 		// little hack to make cursor snap to end of line
-		nDot = mat.NV2(math.MaxFloat64, p.dot.Y)
+		nDot = mat.V(math.MaxFloat64, p.dot.Y)
 		p.dot.X = 0
 		p.dot.Y -= p.LineHeight
 	case '\r':

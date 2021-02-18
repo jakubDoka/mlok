@@ -4,21 +4,21 @@ import (
 	"github.com/go-gl/gl/v3.3-core/gl"
 )
 
-// Setup2D is basic 2D game rendering setup, if you would like to change some part of it just embed it
-// in your setup struct and override methods. Thought setup isn't just that, it brings lot of 2D utility
+// Setup2D is basic  game rendering setup, if you would like to change some part of it just embed it
+// in your setup struct and override methods. Thought setup isn't just that, it brings lot of  utility
 // to its scope to separate it from 3D setup (comming soon)
 type Setup2D struct{}
 
 // Batch creates batch from texture with fragment shader, it does the setup of shader program for you
-func (s Setup2D) Batch(texture *Texture, fragmentShader string) (*Batch2D, error) {
+func (s Setup2D) Batch(texture *Texture, fragmentShader string) (*Batch, error) {
 	pg, err := NProgramFromSource(s.VertexShader(), fragmentShader)
 	if err != nil {
 		return nil, err
 	}
-	return NBatch2D(texture, nil, pg), nil
+	return NBatch(texture, nil, pg), nil
 }
 
-// Canvas creates canvas with custom fragment shader prepared for 2D rendering
+// Canvas creates canvas with custom fragment shader prepared for  rendering
 func (s Setup2D) Canvas(w, h int, fragmentShader string) (*Canvas, error) {
 	pg, err := NProgramFromSource(s.VertexShader(), fragmentShader)
 	if err != nil {
@@ -32,13 +32,14 @@ func (s Setup2D) Canvas(w, h int, fragmentShader string) (*Canvas, error) {
 func (s Setup2D) VertexShader() string {
 	return `
 	#version 330
+
 	
 	layout (location = 0) in vec2 vert;
 	layout (location = 1) in vec2 tex;
 	layout (location = 2) in vec4 mask;
 	layout (location = 3) in float intensity;
 	
-	uniform mat3 camera2D;
+	uniform mat3 camera;
 	uniform vec2 viewportSize;
 	uniform vec2 textureSize;
 	
@@ -49,7 +50,7 @@ func (s Setup2D) VertexShader() string {
 		fragMask = mask;
 		fragIntensity = intensity;
 		fragTex = tex/textureSize;
-		gl_Position = vec4(camera2D * vec3(vert/viewportSize, 0), 1);
+		gl_Position = vec4((camera * vec3(vert, 1)).xy / viewportSize, 0, 1);
 	}
 	`
 }
@@ -58,6 +59,7 @@ func (s Setup2D) VertexShader() string {
 func (s Setup2D) FragmentShader() string {
 	return `
 	#version 330
+	#define WHITE vec4(1, 1, 1, 1)
 
 	uniform sampler2D tex;
 	uniform int useTexture;
@@ -71,8 +73,11 @@ func (s Setup2D) FragmentShader() string {
 	void main() {
 		if(fragIntensity == 1) {
 			outputColor = texture(tex, fragTex) * fragMask;
-		} else {
+		} else if(fragIntensity == 0) {
 			outputColor = fragMask;
+		} else {
+			vec4 col = texture(tex, fragTex);
+			outputColor = col + (WHITE - col) * (1 - fragIntensity);
 		}
 	}
 	`
@@ -85,6 +90,6 @@ func (s Setup2D) Buffer() Buffer {
 
 // Modify implements Setup interface
 func (s Setup2D) Modify(win *Window) {
-	gl.Enable(gl.BLEND)
+	SetBlend(true)
 	gl.BlendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
 }

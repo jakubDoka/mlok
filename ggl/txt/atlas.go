@@ -30,7 +30,7 @@ func init() {
 
 // Glyph describes one glyph in an Atlas.
 type Glyph struct {
-	Dot     mat.V2
+	Dot     mat.Vec
 	Frame   mat.AABB
 	Advance float64
 }
@@ -81,7 +81,7 @@ func NewAtlas(face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 
 	ggl.FlipRGBA(atlasImg)
 
-	bounds := mat.NAABB(
+	bounds := mat.A(
 		i2f(fixedBounds.Min.X),
 		i2f(fixedBounds.Min.Y),
 		i2f(fixedBounds.Max.X),
@@ -91,11 +91,11 @@ func NewAtlas(face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 	mapping := make(map[rune]Glyph)
 	for r, fg := range fixedMapping {
 		mapping[r] = Glyph{
-			Dot: mat.NV2(
+			Dot: mat.V(
 				i2f(fg.dot.X),
 				bounds.Max.Y-(i2f(fg.dot.Y)-bounds.Min.Y),
 			),
-			Frame: mat.NAABB(
+			Frame: mat.A(
 				i2f(fg.frame.Min.X),
 				bounds.Max.Y-(i2f(fg.frame.Min.Y)-bounds.Min.Y),
 				i2f(fg.frame.Max.X),
@@ -151,7 +151,7 @@ func (a *Atlas) LineHeight() float64 {
 //
 // Rect is a rectangle where the glyph should be positioned. Frame is the glyph frame inside the
 // Atlas's Picture. NewDot is the new position of the dot.
-func (a *Atlas) DrawRune(prevR, r rune, dot mat.V2) (rect, frame, bounds mat.AABB, newDot mat.V2) {
+func (a *Atlas) DrawRune(prevR, r rune, dot mat.Vec) (rect, frame, bounds mat.AABB, newDot mat.Vec) {
 	if !a.Contains(r) {
 		r = unicode.ReplacementChar
 	}
@@ -172,7 +172,7 @@ func (a *Atlas) DrawRune(prevR, r rune, dot mat.V2) (rect, frame, bounds mat.AAB
 	bounds = rect
 
 	if bounds.W()*bounds.H() != 0 {
-		bounds = mat.NAABB(
+		bounds = mat.A(
 			bounds.Min.X,
 			dot.Y-a.Descent(),
 			bounds.Max.X,

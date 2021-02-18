@@ -3,7 +3,8 @@ package txt
 import (
 	"gobatch/ggl"
 	"gobatch/mat"
-	"gogen/str"
+
+	"github.com/jakubDoka/gogen/str"
 )
 
 /*imp(
@@ -20,11 +21,11 @@ import (
 // use Drawer directly to draw text though then you have to initialize lineheight
 type Paragraph struct {
 	// saves the paragraph transformation, you have to call Update to apply changes
-	mat.Tran2
+	mat.Tran
 
 	// this data can be freely modified red, serialized, after Update its overwritten
 	// anyway
-	Data ggl.Data2D
+	Data ggl.Data
 
 	// determines how text should wrap, Drawer will tri to display text so
 	// it does not overflows Width, though it only breaks on spaces
@@ -45,11 +46,11 @@ type Paragraph struct {
 	// drawer, Text is not used
 	Text str.String
 
-	data ggl.Data2D
+	data ggl.Data
 
 	progress float64
-	dots     []mat.V2
-	dot      mat.V2
+	dots     []mat.Vec
+	dot      mat.Vec
 	bounds   mat.AABB
 
 	initted bool
@@ -63,13 +64,21 @@ type Paragraph struct {
 // Init initializes paragraph if key fields were omitted, its only for user experience
 func (p *Paragraph) Init() {
 	p.initted = true
-	if p.Tran2.Scl == mat.Origin2 {
-		p.Tran2.Scl = mat.Scale2
+	if p.Tran.Scl == mat.Origin {
+		p.Tran.Scl = mat.Scale
 	}
 
 	if p.Mask == mat.Transparent {
 		p.Mask = mat.White
 	}
+}
+
+// Clear is only usefull when drawing to paragraph directly with drawer
+// it clears triangles
+func (p *Paragraph) Clear() {
+	p.data.Clear()
+	p.dots = p.dots[:0]
+	p.dot = mat.Origin
 }
 
 // AddEff appends chunk of test to paragraph
@@ -142,7 +151,7 @@ func (p *Paragraph) Update(delta float64, start, end float64) bool {
 }
 
 // Draw draws its triangles to given target
-func (p *Paragraph) Draw(t ggl.Target2D) {
+func (p *Paragraph) Draw(t ggl.Target) {
 	t.Accept(p.Data.Vertexes, p.Data.Indices)
 }
 
@@ -150,8 +159,8 @@ func (p *Paragraph) Draw(t ggl.Target2D) {
 // len(displayedGlyphs)+1 if you are using Effects and try to use cursor index to insert into
 // Text your attempt will fail as with effects present len(Text) > len(displayedGlyphs)
 // Note that you first have to call Markdown.Parse on paragraph that creates mapping for
-// finding cursor. othervise you will end up with zero values.
-func (p *Paragraph) CursorFor(mouse mat.V2) (pos mat.V2, idx int) {
+// finding cursor, othervise you will end up with zero values or invalid values.
+func (p *Paragraph) CursorFor(mouse mat.Vec) (pos mat.Vec, idx int) {
 	mouse = p.Mat().Unproject(mouse)
 
 	for i, pos := range p.dots {
@@ -170,7 +179,7 @@ func (p *Paragraph) Bounds() mat.AABB {
 }
 
 // SetCenter moves paragraph so it is centered at given position
-func (p *Paragraph) SetCenter(pos mat.V2) {
-	v := p.bounds.ToVec().Mul(mat.NV2(.5, -.5))
+func (p *Paragraph) SetCenter(pos mat.Vec) {
+	v := p.bounds.ToVec().Mul(mat.V(.5, -.5))
 	p.Pos = pos.Sub(v)
 }

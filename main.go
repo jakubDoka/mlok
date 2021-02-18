@@ -2,9 +2,7 @@ package main
 
 import (
 	"gobatch/ggl"
-	"gobatch/ggl/txt"
 	"gobatch/mat"
-	"gogen/str"
 )
 
 func main() {
@@ -13,29 +11,24 @@ func main() {
 		panic(err)
 	}
 
-	m := txt.NMarkdown()
-
-	t := ggl.NTexture(&txt.Atlas7x13.Pic)
-
-	b := ggl.NBatch2D(t, nil, nil)
-
-	p := txt.Paragraph{
-		Width: 100,
-		Text:  str.NString("Hello there, as you can see i can draw !green[green] !g[text] and also !33333300[transparent] text"),
+	t, err := ggl.LoadTexture("square.png")
+	if err != nil {
+		panic(err)
 	}
 
-	m.Parse(&p)
+	b := ggl.NBatch(t, nil, nil)
 
-	p.Update(0, 0, 0)
+	w, h := float64(t.W/4), float64(t.H/4)
 
-	p.Draw(b)
+	n := ggl.NNinePatchSprite(t.Frame(), mat.A(w, h, w, h))
 
-	window.SetCamera2D(mat.IM2.Scaled(mat.V2{}, 2))
+	n.Resize(1000, 600)
+
+	n.Draw(b, mat.IM.Scaled(mat.Origin, .5), mat.Alpha(1))
 
 	b.Draw(window)
 
 	for !window.ShouldClose() {
-		b.Draw(window)
 		window.Update()
 	}
 }

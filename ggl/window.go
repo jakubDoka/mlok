@@ -3,14 +3,12 @@ package ggl
 import (
 	"gobatch/mat"
 	"log"
-	"time"
 
-	"github.com/faiface/mainthread"
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
 )
 
-// Setup is something that sets up the window drawing state, as library will support 2D and 3D different
+// Setup is something that sets up the window drawing state, as library will support  and 3D different
 // Setups can be used. its preferale to use lib setup with composition and override methods
 type Setup interface {
 	// VertexShader returns vertex shader source code of Setup
@@ -33,10 +31,10 @@ type Window struct {
 	cursorInsideWindow bool
 
 	prevInp, currInp, tempInp struct {
-		mouse   mat.V2
+		mouse   mat.Vec
 		buttons [KeyLast + 1]bool
 		repeat  [KeyLast + 1]bool
-		scroll  mat.V2
+		scroll  mat.Vec
 		typed   string
 	}
 }
@@ -116,7 +114,7 @@ func NWindow(config *WindowConfig) (*Window, error) {
 	)
 
 	win.SetSizeCallback(func(w *glfw.Window, width, height int) {
-		win.Canvas.Resize(mat.NAABB(0, 0, float64(width), float64(height)))
+		win.Canvas.Resize(mat.A(0, 0, float64(width), float64(height)))
 	})
 
 	config.Setup.Modify(&win)
@@ -124,12 +122,13 @@ func NWindow(config *WindowConfig) (*Window, error) {
 	return &win, nil
 }
 
-// Update updates the window so you can see it changing
+// Update updates the window so you can see it changing and also updates input
 func (w *Window) Update() {
 	width, height := w.GetSize()
-	w.Canvas.Render2D(mat.IM2, w.Mask, int32(width), int32(height))
+	w.Canvas.Render(mat.IM, w.Mask, int32(width), int32(height))
 	w.SwapBuffers()
 	glfw.PollEvents()
+	w.doUpdateInput()
 }
 
 // WindowConfig stores configuration for window, But that des not mean you cannot set these propertis
@@ -175,12 +174,12 @@ func (w *Window) Repeated(button Button) bool {
 }
 
 // MousePos returns the current mouse position in the Window's Bounds.
-func (w *Window) MousePos() mat.V2 {
+func (w *Window) MousePos() mat.Vec {
 	return w.currInp.mouse
 }
 
 // MousePrevPos returns the previous mouse position in the Window's Bounds.
-func (w *Window) MousePrevPos() mat.V2 {
+func (w *Window) MousePrevPos() mat.Vec {
 	return w.prevInp.mouse
 }
 
@@ -190,7 +189,7 @@ func (w *Window) MouseIsInside() bool {
 }
 
 // MouseScroll returns the mouse scroll amount (in both axes) since the last call to Window.Update.
-func (w *Window) MouseScroll() mat.V2 {
+func (w *Window) MouseScroll() mat.Vec {
 	return w.currInp.scroll
 }
 
@@ -514,7 +513,7 @@ func (w *Window) initInput() {
 	})
 
 	w.Window.SetCursorPosCallback(func(_ *glfw.Window, x, y float64) {
-		w.tempInp.mouse = mat.NV2(x, float64(w.H)-y)
+		w.tempInp.mouse = mat.V(x, y).Sub(w.viewpot.Scaled(.5)).Mul(mat.V(1, -1))
 	})
 
 	w.Window.SetScrollCallback(func(_ *glfw.Window, xoff, yoff float64) {
@@ -527,37 +526,14 @@ func (w *Window) initInput() {
 	})
 }
 
-// UpdateInput polls window events. Call this function to poll window events
-// without swapping buffers. Note that the Update method invokes UpdateInput.
-func (w *Window) UpdateInput() {
-	mainthread.Call(func() {
-		glfw.PollEvents()
-	})
-	w.doUpdateInput()
-}
-
-// UpdateInputWait blocks until an event is received or a timeout. If timeout is 0
-// then it will wait indefinitely
-func (w *Window) UpdateInputWait(timeout time.Duration) {
-	mainthread.Call(func() {
-		if timeout <= 0 {
-			glfw.WaitEvents()
-		} else {
-			glfw.WaitEventsTimeout(timeout.Seconds())
-		}
-	})
-	w.doUpdateInput()
-}
-
 // internal input bookkeeping
 func (w *Window) doUpdateInput() {
 	w.prevInp = w.currInp
 	w.currInp = w.tempInp
 
 	w.tempInp.repeat = [KeyLast + 1]bool{}
-	w.tempInp.scroll = mat.V2{}
+	w.tempInp.scroll = mat.Vec{}
 	w.tempInp.typed = ""
-
 }
 
 // WindowHint allows to specify vindow hints (revolution right here)

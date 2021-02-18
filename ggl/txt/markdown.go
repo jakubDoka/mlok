@@ -2,12 +2,12 @@ package txt
 
 import (
 	"gobatch/mat"
-	"gogen/str"
 	"io/ioutil"
 	"math"
 	"os"
 
 	"github.com/golang/freetype/truetype"
+	"github.com/jakubDoka/gogen/str"
 	"golang.org/x/image/font"
 )
 
@@ -220,7 +220,7 @@ o:
 func (m *Markdown) MakeTriangles(p *Paragraph) {
 	p.data.Clear()
 	p.dots = p.dots[:0]
-	p.dot = mat.NV2(0, -p.LineHeight)
+	p.dot = mat.V(0, -p.LineHeight)
 	p.bounds = mat.AABB{}
 
 	p.dots = append(p.dots, p.dot)
@@ -230,7 +230,7 @@ func (m *Markdown) MakeTriangles(p *Paragraph) {
 	}
 
 	if p.raw.Last() != '\n' {
-		p.dots = append(p.dots, mat.NV2(math.MaxFloat64, p.dot.Y))
+		p.dots = append(p.dots, mat.V(math.MaxFloat64, p.dot.Y))
 	}
 
 	for _, e := range p.instant { //instant effects are applied to base data

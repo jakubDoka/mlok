@@ -9,7 +9,7 @@ import (
 // TriangleData is slice that should be modified, delta is to change state of effect
 // in case this is permanent effect
 type Effect interface {
-	Apply(try ggl.VS2D, delta float64)
+	Apply(try ggl.VS, delta float64)
 	Kind() int8
 	Start() int
 	Close(endIdx int)
@@ -48,7 +48,7 @@ func (e *ColorEffect) Kind() int8 {
 }
 
 // Apply implements Effect
-func (e *ColorEffect) Apply(try ggl.VS2D, _ float64) {
+func (e *ColorEffect) Apply(try ggl.VS, _ float64) {
 	try = try[e.start:e.End]
 	for i := range try {
 		try[i].Color = e.Color
@@ -82,7 +82,7 @@ func NFontEffect(font string, start, end int) *FontEffect {
 }
 
 // Apply implements Effect
-func (f *FontEffect) Apply(_ ggl.VS2D, _ float64) {
+func (f *FontEffect) Apply(_ ggl.VS, _ float64) {
 	panic("unimplemented")
 }
 
