@@ -50,65 +50,65 @@ func Alpha(a float64) RGBA {
 	return RGBA{a, a, a, a}
 }
 
-// Add adds color d to color c component-wise and returns the result (the components are not
+// Add adds color d to color r component-wise and returns the result (the components are not
 // clamped).
-func (c RGBA) Add(d RGBA) RGBA {
+func (r RGBA) Add(d RGBA) RGBA {
 	return RGBA{
-		R: c.R + d.R,
-		G: c.G + d.G,
-		B: c.B + d.B,
-		A: c.A + d.A,
+		R: r.R + d.R,
+		G: r.G + d.G,
+		B: r.B + d.B,
+		A: r.A + d.A,
 	}
 }
 
-// Sub subtracts color d from color c component-wise and returns the result (the components
+// Sub subtracts color d from color r component-wise and returns the result (the components
 // are not clamped).
-func (c RGBA) Sub(d RGBA) RGBA {
+func (r RGBA) Sub(d RGBA) RGBA {
 	return RGBA{
-		R: c.R - d.R,
-		G: c.G - d.G,
-		B: c.B - d.B,
-		A: c.A - d.A,
+		R: r.R - d.R,
+		G: r.G - d.G,
+		B: r.B - d.B,
+		A: r.A - d.A,
 	}
 }
 
-// Mul multiplies color c by color d component-wise (the components are not clamped).
-func (c RGBA) Mul(d RGBA) RGBA {
+// Mul multiplies color r by color d component-wise (the components are not clamped).
+func (r RGBA) Mul(d RGBA) RGBA {
 	return RGBA{
-		R: c.R * d.R,
-		G: c.G * d.G,
-		B: c.B * d.B,
-		A: c.A * d.A,
+		R: r.R * d.R,
+		G: r.G * d.G,
+		B: r.B * d.B,
+		A: r.A * d.A,
 	}
 }
 
-// Div divides c by d component-wise (the components are not clamped).
-func (c RGBA) Div(d RGBA) RGBA {
+// Div divides r by d component-wise (the components are not clamped).
+func (r RGBA) Div(d RGBA) RGBA {
 	return RGBA{
-		A: c.A / d.A,
-		B: c.B / d.B,
-		R: c.R / d.R,
-		G: c.G / d.G,
+		A: r.A / d.A,
+		B: r.B / d.B,
+		R: r.R / d.R,
+		G: r.G / d.G,
 	}
 }
 
-// Scaled multiplies each component of color c by scale and returns the result (the components
+// Scaled multiplies each component of color r by scale and returns the result (the components
 // are not clamped).
-func (c RGBA) Scaled(scale float64) RGBA {
+func (r RGBA) Scaled(scale float64) RGBA {
 	return RGBA{
-		R: c.R * scale,
-		G: c.G * scale,
-		B: c.B * scale,
-		A: c.A * scale,
+		R: r.R * scale,
+		G: r.G * scale,
+		B: r.B * scale,
+		A: r.A * scale,
 	}
 }
 
 // RGBA returns alpha-premultiplied red, green, blue and alpha components of the RGBA color.
-func (c RGBA) RGBA() (r, g, b, a uint32) {
-	r = uint32(0xffff * c.R)
-	g = uint32(0xffff * c.G)
-	b = uint32(0xffff * c.B)
-	a = uint32(0xffff * c.A)
+func (r RGBA) RGBA() (rc, g, b, a uint32) {
+	rc = uint32(0xffff * r.R)
+	g = uint32(0xffff * r.G)
+	b = uint32(0xffff * r.B)
+	a = uint32(0xffff * r.A)
 	return
 }
 
@@ -119,9 +119,9 @@ var ErrInvalidHex = errors.New("byte is not a hex code")
 var ErrTooShort = errors.New("hex string is too short (min is 6)")
 
 // HexToRGBA converts hex string to RGBA
-func HexToRGBA(s string) (c RGBA, err error) {
+func HexToRGBA(s string) (r RGBA, err error) {
 	if len(s) < 6 {
-		return c, ErrTooShort
+		return r, ErrTooShort
 	}
 
 	hexToByte := func(b byte) (r byte) {
@@ -139,23 +139,23 @@ func HexToRGBA(s string) (c RGBA, err error) {
 		return
 	}
 
-	c.R = float64(hexToByte(s[0])<<4+hexToByte(s[1])) / 0xFF
-	c.G = float64(hexToByte(s[2])<<4+hexToByte(s[3])) / 0xFF
-	c.B = float64(hexToByte(s[4])<<4+hexToByte(s[5])) / 0xFF
+	r.R = float64(hexToByte(s[0])<<4+hexToByte(s[1])) / 0xFF
+	r.G = float64(hexToByte(s[2])<<4+hexToByte(s[3])) / 0xFF
+	r.B = float64(hexToByte(s[4])<<4+hexToByte(s[5])) / 0xFF
 	if len(s) == 8 {
-		c.A = float64(hexToByte(s[6])<<4+hexToByte(s[7])) / 0xFF
+		r.A = float64(hexToByte(s[6])<<4+hexToByte(s[7])) / 0xFF
 	} else {
-		c.A = 1
+		r.A = 1
 	}
 
-	return c, err
+	return r, err
 }
 
 // ToRGBA converts a color to RGBA format. Using this function is preferred to using RGBAModel, for
 // performance (using RGBAModel introduces additional unnecessary allocations).
 func ToRGBA(c color.Color) RGBA {
-	if c, ok := c.(RGBA); ok {
-		return c
+	if r, ok := c.(RGBA); ok {
+		return r
 	}
 	r, g, b, a := c.RGBA()
 	return RGBA{
@@ -169,6 +169,6 @@ func ToRGBA(c color.Color) RGBA {
 // RGBAModel converts colors to RGBA format.
 var RGBAModel = color.ModelFunc(rgbaModel)
 
-func rgbaModel(c color.Color) color.Color {
-	return ToRGBA(c)
+func rgbaModel(r color.Color) color.Color {
+	return ToRGBA(r)
 }

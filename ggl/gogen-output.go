@@ -1,41 +1,41 @@
 package ggl
 
-// VS implements essential utility methods for any
+// Vertexes implements essential utility methods for any
 // struct satisfying VertexData interface. Its a gogen TEMPLATE:
 //
 // 	/*gen(
-//		VS<Vertex, 9, VS>
+//		Vertexes<Vertex, 9, Vertexes>
 //	)*/
 //
 // this block generates VertexSlice with Vertex and 8 is the size of Vertex,
-// VS is name of generated struct divided by float64 byte size for more info
+// Vertexes is name of generated struct divided by float64 byte size for more info
 // search github.com/jakubDoka/gogen.
-type VS []Vertex
+type Vertexes []Vertex
 
 // Rewrite revrites elements from index to o values
-func (v VS) Rewrite(o VS, idx int) {
+func (v Vertexes) Rewrite(o Vertexes, idx int) {
 	copy(v[idx:], o)
 }
 
 // Clear clears slice
-func (v *VS) Clear() {
+func (v *Vertexes) Clear() {
 	*v = (*v)[:0]
 }
 
 // Len implements VertexData interface
-func (v VS) Len() int {
+func (v Vertexes) Len() int {
 	return len(v)
 }
 
 // VertexSize implements VertexData interface
-func (v VS) VertexSize() int {
+func (v Vertexes) VertexSize() int {
 	return 9
 }
 
 // Data is Vertex and indice collector, mainly utility that handles vertex offsets
 // it also stores one aditionall slice as space for preporsessing
 type Data struct {
-	Vertexes VS
+	Vertexes Vertexes
 	Indices  Indices
 }
 
@@ -54,7 +54,7 @@ func (d *Data) Clear() {
 
 // Accept accepts vertex Data, this is only correct way of feeding batch with Vertexes
 // along side indices, if you don't use indices append directly to Data
-func (d *Data) Accept(Data VS, indices Indices) {
+func (d *Data) Accept(Data Vertexes, indices Indices) {
 	l1 := len(d.Indices)
 	l2 := uint32(d.Vertexes.Len())
 
@@ -92,8 +92,8 @@ func NBatch(texture *Texture, buffer *Buffer, program *Program) *Batch {
 }
 
 // Draw draws all Data to target
-func (b *Batch) Draw(target RenderTarget) {
-	target.Accept(b.Vertexes, b.Indices, b.texture, b.program, b.buffer)
+func (b *Batch) Draw(target Renderer) {
+	target.Render(b.Vertexes, b.Indices, b.texture, b.program, b.buffer)
 }
 
 // Program returns Batch program, it can be nil

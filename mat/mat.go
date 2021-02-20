@@ -1,3 +1,7 @@
+// Package mat focuses on mathematics, in case of more intense operations related to ray cast
+// i left some documentation inside functions in case you want to understand how math here works
+//
+// missing features: Circle, Polygon
 package mat
 
 import (

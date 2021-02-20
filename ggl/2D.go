@@ -14,7 +14,7 @@ type Fetcher interface {
 // Target is something that accepts triangle data, but data is just copied,
 // is is not used for anything, though shifting of indices is Targets roles
 type Target interface {
-	Accept(vertexes VS, indices Indices)
+	Accept(vertexes Vertexes, indices Indices)
 }
 
 // Drawer is triangle drawer, it should always preporcess triangles with given
@@ -28,6 +28,11 @@ type Vertex struct {
 	Pos, Tex  mat.Vec
 	Color     mat.RGBA
 	Intensity float64
+}
+
+// Fetch implements Fetcher interface
+func (d *Data) Fetch(t Target) {
+	t.Accept(d.Vertexes, d.Indices)
 }
 
 // Sprite related constants

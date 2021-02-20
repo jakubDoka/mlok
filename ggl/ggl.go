@@ -307,22 +307,17 @@ type Texture struct {
 // Note that texture is fed with default params and converted ti *image.RGBA if format
 // does not match
 func LoadTexture(p string) (*Texture, error) {
-	imgFile, err := os.Open(p)
+	img, err := LoadImage(p)
 	if err != nil {
-		return nil, fmt.Errorf("texture %q not found on disk: %v", p, err)
+		return nil, err
 	}
 
-	img, _, err := image.Decode(imgFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode %q: %v", p, err)
-	}
-
-	return NTexture(img), nil
+	return NTexture(img, true), nil
 }
 
-// NTexture creates texture with default params
-func NTexture(img image.Image) *Texture {
-	return NTextureWithParams(img, DefaultTextureConfig...)
+// NTexture calls NTextureWithParams with default config
+func NTexture(img image.Image, flip bool) *Texture {
+	return NTextureWithParams(img, flip, DefaultTextureConfig...)
 }
 
 // NTextureWithParams allows you to specify additional parameters when creating texture,
@@ -332,17 +327,24 @@ func NTexture(img image.Image) *Texture {
 //		gl.TexParameteri(gl.TEXTURE_, p.First, p.Second)
 //	}
 //
-// Note that even though this function takes image.Image it will always convert it to image.RGBA
-func NTextureWithParams(img image.Image, params ...TextureParam) *Texture {
-	var rgba *image.RGBA
+// Note that even though this function takes image.Image it will always convert it to image.NRGBA
+// witch should already be present as png is parsed int this format. In
+// order to not affect original image, image is copied either way. If you need multiple instances
+// of texture but faster, flip or convert the image your self and use RawTexture instead.
+func NTextureWithParams(img image.Image, flip bool, params ...TextureParam) *Texture {
+	rgba := image.NewNRGBA(img.Bounds())
 
-	if val, ok := img.(*image.RGBA); ok {
-		rgba = val
+	if val, ok := img.(*image.NRGBA); ok {
+		copy(rgba.Pix, val.Pix)
+		rgba.Stride = val.Stride
 	} else {
-		rgba = image.NewRGBA(img.Bounds())
-
 		draw.Draw(rgba, rgba.Bounds(), img, image.Point{0, 0}, draw.Src)
 	}
+
+	if flip {
+		FlipNRGBA(rgba)
+	}
+
 	return RawTexture(int32(rgba.Rect.Dx()), int32(rgba.Rect.Dy()), rgba.Pix, params...)
 }
 
@@ -374,8 +376,6 @@ func (t *Texture) Resize(w, h int32, pixels []byte) {
 		if t.W == w && t.H == h {
 			return
 		}
-		ptr = gl.Ptr(make([]byte, w*h*4))
-
 	} else {
 		ptr = gl.Ptr(pixels)
 	}
@@ -399,8 +399,8 @@ func (t *Texture) Resize(w, h int32, pixels []byte) {
 
 // Image withdraws texture data from gpu, this is mainly usefull for capturing framebuffer state
 // it basically makes recording possible
-func (t *Texture) Image() *image.RGBA {
-	tex := image.NewRGBA(image.Rect(0, 0, int(t.W), int(t.H)))
+func (t *Texture) Image() *image.NRGBA {
+	tex := image.NewNRGBA(image.Rect(0, 0, int(t.W), int(t.H)))
 
 	t.Start()
 	gl.GetTexImage(gl.TEXTURE_2D, 0, gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(tex.Pix))
@@ -411,12 +411,12 @@ func (t *Texture) Image() *image.RGBA {
 // SubImage returns specified part of texture.
 //
 // panics if region does not fit into texture (only partially overlaps with texture)
-func (t *Texture) SubImage(region image.Rectangle) *image.RGBA {
+func (t *Texture) SubImage(region image.Rectangle) *image.NRGBA {
 	if region.Min.X < 0 || region.Min.Y < 0 || region.Max.X > int(t.W) || region.Max.Y > int(t.H) {
 		panic(fmt.Errorf("texture is of size [%v, %v] so region (%v) does not fit", t.W, t.H, region))
 	}
 
-	tex := image.NewRGBA(region)
+	tex := image.NewNRGBA(region)
 	const rgbaLen = 4
 
 	t.Start()
@@ -469,27 +469,10 @@ func (t Texture) Drop() {
 	gl.DeleteTextures(1, &t.ptr)
 }
 
-// TextureParam specifies what is passed to gl.TextureParametri
+// TextureParam specifies what is passed to gl.TextureParameteri
 type TextureParam struct {
 	First  uint32
 	Second int32
-}
-
-// FlipRGBA flips image along the Y-axis
-func FlipRGBA(r *image.RGBA) {
-	height := r.Rect.Dy()
-	hh := height / 2
-	row := r.Rect.Dx() * 4
-	tmp := make([]byte, row)
-	for i := 0; i < hh; i++ {
-		nw := row * i
-		iv := row * (height - 1 - i)
-		a, b := r.Pix[nw:nw+row], r.Pix[iv:iv+row]
-
-		copy(tmp, a)
-		copy(a, b)
-		copy(b, tmp)
-	}
 }
 
 // DefaultTextureConfig use this if you don't know what to use
@@ -506,4 +489,36 @@ type Ptr struct {
 // ID returns pointer valuse
 func (p Ptr) ID() uint32 {
 	return p.ptr
+}
+
+// LoadImage loads image from disk
+func LoadImage(p string) (image.Image, error) {
+	imgFile, err := os.Open(p)
+	if err != nil {
+		return nil, fmt.Errorf("image %q not found on disk: %v", p, err)
+	}
+
+	img, _, err := image.Decode(imgFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode %q: %v", p, err)
+	}
+
+	return img, nil
+}
+
+// FlipNRGBA flips image over the X-axis
+func FlipNRGBA(r *image.NRGBA) {
+	height := r.Rect.Dy()
+	hh := height / 2
+	row := r.Rect.Dx() * 4
+	tmp := make([]byte, row)
+	for i := 0; i < hh; i++ {
+		nw := row * i
+		iv := row * (height - 1 - i)
+		a, b := r.Pix[nw:nw+row], r.Pix[iv:iv+row]
+
+		copy(tmp, a)
+		copy(a, b)
+		copy(b, tmp)
+	}
 }

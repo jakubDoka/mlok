@@ -26,10 +26,10 @@ func A(minX, minY, maxX, maxY float64) AABB {
 }
 
 // ToAABB converts image.Rectangle to AABB
-func ToAABB(r image.Rectangle) AABB {
+func ToAABB(a image.Rectangle) AABB {
 	return AABB{
-		Vec{float64(r.Min.X), float64(r.Min.Y)},
-		Vec{float64(r.Max.X), float64(r.Max.Y)},
+		Vec{float64(a.Min.X), float64(a.Min.Y)},
+		Vec{float64(a.Max.X), float64(a.Max.Y)},
 	}
 }
 
@@ -45,97 +45,91 @@ func CR(c Vec, w, h float64) AABB {
 }
 
 // FromRect converts image.Rectangle to AABB
-func FromRect(r image.Rectangle) AABB {
+func FromRect(a image.Rectangle) AABB {
 	return AABB{
-		Vec{float64(r.Min.X), float64(r.Min.Y)},
-		Vec{float64(r.Max.X), float64(r.Max.Y)},
+		Vec{float64(a.Min.X), float64(a.Min.Y)},
+		Vec{float64(a.Max.X), float64(a.Max.Y)},
 	}
 }
 
 // ToImage converts AABB to image.AABB
-func (r AABB) ToImage() image.Rectangle {
+func (a AABB) ToImage() image.Rectangle {
 	return image.Rect(
-		int(r.Min.X),
-		int(r.Min.Y),
-		int(r.Max.X),
-		int(r.Max.Y),
+		int(a.Min.X),
+		int(a.Min.Y),
+		int(a.Max.X),
+		int(a.Max.Y),
 	)
 }
 
 // ToVec converts AABB to vec where x is AABB width anc y is rect Height
-func (r AABB) ToVec() Vec {
-	return r.Min.To(r.Max)
+func (a AABB) ToVec() Vec {
+	return a.Min.To(a.Max)
 }
 
 // String returns the string representation of the AABB.
-func (r AABB) String() string {
-	return fmt.Sprintf("A(%.3f %.3f %.3f %.3f)", r.Min.X, r.Min.Y, r.Max.X, r.Max.Y)
+func (a AABB) String() string {
+	return fmt.Sprintf("A(%.3f %.3f %.3f %.3f)", a.Min.X, a.Min.Y, a.Max.X, a.Max.Y)
 }
 
 // Norm returns the AABB in normal form, such that Max is component-wise greater or equal than Min.
-func (r AABB) Norm() AABB {
+func (a AABB) Norm() AABB {
 	return AABB{
 		Min: Vec{
-			math.Min(r.Min.X, r.Max.X),
-			math.Min(r.Min.Y, r.Max.Y),
+			math.Min(a.Min.X, a.Max.X),
+			math.Min(a.Min.Y, a.Max.Y),
 		},
 		Max: Vec{
-			math.Max(r.Min.X, r.Max.X),
-			math.Max(r.Min.Y, r.Max.Y),
+			math.Max(a.Min.X, a.Max.X),
+			math.Max(a.Min.Y, a.Max.Y),
 		},
 	}
 }
 
 // W returns the width of the AABB.
-func (r AABB) W() float64 {
-	return r.Max.X - r.Min.X
+func (a AABB) W() float64 {
+	return a.Max.X - a.Min.X
 }
 
 // H returns the height of the AABB.
-func (r AABB) H() float64 {
-	return r.Max.Y - r.Min.Y
+func (a AABB) H() float64 {
+	return a.Max.Y - a.Min.Y
 }
 
 // Size returns the vector of width and height of the AABB.
-func (r AABB) Size() Vec {
-	return Vec{r.W(), r.H()}
+func (a AABB) Size() Vec {
+	return Vec{a.W(), a.H()}
 }
 
-// Area returns the area of r. If r is not normalized, area may be negative.
-func (r AABB) Area() float64 {
-	return r.W() * r.H()
+// Area returns the area of a. If a is not normalized, area may be negative.
+func (a AABB) Area() float64 {
+	return a.W() * a.H()
 }
 
 // Center returns the position of the center of the AABB.
-func (r AABB) Center() Vec {
-	return r.Min.Lerp(r.Max, 0.5)
+func (a AABB) Center() Vec {
+	return a.Min.Lerp(a.Max, 0.5)
 }
 
 // Moved returns the AABB moved (both Min and Max) by the given vector delta.
-func (r AABB) Moved(delta Vec) AABB {
+func (a AABB) Moved(delta Vec) AABB {
 	return AABB{
-		Min: r.Min.Add(delta),
-		Max: r.Max.Add(delta),
+		Min: a.Min.Add(delta),
+		Max: a.Max.Add(delta),
 	}
 }
 
 // Resized returns the AABB resized to the given size while keeping the position of the given
 // anchor.
 //
-//   r.Resized(r.Min, size)      // resizes while keeping the position of the lower-left corner
-//   r.Resized(r.Max, size)      // same with the top-right corner
-//   r.Resized(r.Center(), size) // resizes around the center
-//
-// This function does not make sense for resizing a rectangle of zero area and will panic. Use
-// ResizedMin in the case of zero area.
-func (r AABB) Resized(anchor, size Vec) AABB {
-	if r.W()*r.H() == 0 {
-		panic(fmt.Errorf("(%T).Resize: zero area", r))
-	}
-	fraction := Vec{size.X / r.W(), size.Y / r.H()}
+//   a.Resized(a.Min, size)      // resizes while keeping the position of the lower-left corner
+//   a.Resized(a.Max, size)      // same with the top-right corner
+//   a.Resized(a.Center(), size) // resizes around the center
+func (a AABB) Resized(anchor, size Vec) AABB {
+	fraction := Vec{size.X / a.W(), size.Y / a.H()}
 	return AABB{
-		Min: anchor.Add(r.Min.Sub(anchor).Mul(fraction)),
-		Max: anchor.Add(r.Max.Sub(anchor).Mul(fraction)),
+		Min: anchor.Add(a.Min.Sub(anchor).Mul(fraction)),
+		Max: anchor.Add(a.Max.Sub(anchor).Mul(fraction)),
 	}
 }
 
@@ -143,37 +137,37 @@ func (r AABB) Resized(anchor, size Vec) AABB {
 // Min.
 //
 // Sizes of zero area are safe here.
-func (r AABB) ResizedMin(size Vec) AABB {
+func (a AABB) ResizedMin(size Vec) AABB {
 	return AABB{
-		Min: r.Min,
-		Max: r.Min.Add(size),
+		Min: a.Min,
+		Max: a.Min.Add(size),
 	}
 }
 
 // Contains checks whether a vector u is contained within this AABB (including it's borders).
-func (r AABB) Contains(u Vec) bool {
-	return r.Min.X <= u.X && u.X <= r.Max.X && r.Min.Y <= u.Y && u.Y <= r.Max.Y
+func (a AABB) Contains(u Vec) bool {
+	return a.Min.X <= u.X && u.X <= a.Max.X && a.Min.Y <= u.Y && u.Y <= a.Max.Y
 }
 
-// Union returns the minimal AABB which covers both r and s. AABBs r and s must be normalized.
-func (r AABB) Union(s AABB) AABB {
+// Union returns the minimal AABB which covers both a and s. AABBs a and s must be normalized.
+func (a AABB) Union(s AABB) AABB {
 	return A(
-		math.Min(r.Min.X, s.Min.X),
-		math.Min(r.Min.Y, s.Min.Y),
-		math.Max(r.Max.X, s.Max.X),
-		math.Max(r.Max.Y, s.Max.Y),
+		math.Min(a.Min.X, s.Min.X),
+		math.Min(a.Min.Y, s.Min.Y),
+		math.Max(a.Max.X, s.Max.X),
+		math.Max(a.Max.Y, s.Max.Y),
 	)
 }
 
-// Intersect returns the maximal AABB which is covered by both r and s. AABBs r and s must be normalized.
+// Intersect returns the maximal AABB which is covered by both a and s. AABBs a and s must be normalized.
 //
-// If r and s don't overlap, this function returns a zero-rectangle.
-func (r AABB) Intersect(s AABB) AABB {
+// If a and s don't overlap, this function returns a zero-rectangle.
+func (a AABB) Intersect(s AABB) AABB {
 	t := A(
-		math.Max(r.Min.X, s.Min.X),
-		math.Max(r.Min.Y, s.Min.Y),
-		math.Min(r.Max.X, s.Max.X),
-		math.Min(r.Max.Y, s.Max.Y),
+		math.Max(a.Min.X, s.Min.X),
+		math.Max(a.Min.Y, s.Min.Y),
+		math.Min(a.Max.X, s.Max.X),
+		math.Min(a.Max.Y, s.Max.Y),
 	)
 
 	if t.Min.X >= t.Max.X || t.Min.Y >= t.Max.Y {
@@ -187,27 +181,27 @@ func (r AABB) Intersect(s AABB) AABB {
 //
 // This function is overall about 5x faster than Intersect, so it is better
 // to use if you have no need for the returned AABB from Intersect.
-func (r AABB) Intersects(s AABB) bool {
-	return !(s.Max.X < r.Min.X ||
-		s.Min.X > r.Max.X ||
-		s.Max.Y < r.Min.Y ||
-		s.Min.Y > r.Max.Y)
+func (a AABB) Intersects(s AABB) bool {
+	return !(s.Max.X < a.Min.X ||
+		s.Min.X > a.Max.X ||
+		s.Max.Y < a.Min.Y ||
+		s.Min.Y > a.Max.Y)
 }
 
 // Vertices returns a slice of the four corners which make up the rectangle.
-func (r AABB) Vertices() [4]Vec {
+func (a AABB) Vertices() [4]Vec {
 	return [4]Vec{
-		r.Min,
-		{r.Min.X, r.Max.Y},
-		r.Max,
-		{r.Max.X, r.Min.Y},
+		a.Min,
+		{a.Min.X, a.Max.Y},
+		a.Max,
+		{a.Max.X, a.Min.Y},
 	}
 }
 
 // LocalVertices creates array of vertices relative to center of rect
-func (r AABB) LocalVertices() [4]Vec {
-	v := r.Vertices()
-	c := r.Center()
+func (a AABB) LocalVertices() [4]Vec {
+	v := a.Vertices()
+	c := a.Center()
 
 	for i, e := range v {
 		v[i] = e.Sub(c)
@@ -239,4 +233,29 @@ func VecBounds(vectors ...Vec) (base AABB) {
 	}
 
 	return base
+}
+
+// Clamp clamps Vec inside AABB area
+func (a AABB) Clamp(v Vec) Vec {
+	return Vec{
+		math.Max(math.Min(v.X, a.Max.X), a.Min.X),
+		math.Max(math.Min(v.Y, a.Max.Y), a.Min.Y),
+	}
+}
+
+// Flatten returns AABB flattened into Array, values are
+// in same order as they would be stored on stack
+func (a AABB) Flatten() [4]float64 {
+	return [...]float64{a.Min.X, a.Min.Y, a.Max.X, a.Max.Y}
+}
+
+// Mutator is similar to Iterator but this gives option to mutate
+// state of AABB trough Array Entries
+func (a *AABB) Mutator() [4]*float64 {
+	return [...]*float64{&a.Min.X, &a.Min.Y, &a.Max.X, &a.Max.Y}
+}
+
+// Deco returns edge values
+func (a *AABB) Deco() (left, bottom, right, top float64) {
+	return a.Min.X, a.Min.Y, a.Max.X, a.Max.Y
 }

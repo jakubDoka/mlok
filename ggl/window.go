@@ -125,7 +125,7 @@ func NWindow(config *WindowConfig) (*Window, error) {
 // Update updates the window so you can see it changing and also updates input
 func (w *Window) Update() {
 	width, height := w.GetSize()
-	w.Canvas.Render(mat.IM, w.Mask, int32(width), int32(height))
+	w.Canvas.RenderToScreen(mat.IM, w.Mask, int32(width), int32(height))
 	w.SwapBuffers()
 	glfw.PollEvents()
 	w.doUpdateInput()
@@ -198,7 +198,7 @@ func (w *Window) Typed() string {
 	return w.currInp.typed
 }
 
-// Button is a keyboard or mouse button. Why distinguish?
+// Button is a keyboard or mouse button.
 type Button int
 
 // List of all mouse buttons.

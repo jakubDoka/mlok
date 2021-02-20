@@ -33,24 +33,18 @@ import (
 type Geom struct {
 	ggl.Data
 	tmp ggl.Data
-
-	col        mat.RGBA
-	edge       Edge
-	loop, fill bool
-	width      float64
-	intens     float64
-
+	geomCfg
 	convexes []bool
 }
 
 // NGeomDrawer sets some nice default values
 func NGeomDrawer() Geom {
-	return Geom{
-		col:   mat.Alpha(1),
-		edge:  CutEdge{},
-		fill:  true,
-		width: 10,
-	}
+	return Geom{geomCfg: nGeomCfg()}
+}
+
+// Restart restarts the configuration to default one
+func (g *Geom) Restart() {
+	g.geomCfg = nGeomCfg()
 }
 
 // ExampleGD show example use of geom drawer
@@ -77,7 +71,7 @@ func ExampleGD(t ggl.Target) {
 }
 
 // Accept implements ggl.Target interface
-func (g *Geom) Accept(vertexes ggl.VS, indices ggl.Indices) {
+func (g *Geom) Accept(vertexes ggl.Vertexes, indices ggl.Indices) {
 	start := g.Vertexes.Len()
 	g.Data.Accept(vertexes, indices)
 	g.Apply(start, g.Vertexes.Len())
@@ -160,13 +154,13 @@ func (g *Geom) Rect(corners [4]mat.Vec) {
 }
 
 // Reserve reserves vertexes, sets theier intensity and color and returns slice that points to them
-func (g *Geom) Reserve(amount int) ggl.VS {
+func (g *Geom) Reserve(amount int) ggl.Vertexes {
 	ol := len(g.Vertexes)
 	l := ol + amount
 	if cap(g.Vertexes) >= l {
 		g.Vertexes = g.Vertexes[:l]
 	} else {
-		nv := make(ggl.VS, l)
+		nv := make(ggl.Vertexes, l)
 		copy(nv, g.Vertexes)
 		g.Vertexes = nv
 	}
@@ -217,7 +211,7 @@ func (g *Geom) Line(points ...mat.Vec) {
 // Edge ...
 type Edge interface {
 	Size(size int, loop bool) int
-	Process(e *EdgeData, vertexes ggl.VS, idx, size int)
+	Process(e *EdgeData, vertexes ggl.Vertexes, idx, size int)
 	Indices(size, shift int, loop bool, buff *ggl.Indices, convexes []bool)
 }
 
@@ -289,7 +283,7 @@ func (c EdgeBase) Size(i int, loop bool) int {
 }
 
 // Process implements Edge interface
-func (c EdgeBase) Process(e *EdgeData, vertexes ggl.VS, idx, _ int) {
+func (c EdgeBase) Process(e *EdgeData, vertexes ggl.Vertexes, idx, _ int) {
 	idx *= c.EdgeSize()
 	for i, v := range e.Segment {
 		vertexes[idx+i].Pos = v
@@ -316,4 +310,20 @@ func (c EdgeBase) Indices(size, shift int, loop bool, buff *ggl.Indices, convexe
 // EdgeSize returns size of one edge of cut Edge
 func (c EdgeBase) EdgeSize() int {
 	return 4
+}
+
+type geomCfg struct {
+	col        mat.RGBA
+	edge       Edge
+	loop, fill bool
+	width      float64
+	intens     float64
+}
+
+func nGeomCfg() geomCfg {
+	return geomCfg{
+		col:   mat.Alpha(1),
+		width: 10,
+		fill:  true,
+	}
 }

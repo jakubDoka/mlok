@@ -38,7 +38,7 @@ type Glyph struct {
 // Atlas is a set of pre-drawn glyphs of a fixed set of runes. This allows for efficient text drawing.
 type Atlas struct {
 	face       font.Face
-	Pic        image.RGBA
+	Pic        *image.NRGBA
 	mapping    map[rune]Glyph
 	ascent     float64
 	descent    float64
@@ -67,7 +67,7 @@ func NewAtlas(face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 
 	fixedMapping, fixedBounds := makeSquareMapping(face, runes, fixed.I(2), spacing)
 
-	atlasImg := image.NewRGBA(image.Rect(
+	atlasImg := image.NewNRGBA(image.Rect(
 		fixedBounds.Min.X.Floor(),
 		fixedBounds.Min.Y.Floor(),
 		fixedBounds.Max.X.Ceil(),
@@ -79,7 +79,7 @@ func NewAtlas(face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 		draw.Draw(atlasImg, dr, mask, maskp, draw.Src)
 	}
 
-	ggl.FlipRGBA(atlasImg)
+	ggl.FlipNRGBA(atlasImg)
 
 	bounds := mat.A(
 		i2f(fixedBounds.Min.X),
@@ -107,7 +107,7 @@ func NewAtlas(face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 
 	return &Atlas{
 		face:       face,
-		Pic:        *atlasImg,
+		Pic:        atlasImg,
 		mapping:    mapping,
 		ascent:     i2f(face.Metrics().Ascent),
 		descent:    i2f(face.Metrics().Descent),

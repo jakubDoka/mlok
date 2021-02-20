@@ -3,8 +3,8 @@ package ggl
 const elementsize = 0
 
 /*gen(
-	vertexSlice<Vertex, 9, VS>
-	data<VS, Data>
+	vertexSlice<Vertex, 9, Vertexes>
+	data<Vertexes, Data>
 	batch<Data, NBatch, Batch>
 )*/
 
@@ -15,11 +15,11 @@ const elementsize = 0
 // struct satisfying VertexData interface. Its a gogen TEMPLATE:
 //
 // 	/*gen(
-//		vertexSlice<Vertex, 9, VS>
+//		vertexSlice<Vertex, 9, Vertexes>
 //	)*/
 //
 // this block generates VertexSlice with Vertex and 8 is the size of Vertex,
-// VS is name of generated struct divided by float64 byte size for more info
+// Vertexes is name of generated struct divided by float64 byte size for more info
 // search github.com/jakubDoka/gogen.
 type vertexSlice []interface{}
 
@@ -113,8 +113,8 @@ func nbatch(texture *Texture, buffer *Buffer, program *Program) *batch {
 }
 
 // Draw draws all data to target
-func (b *batch) Draw(target RenderTarget) {
-	target.Accept(b.Vertexes, b.Indices, b.texture, b.program, b.buffer)
+func (b *batch) Draw(target Renderer) {
+	target.Render(b.Vertexes, b.Indices, b.texture, b.program, b.buffer)
 }
 
 // Program returns batch program, it can be nil

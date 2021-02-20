@@ -2,6 +2,7 @@ package refl
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 )
 
@@ -65,25 +66,24 @@ func TestOverwriteDefault(t *testing.T) {
 			"Simple",
 			&Test1{1, 0},
 			&Test1{0, 1},
-			Test1{1, 1},
+			&Test1{1, 1},
 		},
 
 		{
 			"Nested",
 			&Test2{Test1{1, 0}, 0, ""},
 			&Test2{Test1{0, 1}, 1, "asd"},
-			Test2{Test1{1, 1}, 1, "asd"},
+			&Test2{Test1{1, 1}, 1, "asd"},
 		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			OverwriteDefault(tC.target, tC.defaults)
-			if reflect.DeepEqual(tC.target, tC.result) {
+			Overwrite(tC.target, tC.defaults, true)
+			if !reflect.DeepEqual(tC.target, tC.result) {
 				t.Error(tC.target, tC.result)
 			}
 		})
 	}
-	t.Fail()
 }
 
 func BenchmarkOverwriteDefault(b *testing.B) {
@@ -106,6 +106,63 @@ func BenchmarkOverwriteDefault(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		OverwriteDefault(&value, &defa)
+		Overwrite(&value, &defa, true)
+	}
+}
+
+type Test3 string
+
+func (t Test3) Dec() (int, error) {
+	return strconv.Atoi(string(t))
+}
+
+type Test4 struct {
+	A, B, C Test3
+}
+
+type Test5 struct {
+	A, B, C int
+}
+
+func TestConvert(t *testing.T) {
+	t1s := Test3("10")
+	t1d := 0
+	t1r := 10
+	t2s := Test4{Test3("10"), Test3("100"), Test3("4")}
+	t2d := Test5{}
+	t2r := Test5{10, 100, 4}
+	testCases := []struct {
+		desc           string
+		scr, dest, res interface{}
+		fail           bool
+	}{
+		{
+			desc: "string to int",
+			scr:  &t1s,
+			dest: &t1d,
+			res:  &t1r,
+		},
+		{
+			desc: "nested",
+			scr:  &t2s,
+			dest: &t2d,
+			res:  &t2r,
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			err := Convert(tC.scr, tC.dest, "Dec")
+			if tC.fail && err != nil {
+				t.Fail()
+			}
+
+			if tC.fail {
+				return
+			}
+
+			if !reflect.DeepEqual(tC.dest, tC.res) {
+				t.Error(reflect.ValueOf(tC.dest).Elem().Interface(), reflect.ValueOf(tC.res).Elem().Interface())
+			}
+		})
 	}
 }

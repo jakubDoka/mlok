@@ -9,10 +9,10 @@ import (
 	"github.com/go-gl/gl/v3.3-core/gl"
 )
 
-// RenderTarget is something that you can draw to, last tree parameters can be optional and not even be used
+// Renderer is something that you can draw to, last tree parameters can be optional and not even be used
 // by a target, though if you don't provide tham when you should Target can fall back to defaults or panic
-type RenderTarget interface {
-	Accept(data VertexData, indices Indices, texture *Texture, program *Program, buffer *Buffer)
+type Renderer interface {
+	Render(data VertexData, indices Indices, texture *Texture, program *Program, buffer *Buffer)
 }
 
 // Canvas allows of screen drawing, drawing to canvas produces draw calls. Its the abstraction
@@ -68,8 +68,8 @@ func NCanvas(texture Texture, program Program, buffer Buffer) *Canvas {
 	return c
 }
 
-// Accept implements Target interface
-func (c *Canvas) Accept(data VertexData, indices Indices, texture *Texture, program *Program, buffer *Buffer) {
+// Render implements Renderer interface
+func (c *Canvas) Render(data VertexData, indices Indices, texture *Texture, program *Program, buffer *Buffer) {
 	c.Start()
 	p := &c.Program
 	if program != nil {
@@ -139,20 +139,20 @@ func setCanvas(nc uint32) {
 // 	c.Render(t, mat.IM.Scaled(mat.Vec{}, 2), mat.RGB(1, 0, 0)) //draws framebuffer scaled up with red mask to t
 //
 // method makes draw call
-func (c *Canvas) Draw(t RenderTarget, mat mat.Mat, mask mat.RGBA) {
+func (c *Canvas) Draw(t Renderer, mat mat.Mat, mask mat.RGBA) {
 	c.data.Clear()
 	c.sprite.Draw(&c.data, mat, mask)
 
-	t.Accept(c.data.Vertexes, c.data.Indices, &c.Texture, &c.Program, &c.Buffer)
+	t.Render(c.data.Vertexes, c.data.Indices, &c.Texture, &c.Program, &c.Buffer)
 }
 
-// Render renders canvas to main framebuffer (window framebuffer) as a  sprite:
+// RenderToScreen renders canvas to main framebuffer (window framebuffer) as a  sprite:
 //
 // 	c.Render(mat.IM, mat.Alpha(1)) //draws framebuffer to the center of a screen as it is
 // 	c.Render(mat.IM.Scaled(mat.Vec{}, 2), mat.RGB(1, 0, 0)) //draws framebuffer scaled up with red mask
 //
 // method makes draw call
-func (c *Canvas) Render(mat mat.Mat, mask mat.RGBA, w, h int32) {
+func (c *Canvas) RenderToScreen(mat mat.Mat, mask mat.RGBA, w, h int32) {
 	c.data.Clear()
 	c.sprite.Draw(&c.data, mat, mask)
 	EndCanvas()
