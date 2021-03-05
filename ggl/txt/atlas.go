@@ -6,6 +6,7 @@ import (
 	"gobatch/mat"
 	"image"
 	"image/draw"
+	"math"
 	"sort"
 	"unicode"
 
@@ -25,7 +26,7 @@ func init() {
 	for i := range ASCII {
 		ASCII[i] = rune(32 + i)
 	}
-	Atlas7x13 = NewAtlas(basicfont.Face7x13, 2, ASCII)
+	Atlas7x13 = NewAtlas(basicfont.Face7x13, 0, ASCII)
 }
 
 // Glyph describes one glyph in an Atlas.
@@ -75,8 +76,9 @@ func NewAtlas(face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 		fixedBounds.Max.Y.Ceil(),
 	))
 
-	for r, fg := range fixedMapping {
-		dr, mask, maskp, _, _ := face.Glyph(fg.dot, r)
+	for i := range fixedMapping {
+		fg := &fixedMapping[i]
+		dr, mask, maskp, _, _ := face.Glyph(fg.dot, fg.r)
 		draw.Draw(atlasImg, dr, mask, maskp, draw.Src)
 	}
 
@@ -90,18 +92,19 @@ func NewAtlas(face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 	)
 
 	mapping := make(map[rune]Glyph)
-	for r, fg := range fixedMapping {
-		mapping[r] = Glyph{
+	for i := range fixedMapping {
+		fg := &fixedMapping[i]
+		mapping[fg.r] = Glyph{
 			Dot: mat.V(
 				i2f(fg.dot.X),
-				bounds.Max.Y-(i2f(fg.dot.Y)-bounds.Min.Y),
+				bounds.Max.Y-i2f(fg.dot.Y),
 			),
 			Frame: mat.A(
 				i2f(fg.frame.Min.X),
-				bounds.Max.Y-(i2f(fg.frame.Min.Y)-bounds.Min.Y),
+				bounds.Max.Y-i2f(fg.frame.Min.Y),
 				i2f(fg.frame.Max.X),
-				bounds.Max.Y-(i2f(fg.frame.Max.Y)-bounds.Min.Y),
-			).Norm().Moved(bounds.Min.Inv()),
+				bounds.Max.Y-i2f(fg.frame.Max.Y),
+			),
 			Advance: i2f(fg.advance),
 		}
 	}
@@ -158,7 +161,8 @@ func (a *Atlas) DrawRune(prevR, r rune, dot mat.Vec) (rect, frame, bounds mat.AA
 		r = unicode.ReplacementChar
 	}
 	if !a.Contains(unicode.ReplacementChar) {
-		return mat.AABB{}, mat.AABB{}, mat.AABB{}, dot
+		newDot = dot
+		return
 	}
 	if !a.Contains(prevR) {
 		prevR = unicode.ReplacementChar
@@ -176,9 +180,9 @@ func (a *Atlas) DrawRune(prevR, r rune, dot mat.Vec) (rect, frame, bounds mat.AA
 	if bounds.Area() != 0 {
 		bounds = mat.A(
 			bounds.Min.X+a.spacing,
-			dot.Y-a.Descent()+a.spacing,
+			dot.Y-a.Descent(),
 			bounds.Max.X-a.spacing,
-			dot.Y+a.Ascent()-a.spacing,
+			dot.Y+a.Ascent(),
 		)
 	}
 
@@ -188,6 +192,7 @@ func (a *Atlas) DrawRune(prevR, r rune, dot mat.Vec) (rect, frame, bounds mat.AA
 }
 
 type fixedGlyph struct {
+	r       rune
 	dot     fixed.Point26_6
 	frame   fixed.Rectangle26_6
 	advance fixed.Int26_6
@@ -195,24 +200,31 @@ type fixedGlyph struct {
 
 // makeSquareMapping finds an optimal glyph arrangement of the given runes, so that their common
 // bounding box is as square as possible.
-func makeSquareMapping(face font.Face, runes []rune, padding fixed.Int26_6, spacing int) (map[rune]fixedGlyph, fixed.Rectangle26_6) {
-	width := sort.Search(int(fixed.I(1024*1024)), func(i int) bool {
+func makeSquareMapping(face font.Face, runes []rune, padding fixed.Int26_6, spacing int) ([]fixedGlyph, fixed.Rectangle26_6) {
+	var bounds fixed.Rectangle26_6
+
+	buff := make([]fixedGlyph, len(runes))
+	bounds = makeMapping(face, runes, padding, math.MaxInt32, spacing, &buff) // find longest possible composition
+
+	sort.Search(int(bounds.Max.X-bounds.Min.X), func(i int) bool {
 		width := fixed.Int26_6(i)
-		_, bounds := makeMapping(face, runes, padding, width, spacing)
+		bounds = makeMapping(face, runes, padding, width, spacing, &buff)
 		return bounds.Max.X-bounds.Min.X >= bounds.Max.Y-bounds.Min.Y
 	})
-	return makeMapping(face, runes, padding, fixed.Int26_6(width), spacing)
+
+	return buff, bounds
 }
 
 // makeMapping arranges glyphs of the given runes into rows in such a way, that no glyph is located
 // fully to the right of the specified width. Specifically, it places glyphs in a row one by one and
 // once it reaches the specified width, it starts a new row.
-func makeMapping(face font.Face, runes []rune, padding, width fixed.Int26_6, spacing int) (map[rune]fixedGlyph, fixed.Rectangle26_6) {
-	mapping := make(map[rune]fixedGlyph)
+func makeMapping(face font.Face, runes []rune, padding, width fixed.Int26_6, spacing int, buffer *[]fixedGlyph) fixed.Rectangle26_6 {
+	buff := (*buffer)[:0]
 	bounds := fixed.Rectangle26_6{}
 	additional := fixed.I(2 * spacing)
 
 	dot := fixed.P(0, 0)
+	dot.Y = face.Metrics().Ascent
 
 	for _, r := range runes {
 		b, advance, ok := face.GlyphBounds(r)
@@ -230,11 +242,12 @@ func makeMapping(face font.Face, runes []rune, padding, width fixed.Int26_6, spa
 		dot.X -= frame.Min.X
 		frame = frame.Add(dot)
 
-		mapping[r] = fixedGlyph{
-			dot:     dot,
+		buff = append(buff, fixedGlyph{
+			r:       r,
+			dot:     dot.Add(fixed.P(0, spacing)),
 			frame:   frame,
 			advance: advance,
-		}
+		})
 		bounds = bounds.Union(frame)
 
 		dot.X = frame.Max.X
@@ -254,7 +267,8 @@ func makeMapping(face font.Face, runes []rune, padding, width fixed.Int26_6, spa
 		}
 	}
 
-	return mapping, bounds
+	*buffer = buff
+	return bounds
 }
 
 func i2f(i fixed.Int26_6) float64 {

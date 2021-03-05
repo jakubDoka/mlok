@@ -61,7 +61,7 @@ func (t *Text) Init(e *Element) {
 	t.Props.Size = t.Vec("text_size", mat.V(Fill, Fill))
 	t.Props.Margin = t.AABB("text_margin", mat.A(4, 4, 4, 4))
 
-	t.Proc = &t.SpriteViewport
+	//t.Proc = &t.SpriteViewport
 	t.Text = str.NString(t.text)
 }
 

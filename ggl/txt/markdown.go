@@ -226,7 +226,7 @@ o:
 func (m *Markdown) MakeTriangles(p *Paragraph) {
 	p.data.Clear()
 	p.dots = p.dots[:0]
-	p.dot = mat.V(0, -p.Ascent*2)
+	p.dot = mat.V(0, -p.Ascent)
 	p.bounds = mat.AABB{Min: p.dot, Max: p.dot}
 
 	p.dots = append(p.dots, p.dot)
