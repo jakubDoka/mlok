@@ -4,6 +4,7 @@ import (
 	"gobatch/ggl/pck"
 	"gobatch/ggl/txt"
 	"gobatch/mat"
+	"gobatch/mat/rgba"
 
 	"github.com/jakubDoka/goml/goss"
 )
@@ -42,10 +43,8 @@ func (s *Props) Horizontal() bool {
 func (s *Props) Init() {
 	s.Margin = s.AABB("margin", mat.ZA)
 	s.Size = s.Vec("size", mat.ZV)
-	c, _ := s.Int("composition")
-	s.Composition = Composition(c)
-	c, _ = s.Int("resize_mode")
-	s.ResizeMode = ResizeMode(c)
+	s.Composition = s.RawStyle.Composition("composition")
+	s.ResizeMode = s.RawStyle.ResizeMode("resize_mode")
 }
 
 // Composition ...
@@ -62,6 +61,11 @@ const (
 	// Horizontal makes children ordered horizontally
 	Horizontal
 )
+
+var compositions = map[string]Composition{
+	"vertical":   Vertical,
+	"horizontal": Horizontal,
+}
 
 // ResizeMode ...
 type ResizeMode uint8
@@ -83,6 +87,13 @@ const (
 	Ignore
 )
 
+var resizeModes = map[string]ResizeMode{
+	"Expand": Expand,
+	"exact":  Exact,
+	"shring": Shrink,
+	"ignore": Ignore,
+}
+
 // Fill - if Margin is equal Fill it will take a remaining space in element
 // if there are multiple elements with fill margin, space is split between them
 const Fill float64 = 100000.767898765556788777667787666
@@ -90,6 +101,38 @@ const Fill float64 = 100000.767898765556788777667787666
 // RawStyle is wrapper of goss.Style and adds extra functionality
 type RawStyle struct {
 	goss.Style
+}
+
+// Composition parses style composition, if parsing fails, Vertical is returned
+func (r RawStyle) Composition(key string) (c Composition) {
+	val, ok := r.Style[key]
+	if !ok {
+		return
+	}
+
+	switch v := val[0].(type) {
+	case int:
+		return Composition(v)
+	case string:
+		return compositions[v]
+	}
+	return
+}
+
+// ResizeMode parser resize mode, if pasring fails Expand is returned
+func (r RawStyle) ResizeMode(key string) (e ResizeMode) {
+	val, ok := r.Style[key]
+	if !ok {
+		return
+	}
+
+	switch v := val[0].(type) {
+	case int:
+		return ResizeMode(v)
+	case string:
+		return resizeModes[v]
+	}
+	return
 }
 
 // Ident returns string from Style or def if not present
@@ -115,6 +158,8 @@ func (r RawStyle) Vec(key string, def mat.Vec) (u mat.Vec) {
 		switch v := val[i].(type) {
 		case float64:
 			components[i] = v
+		case int:
+			components[i] = float64(v)
 		case string:
 			if v != "fill" {
 				return
@@ -149,6 +194,8 @@ func (r RawStyle) AABB(key string, def mat.AABB) (m mat.AABB) {
 		switch v := val[i].(type) {
 		case float64:
 			sides[i] = v
+		case int:
+			sides[i] = float64(v)
 		case string:
 			if v != "fill" {
 				return
@@ -173,11 +220,19 @@ func (r RawStyle) AABB(key string, def mat.AABB) (m mat.AABB) {
 }
 
 // RGBA returns a color under the key, if color parsing fails or color is not present, def is returned
+// this also accepts names mapped in gobatch/mat/rgba.Colors
 func (r RawStyle) RGBA(key string, def mat.RGBA) (c mat.RGBA) {
 	c = def
 
 	val, ok := r.Style[key]
 	if !ok {
+		return
+	}
+
+	if v, ok := val[0].(string); ok {
+		if v, ok := rgba.Colors[v]; ok {
+			return v
+		}
 		return
 	}
 

@@ -24,11 +24,16 @@ func main() {
 	s.Parser = ui.NParser()
 
 	err = s.Root.AddGoml([]byte(`
-	<div style="background: 1f 0f 0f;size: fill;">
-		<div style="background: 1f; text_color: 0f 0f 0f;">
+	<div style="background: red;size: fill;">
+		<div style="background: 1f; text_color: black;">
 			hello
 		</>
-		<div style="text_scale: 10f; background: 1f 0f 1f; text_margin: 0f;">
+		<div style="
+			text_scale: 10f; 
+			background: almond; 
+			text_margin: 0f;
+			text_color: gray;
+		">
 			there
 		</>
 	</>

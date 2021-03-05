@@ -85,12 +85,12 @@ func (p *Processor) calcSize(d *Element) {
 
 	prev := privateSize
 	if d.Horizontal() {
-		d.ForEachChild(IgnoreHidden, func(ch *Element) {
+		d.forChild(IgnoreHidden, func(ch *Element) {
 			m := sumMargin(1, ch)
 			privateSize = math.Max(ch.Module.PrivateHeight(privateSize-m)+m, privateSize)
 		})
 	} else {
-		d.ForEachChild(IgnoreHidden, func(ch *Element) {
+		d.forChild(IgnoreHidden, func(ch *Element) {
 			m := sumMargin(0, ch)
 			privateSize = math.Max(ch.Module.PrivateWidth(privateSize-m)+m, privateSize)
 		})
@@ -102,7 +102,7 @@ func (p *Processor) calcSize(d *Element) {
 	}
 
 	p.divTemp = p.divTemp[:0]
-	d.ForEachChild(IgnoreHidden, func(ch *Element) {
+	d.forChild(IgnoreHidden, func(ch *Element) {
 		flt := ch.Margin.Flatten()
 		is := privateSize
 		for i, v := range flt {
@@ -175,7 +175,7 @@ func (p *Processor) calcMargin(d *Element) {
 	*/
 	offset, space, privateSize := p.setup(d.Horizontal(), d.size)
 
-	d.ForEachChild(IgnoreHidden, func(ch *Element) {
+	d.forChild(IgnoreHidden, func(ch *Element) {
 		p.pfTmp2 = p.pfTmp2[:0]
 		mut := ch.margin.Mutator()
 		flt := ch.Margin.Flatten()
@@ -313,22 +313,22 @@ func (s *Scene) ReloadStyle(e *Element) {
 // InitStyle initializes the stile on given element, this can be called
 // multiple times if style changes
 func (s *Scene) InitStyle(e *Element) {
-	e.Props.Style = e.Module.DefaultStyle()
-	if e.Props.Style == nil {
-		e.Props.Style = goss.Style{}
+	e.Style = e.Module.DefaultStyle()
+	if e.Style == nil {
+		e.Style = goss.Style{}
 	}
 	if e.Raw.Style != nil {
-		e.Raw.Style.Overwrite(e.Props.Style)
+		e.Raw.Style.Overwrite(e.Style)
 	}
 	for _, st := range e.Styles {
 		style, ok := s.Assets.Styles[st]
 		if ok {
-			style.Overwrite(e.Props.Style)
+			style.Overwrite(e.Style)
 		}
 	}
-	e.Props.Init()
+	e.Init()
 	if e.Parent != nil {
-		e.Props.Inherit(e.Parent.Props.Style)
+		e.Inherit(e.Parent.Style)
 	}
 }
 

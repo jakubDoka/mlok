@@ -38,12 +38,14 @@ type Element struct {
 	Module Module
 	Raw    goml.Element
 
-	children Children
+	Frame  mat.AABB
+	Offest mat.Vec
 
-	Frame, prev, margin mat.AABB
-	size                mat.Vec
+	margin mat.AABB
+	size   mat.Vec
 
-	hidden, initted bool
+	children        Children
+	hidden          bool
 	id, group, name string
 	Styles          []string
 	index           int
@@ -183,9 +185,12 @@ func (e *Element) ChildAt(index int) *Element {
 	return e.children.Slice()[index].Value
 }
 
-// ForEachChild performs action on each child for which filter return true
-// its unreasonable to use filter on just one place, just pass nil and decide in con
-func (e *Element) ForEachChild(cfg FCfg, con func(ch *Element)) {
+// ForChild loops over children
+func (e *Element) ForChild(con func(ch *Element)) {
+	e.forChild(FCfg{}, con)
+}
+
+func (e *Element) forChild(cfg FCfg, con func(ch *Element)) {
 	if cfg.Filter == nil {
 		cfg.Filter = func(ch *Element) bool { return true }
 	}
@@ -372,7 +377,7 @@ func (e *Element) projectIndex(i *int) {
 func (e *Element) update(p *Processor, w *ggl.Window, delta float64) {
 	e.Module.Update(w, delta)
 
-	e.ForEachChild(IgnoreHidden, func(ch *Element) {
+	e.forChild(IgnoreHidden, func(ch *Element) {
 		ch.update(p, w, delta)
 	})
 }
@@ -389,7 +394,7 @@ func (e *Element) redraw(t ggl.Target, canvas *dw.Geom) {
 	}
 
 	e.Module.Draw(tar, canvas)
-	e.ForEachChild(IgnoreHidden, func(ch *Element) {
+	e.forChild(IgnoreHidden, func(ch *Element) {
 		ch.redraw(tar, canvas)
 	})
 
@@ -403,7 +408,7 @@ func (e *Element) redraw(t ggl.Target, canvas *dw.Geom) {
 func (e *Element) resize(p *Processor) {
 	p.calcSize(e)
 
-	e.ForEachChild(IgnoreHidden, func(ch *Element) {
+	e.forChild(IgnoreHidden, func(ch *Element) {
 		ch.resize(p)
 	})
 
@@ -444,7 +449,7 @@ func (e *Element) evalSize(chSize mat.Vec) {
 	case Exact:
 		e.size = chSize
 	case Ignore:
-		e.size = e.Props.Size
+		e.size = e.Size
 	}
 }
 
@@ -452,12 +457,12 @@ func (e *Element) evalSize(chSize mat.Vec) {
 func (e *Element) calcChildSize() (chSize mat.Vec) {
 	if e.Horizontal() {
 		sum := HSum{&chSize}
-		e.ForEachChild(IgnoreHidden, func(ch *Element) {
+		e.forChild(IgnoreHidden, func(ch *Element) {
 			sum.Add(ch.spaceNeeded())
 		})
 	} else {
 		sum := VSum{&chSize}
-		e.ForEachChild(IgnoreHidden, func(ch *Element) {
+		e.forChild(IgnoreHidden, func(ch *Element) {
 			sum.Add(ch.spaceNeeded())
 		})
 	}
@@ -477,7 +482,7 @@ func (e *Element) move(offset mat.Vec, horizontal bool) mat.Vec {
 	e.Frame = e.Frame.Moved(off)
 	e.Module.OnFrameChange()
 
-	e.ForEachChild(IgnoreHiddenReverse, func(ch *Element) {
+	e.forChild(IgnoreHiddenReverse, func(ch *Element) {
 		off = ch.move(off, e.Horizontal())
 	})
 
@@ -492,7 +497,7 @@ func (e *Element) move(offset mat.Vec, horizontal bool) mat.Vec {
 	return offset
 }
 
-// FCfg is configuration for Element.ForEachChild method
+// FCfg is configuration for Element.forChild method
 type FCfg struct {
 	Filter  func(ch *Element) bool
 	Reverse bool

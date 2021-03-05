@@ -11,6 +11,14 @@ import (
 	"github.com/jakubDoka/goml/goss"
 )
 
+// ScrollFactory instantiates scroll modules
+type ScrollFactory struct{}
+
+// Scroll can make element visible trough scrollable viewport
+type Scroll struct {
+	ModuleBase
+}
+
 // TextFactory instantiates text modules
 type TextFactory struct{}
 
@@ -29,10 +37,8 @@ type Text struct {
 	ModuleBase
 	txt.Paragraph
 	*txt.Markdown
-	dw.SpriteViewport
 
-	text   string
-	Offset mat.Vec
+	text string
 }
 
 // DefaultStyle implements Module interface
@@ -61,7 +67,6 @@ func (t *Text) Init(e *Element) {
 	t.Props.Size = t.Vec("text_size", mat.V(Fill, Fill))
 	t.Props.Margin = t.AABB("text_margin", mat.A(4, 4, 4, 4))
 
-	//t.Proc = &t.SpriteViewport
 	t.Text = str.NString(t.text)
 }
 
@@ -100,8 +105,7 @@ func (t *Text) PublicWidth(supposed float64) {
 
 // OnFrameChange implements Module interface
 func (t *Text) OnFrameChange() {
-	t.Pos = t.Offset.Add(mat.V(t.Frame.Min.X, t.Frame.Max.Y))
-	t.SpriteViewport.Area = t.Frame
+	t.Pos = mat.V(t.Frame.Min.X, t.Frame.Max.Y)
 	t.Paragraph.Update(0)
 }
 
