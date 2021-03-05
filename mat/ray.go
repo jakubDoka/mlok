@@ -11,6 +11,9 @@ type Ray struct {
 	O, V Vec
 }
 
+// ZR is zero value ray
+var ZR Ray
+
 // R creates new raycast, o stands for origin and v for directional vector
 func R(ox, oy, vx, vy float64) Ray {
 	return Ray{Vec{ox, oy}, Vec{vx, vy}}

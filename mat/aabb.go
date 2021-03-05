@@ -15,6 +15,9 @@ type AABB struct {
 	Min, Max Vec
 }
 
+// ZA is zero value AABB
+var ZA AABB
+
 // A returns a new AABB with given the Min and Max coordinates.
 //
 // Note that the returned rectangle is not automatically normalized.
@@ -258,4 +261,9 @@ func (a *AABB) Mutator() [4]*float64 {
 // Deco returns edge values
 func (a *AABB) Deco() (left, bottom, right, top float64) {
 	return a.Min.X, a.Min.Y, a.Max.X, a.Max.Y
+}
+
+// Fits reports whether a fits into b so that a.Intersect(b) == a
+func (a AABB) Fits(b AABB) bool {
+	return b.Min.X <= a.Min.X && b.Min.Y <= a.Min.Y && b.Max.X >= a.Max.X && b.Max.Y >= a.Max.Y
 }

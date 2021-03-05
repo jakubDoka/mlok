@@ -15,7 +15,7 @@ func (s Setup2D) Batch(texture *Texture, fragmentShader string) (*Batch, error) 
 	if err != nil {
 		return nil, err
 	}
-	return NBatch(texture, nil, pg), nil
+	return &Batch{Data{}, nil, pg, texture}, nil
 }
 
 // Canvas creates canvas with custom fragment shader prepared for  rendering

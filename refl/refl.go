@@ -38,6 +38,10 @@ func Overwrite(target, defaults interface{}, onlyZeroValues bool) {
 		panic("target or defaults is not a pointer")
 	}
 
+	if tv.IsZero() || dv.IsZero() {
+		panic("neather of target nor defaults can be nil")
+	}
+
 	tv, dv = tv.Elem(), dv.Elem()
 	if tv.Kind() != reflect.Struct || dv.Kind() != reflect.Struct {
 		panic("target or defaults is not pointer to struct")

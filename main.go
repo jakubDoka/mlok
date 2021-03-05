@@ -2,9 +2,10 @@ package main
 
 import (
 	"gobatch/ggl"
+	"gobatch/ggl/pck"
+	"gobatch/ggl/txt"
 	"gobatch/ggl/ui"
 	"gobatch/mat"
-	"strconv"
 )
 
 func main() {
@@ -14,41 +15,39 @@ func main() {
 		panic(err)
 	}
 
-	// defining assets, assets can contain spritesheet, markdown for text drawing and styles
-	a := ui.Assets{
-		Styles: map[string]*ui.Style{
-			"": {
-				Subs: []ui.SubStyle{
-					{
-						Background: mat.Blue,
-					},
-				},
-			},
-			"stl": {
-				Size:   mat.V(ui.Fill, ui.Fill),
-				Margin: mat.A(10, 10, 10, 10),
-				Subs: []ui.SubStyle{
-					{
-						Background: mat.Green,
-					},
-				},
-			},
-		},
+	s := ui.NScene()
+
+	s.SetSheet(&pck.Sheet{
+		Pic: txt.Atlas7x13.Pic,
+	})
+
+	s.Parser = ui.NParser()
+
+	err = s.Root.AddGoml([]byte(`
+	<div style="background: 1f 0f 0f;size: fill;">
+		<div style="background: 1f; text_color: 0f 0f 0f;">
+			hello
+		</>
+		<div style="text_scale: 10f; background: 1f 0f 1f; text_margin: 0f;">
+			there
+		</>
+	</>
+	`))
+
+	if err != nil {
+		panic(err)
 	}
 
-	// ui processor is Root Div wrapper for easier use
-	p := ui.NProcessorFromBatch(ggl.NBatch(nil, nil, nil), &a)
-	// adding 10 divs with given style, there can be multiple stiles separated by spaces
-	for i := 0; i < 10; i++ {
-		p.Root.children.Put(strconv.Itoa(i), &ui.Div{Styles: "stl"})
-	}
+	p := ui.Processor{}
 
-	// i have to address these
-	p.Root.Init(p)
-	p.SetFrame(window.Frame().Moved(window.Frame().Center().Inv()))
+	p.SetScene(s)
+
+	p.SetFrame(window.Frame())
+
+	p.Update(window, 0)
 
 	// making background white
-	window.Clear(mat.White)
+	window.Clear(mat.Green)
 
 	// drawing ui to window
 	p.Render(window)
@@ -58,3 +57,6 @@ func main() {
 		window.Update()
 	}
 }
+
+// 70203421
+// noK.uqo.3.ixo

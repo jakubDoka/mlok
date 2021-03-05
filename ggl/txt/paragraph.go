@@ -28,10 +28,11 @@ type Paragraph struct {
 	Data ggl.Data
 
 	// determines how text should wrap, Drawer will tri to display text so
-	// it does not overflows Width, though it only breaks on spaces
+	// it does not overflows Width, though it only breaks on spaces, if width
+	// is 0 it will never wrap
 	Width float64
 	// this field is only used if it isn't negative and it alters LineHight (spooks)
-	LineHeight float64
+	LineHeight, Ascent float64
 	// if this is true no effects are displayed
 	NoEffects bool
 	// set this to true if you want it custom
@@ -53,24 +54,10 @@ type Paragraph struct {
 	dot      mat.Vec
 	bounds   mat.AABB
 
-	initted bool
-
 	raw str.String
 
 	changing, instant Effs
 	chunks            FEffs
-}
-
-// Init initializes paragraph if key fields were omitted, its only for user experience
-func (p *Paragraph) Init() {
-	p.initted = true
-	if p.Tran.Scl == mat.Origin {
-		p.Tran.Scl = mat.Scale
-	}
-
-	if p.Mask == mat.Transparent {
-		p.Mask = mat.White
-	}
 }
 
 // Clear is only usefull when drawing to paragraph directly with drawer
@@ -78,7 +65,7 @@ func (p *Paragraph) Init() {
 func (p *Paragraph) Clear() {
 	p.data.Clear()
 	p.dots = p.dots[:0]
-	p.dot = mat.Origin
+	p.dot = mat.ZV
 }
 
 // AddEff appends chunk of test to paragraph
@@ -111,30 +98,11 @@ func (p *Paragraph) Sort() {
 
 // Update has to be called after changes or they will not be visible, it returns false if
 // there is nothing to draw
-func (p *Paragraph) Update(delta float64, start, end float64) bool {
-	if !p.initted {
-		p.Init()
-	}
-
+func (p *Paragraph) Update(delta float64) {
 	p.Data.Clear()
 	p.Data.Indices = p.data.Indices
-
-	clamp := start != end
-	visible := !clamp
 	mat := p.Mat()
 	for _, t := range p.data.Vertexes {
-		// just clamping them isn't really memory efficient but logic that would determinate whether
-		// glyph is not visible and remove it would be slower and more bug prone
-		if clamp {
-			if t.Pos.Y > start {
-				t.Pos.Y = start
-			} else if t.Pos.Y < end {
-				t.Pos.Y = end
-			} else {
-				visible = true
-			}
-		}
-
 		t.Pos = mat.Project(t.Pos)
 		t.Color = t.Color.Mul(p.Mask)
 
@@ -146,8 +114,11 @@ func (p *Paragraph) Update(delta float64, start, end float64) bool {
 	for _, e := range p.changing {
 		e.Apply(p.Data.Vertexes, p.progress)
 	}
+}
 
-	return visible || len(p.Data.Vertexes) == 0
+// Changes returns whether p.Update will change triangles
+func (p *Paragraph) Changes() bool {
+	return len(p.changing) != 0
 }
 
 // Draw draws its triangles to given target

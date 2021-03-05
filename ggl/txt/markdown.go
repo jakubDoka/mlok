@@ -85,10 +85,16 @@ func NMarkdown() *Markdown {
 // GenerateShortcuts creates shortcuts for all effects, if names overlap random one is bind
 func (m *Markdown) GenerateShortcuts() {
 	for k := range m.Fonts {
+		if k == "" {
+			continue
+		}
 		m.Shortcuts[rune(k[0])] = k
 	}
 
 	for k := range m.Effects {
+		if k == "" {
+			continue
+		}
 		m.Shortcuts[rune(k[0])] = k
 	}
 }
@@ -220,8 +226,8 @@ o:
 func (m *Markdown) MakeTriangles(p *Paragraph) {
 	p.data.Clear()
 	p.dots = p.dots[:0]
-	p.dot = mat.V(0, -p.LineHeight)
-	p.bounds = mat.AABB{}
+	p.dot = mat.V(0, -p.Ascent*2)
+	p.bounds = mat.AABB{Min: p.dot, Max: p.dot}
 
 	p.dots = append(p.dots, p.dot)
 
@@ -253,12 +259,16 @@ func (m *Markdown) ResolveChunks(p *Paragraph) {
 	m.stack = append(m.stack, fef)
 
 	if !p.CustomLineheight {
-		p.LineHeight = m.Fonts[p.Font].LineHeight()
+		f := m.Fonts[p.Font]
+		p.LineHeight = f.LineHeight()
+		p.Ascent = f.Ascent()
 	}
 
 	for _, c := range p.chunks {
 		if !p.CustomLineheight {
-			p.LineHeight = math.Max(p.LineHeight, m.Fonts[c.Font].LineHeight())
+			f := m.Fonts[c.Font]
+			p.LineHeight = math.Max(p.LineHeight, f.LineHeight())
+			p.Ascent = math.Max(p.Ascent, f.Ascent())
 		}
 
 		for len(m.stack) != 0 {

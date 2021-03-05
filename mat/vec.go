@@ -5,53 +5,24 @@ import (
 	"math"
 )
 
+/*gen(
+	Vec<int, ZP, P, Point>
+)*/
+
+//def(
+//rules Vec<float64, ZV, V>
+
 // Vec is a  vector type with X and Y coordinates.
-//
-// Create vectors with the V constructor:
-//
-//   v := mat.V(1, 2)
-//   v := mat.V(8, -3)
-//
-// Use various methods to manipulate them:
-//
-//   w := v.Add(v)
-//   fmt.Println(w)        // Vec(9, -1)
-//   fmt.Println(v.Sub(v)) // Vec(-7, 5)
-//   v = mat.V(2, 3)
-//   v = mat.V(8, 1)
-//   if v.X < 0 {
-//	     fmt.Println("this won't happen")
-//   }
-//   x := v.Unit().Dot(v.Unit())
 type Vec struct {
 	X, Y float64
 }
 
-// Vector related constants
-var (
-	Origin = Vec{}
-	Scale  = Vec{1, 1}
-)
+// ZV is zero value Vec
+var ZV Vec
 
 // V returns a new  vector with the given coordinates.
 func V(x, y float64) Vec {
 	return Vec{x, y}
-}
-
-// ToAABB turns Vec into AABB where Min is V(0 0) and Max is v
-func (v Vec) ToAABB() AABB {
-	return AABB{Max: v}
-}
-
-// Rad returns vector from representation of radial cordenates
-func Rad(angle, length float64) Vec {
-	s, c := math.Sincos(angle)
-	return Vec{c * length, s * length}
-}
-
-// String returns the string representation of the vector v.
-func (v Vec) String() string {
-	return fmt.Sprintf("V(%.3f %.3f)", v.X, v.Y)
 }
 
 // XY returns the components of the vector in two return values.
@@ -117,14 +88,6 @@ func (v *Vec) DivE(u Vec) {
 	v.Y /= u.Y
 }
 
-// Floor converts x and y to their integer equivalents.
-func (v Vec) Floor() Vec {
-	return Vec{
-		math.Floor(v.X),
-		math.Floor(v.Y),
-	}
-}
-
 // Scaled returns the vector v multiplied by c.
 func (v Vec) Scaled(c float64) Vec {
 	return Vec{v.X * c, v.Y * c}
@@ -140,6 +103,65 @@ func (v Vec) Inv() Vec {
 	v.X = -v.X
 	v.Y = -v.Y
 	return v
+}
+
+// Flatten flatens the Vec into Array, values are
+// ordered as they would on stack
+func (v Vec) Flatten() [2]float64 {
+	return [...]float64{v.X, v.Y}
+}
+
+// Mutator similar to Flatten returns array with vector components
+// though these are pointers to componenets instead
+func (v *Vec) Mutator() [2]*float64 {
+	return [...]*float64{&v.X, &v.Y}
+}
+
+//)
+
+// Point converts Vec to Point
+func (v Vec) Point() Point {
+	return Point{int(v.X), int(v.Y)}
+}
+
+// Max uses math.Max on both components and returns resulting vector
+func (v Vec) Max(u Vec) Vec {
+	return Vec{
+		math.Max(v.X, u.X),
+		math.Max(v.Y, u.Y),
+	}
+}
+
+// Min uses math.Min on both components and returns resulting vector
+func (v Vec) Min(u Vec) Vec {
+	return Vec{
+		math.Min(v.X, u.X),
+		math.Min(v.Y, u.Y),
+	}
+}
+
+// ToAABB turns Vec into AABB where Min is V(0 0) and Max is v
+func (v Vec) ToAABB() AABB {
+	return AABB{Max: v}
+}
+
+// Rad returns vector from representation of radial cordenates
+func Rad(angle, length float64) Vec {
+	s, c := math.Sincos(angle)
+	return Vec{c * length, s * length}
+}
+
+// String returns the string representation of the vector v.
+func (v Vec) String() string {
+	return fmt.Sprintf("V(%.3f %.3f)", v.X, v.Y)
+}
+
+// Floor converts x and y to their integer equivalents.
+func (v Vec) Floor() Vec {
+	return Vec{
+		math.Floor(v.X),
+		math.Floor(v.Y),
+	}
 }
 
 // Len returns the length of the vector v.
@@ -196,22 +218,6 @@ func (v Vec) Cross(u Vec) float64 {
 	return v.X*u.Y - u.X*v.Y
 }
 
-// Max uses math.Max on both components and returns resulting vector
-func (v Vec) Max(u Vec) Vec {
-	return Vec{
-		math.Max(v.X, u.X),
-		math.Max(v.Y, u.Y),
-	}
-}
-
-// Min uses math.Min on both components and returns resulting vector
-func (v Vec) Min(u Vec) Vec {
-	return Vec{
-		math.Min(v.X, u.X),
-		math.Min(v.Y, u.Y),
-	}
-}
-
 // AngleTo returns angle between v and v.
 func (v Vec) AngleTo(u Vec) float64 {
 	a := math.Abs(v.Angle() - u.Angle())
@@ -245,16 +251,4 @@ func (v Vec) Approx(b Vec, precision int) bool {
 // return the appropriate point between a and b and so on.
 func (v Vec) Lerp(b Vec, t float64) Vec {
 	return v.Scaled(1 - t).Add(b.Scaled(t))
-}
-
-// Flatten flatens the Vec into Array, values are
-// ordered as they would on stack
-func (v Vec) Flatten() [2]float64 {
-	return [...]float64{v.X, v.Y}
-}
-
-// Mutator similar to Flatten returns array with vector components
-// though these are pointers to componenets instead
-func (v *Vec) Mutator() [2]*float64 {
-	return [...]*float64{&v.X, &v.Y}
 }

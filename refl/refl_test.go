@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"unicode/utf8"
 )
 
 type Test struct {
@@ -165,4 +166,9 @@ func TestConvert(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestF(t *testing.T) {
+	r, n := utf8.DecodeRuneInString("\n")
+	t.Error(r, n, '\n')
 }

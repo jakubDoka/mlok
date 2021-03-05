@@ -43,6 +43,7 @@ type Atlas struct {
 	ascent     float64
 	descent    float64
 	lineHeight float64
+	spacing    float64
 }
 
 // NewAtlas creates a new Atlas containing glyphs of the union of the given sets of runes (plus
@@ -109,6 +110,7 @@ func NewAtlas(face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 		face:       face,
 		Pic:        atlasImg,
 		mapping:    mapping,
+		spacing:    float64(spacing),
 		ascent:     i2f(face.Metrics().Ascent),
 		descent:    i2f(face.Metrics().Descent),
 		lineHeight: i2f(face.Metrics().Height),
@@ -171,12 +173,12 @@ func (a *Atlas) DrawRune(prevR, r rune, dot mat.Vec) (rect, frame, bounds mat.AA
 	rect = glyph.Frame.Moved(dot.Sub(glyph.Dot))
 	bounds = rect
 
-	if bounds.W()*bounds.H() != 0 {
+	if bounds.Area() != 0 {
 		bounds = mat.A(
-			bounds.Min.X,
-			dot.Y-a.Descent(),
-			bounds.Max.X,
-			dot.Y+a.Ascent(),
+			bounds.Min.X+a.spacing,
+			dot.Y-a.Descent()+a.spacing,
+			bounds.Max.X-a.spacing,
+			dot.Y+a.Ascent()-a.spacing,
 		)
 	}
 

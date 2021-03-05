@@ -27,6 +27,9 @@ type RGBA struct {
 	R, G, B, A float64
 }
 
+// ZRGBA is zero value RGBA
+var ZRGBA RGBA
+
 // Color constants
 var (
 	Transparent = RGBA{}
@@ -110,6 +113,16 @@ func (r RGBA) RGBA() (rc, g, b, a uint32) {
 	b = uint32(0xffff * r.B)
 	a = uint32(0xffff * r.A)
 	return
+}
+
+// Flatten returns a array representation of color
+func (r RGBA) Flatten() [4]float64 {
+	return [...]float64{r.R, r.G, r.B, r.A}
+}
+
+// Mutator returns array of pointers to color channels
+func (r RGBA) Mutator() [4]*float64 {
+	return [...]*float64{&r.R, &r.G, &r.B, &r.A}
 }
 
 // ErrInvalidHex is returned by HexToRGBA if hex string contains non ex characters

@@ -49,7 +49,7 @@ func NPicData(paths ...string) (Vec, error) {
 
 // Sheet contains sprite sheet and Regions
 type Sheet struct {
-	Pic     *image.RGBA
+	Pic     *image.NRGBA
 	Regions map[string]mat.AABB
 }
 
@@ -76,7 +76,7 @@ func NSheetFromData(data Vec, root string) (sh *Sheet) {
 
 	bounds := image.Rect(0, 0, w, h)
 
-	sh.Pic = image.NewRGBA(bounds)
+	sh.Pic = image.NewNRGBA(bounds)
 
 	for _, d := range data {
 		r := d.Bounds.ToImage()
@@ -178,7 +178,7 @@ o:
 
 	// modifying pic data according to best breakpoints
 	best = append(best, count)
-	offset := mat.Origin
+	offset := mat.ZV
 	for i := 0; i < len(best)-1; i++ {
 		// best can look like [0, 3, 6, 9] if there are 2 breakpoints on 3 and 6
 		for j := best[i]; j < best[i+1]; j++ {

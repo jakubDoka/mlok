@@ -68,6 +68,21 @@ func NCanvas(texture Texture, program Program, buffer Buffer) *Canvas {
 	return c
 }
 
+// Rect returns rectangle in world coordinates that is visible by canvas
+func (c *Canvas) Rect() mat.AABB {
+	f := c.Frame()
+	return mat.AABB{
+		Min: c.mat.Project(f.Min),
+		Max: c.mat.Project(f.Max),
+	}
+}
+
+// Frame returns window frame relative to window center
+func (c *Canvas) Frame() mat.AABB {
+	f := c.Texture.Frame()
+	return f.Moved(f.Center().Inv())
+}
+
 // Render implements Renderer interface
 func (c *Canvas) Render(data VertexData, indices Indices, texture *Texture, program *Program, buffer *Buffer) {
 	c.Start()

@@ -3,105 +3,108 @@ package ui
 import (
 	"gobatch/ggl"
 	"gobatch/ggl/dw"
+	"gobatch/ggl/pck"
+	"gobatch/ggl/txt"
 	"gobatch/mat"
+	"math"
+
+	"github.com/jakubDoka/goml/goss"
 )
 
-// Processor is wrapper that handles a Div, it stores some data global to all divs
+// Processor is wrapper that handles a Element, it stores some data global to all elements
 // that can be reused for reduction of allocations
 type Processor struct {
-	Horizontal, redraw, resize bool
-
-	Root   Div
+	scene  *Scene
 	frame  mat.AABB
 	canvas dw.Geom
-	batch  *ggl.Batch
-	Assets *Assets
 
-	ids           map[string]*Div
 	pfTmp, pfTmp2 []*float64
-	divTemp       []*Div
+	divTemp       []*Element
 }
 
-// NProcessor creates ready-to-ues processor
-func NProcessor(assets *Assets) *Processor {
-	t := ggl.NTexture(assets.Pic, false)
-	b := ggl.NBatch(t, nil, nil)
-	return NProcessorFromBatch(b, assets)
+// NProcessor create processor with blanc scene, so it can be used right away
+func NProcessor() *Processor {
+	return &Processor{scene: NScene()}
 }
 
-// NProcessorFromBatch creates new processor with custom batch
-func NProcessorFromBatch(batch *ggl.Batch, assets *Assets) *Processor {
-	p := &Processor{
-		batch:  batch,
-		Assets: assets,
-		redraw: true,
-	}
-
-	p.Root.children = NChildren()
-	return p
-}
-
-// DivByID returns div or null if no div is under id
-func (p *Processor) DivByID(id string) *Div {
-	return p.ids[id]
+// SetScene ...
+func (p *Processor) SetScene(s *Scene) {
+	p.scene = s
 }
 
 // Fetch implements ggl.Fetcher interface
 func (p *Processor) Fetch(t ggl.Target) {
-	p.batch.Fetch(t)
+	p.scene.Batch.Fetch(t)
 }
 
 // Render make Renderer render ui (yes)
 func (p *Processor) Render(r ggl.Renderer) {
-	p.batch.Draw(r)
-}
-
-// Redraw redraws ewerithing if needed
-func (p *Processor) Redraw() {
-	p.batch.Clear()
-	p.Root.redraw(p.batch, &p.canvas)
-	p.redraw = false
+	p.scene.Batch.Draw(r)
 }
 
 // SetFrame sets the frame of Processor witch also updates all elements inside
 func (p *Processor) SetFrame(value mat.AABB) {
 	p.frame = value
-	p.Resize()
+	p.scene.Resize.Notify()
+}
+
+// Update calls update on all elements, and performs resizing and redrawing if needed
+func (p *Processor) Update(w *ggl.Window, delta float64) {
+	p.scene.Root.update(p, w, delta)
+	if p.scene.Resize.Should() {
+		p.Resize()
+	}
+	if p.scene.Redraw.Should() {
+		p.Redraw()
+	}
+}
+
+// Redraw redraws ewerithing if needed
+func (p *Processor) Redraw() {
+	p.scene.Batch.Clear()
+	p.scene.Root.redraw(&p.scene.Batch, &p.canvas)
+	p.scene.Redraw.Done()
 }
 
 // Resize has to be called upon Frame change, its not recommended
 // to call this manually, instead call Deformed() to notify processor
 // about change
 func (p *Processor) Resize() {
-	p.Dirty()
-	p.Root.size = p.frame.Size()
-	p.Root.resize()
-	p.Root.move(p.frame.Min, p.Horizontal)
-	p.resize = false
-}
 
-// Dirty makes processor redraw all elements upon update call
-// but after all divs are updated, best time to call this is during
-// update or after Render
-func (p *Processor) Dirty() {
-	p.redraw = true
-}
+	p.scene.Root.size = p.frame.Size()
+	p.scene.Root.resize(p)
+	p.scene.Root.move(p.frame.Min, false)
 
-// Deformed makes processor resize all elements upon update call
-// but after all divs are updated, best time to call this is during
-// update or after Render
-func (p *Processor) Deformed() {
-	p.resize = true
+	p.scene.Resize.Done()
+	p.scene.Redraw.Notify()
 }
 
 // calcSize calculates all sizes equal to Fill amongst children of d
-func (p *Processor) calcSize(d *Div) {
-	offset, space, individualSpace := p.setup(d.Horizontal, d.size)
+func (p *Processor) calcSize(d *Element) {
+	offset, space, privateSize := p.setup(d.Horizontal(), d.size)
 
-	for _, d := range d.children.Slice() {
-		d := d.Value
-		flt := d.Margin.Flatten()
-		is := individualSpace
+	prev := privateSize
+	if d.Horizontal() {
+		d.ForEachChild(IgnoreHidden, func(ch *Element) {
+			m := sumMargin(1, ch)
+			privateSize = math.Max(ch.Module.PrivateHeight(privateSize-m)+m, privateSize)
+		})
+	} else {
+		d.ForEachChild(IgnoreHidden, func(ch *Element) {
+			m := sumMargin(0, ch)
+			privateSize = math.Max(ch.Module.PrivateWidth(privateSize-m)+m, privateSize)
+		})
+	}
+
+	// we set newly obtained private space but only if it makes sene for resize mode
+	if d.ResizeMode >= Shrink {
+		privateSize = prev
+	}
+
+	p.divTemp = p.divTemp[:0]
+	d.ForEachChild(IgnoreHidden, func(ch *Element) {
+		flt := ch.Margin.Flatten()
+		is := privateSize
 		for i, v := range flt {
 			if i%2 == offset {
 				if v != Fill {
@@ -114,8 +117,8 @@ func (p *Processor) calcSize(d *Div) {
 			}
 		}
 
-		sft := d.Size.Flatten()
-		smt := d.size.Mutator()
+		sft := ch.Module.Size().Flatten()
+		smt := ch.size.Mutator()
 
 		if sft[1-offset] == Fill {
 			*smt[1-offset] = is
@@ -125,33 +128,58 @@ func (p *Processor) calcSize(d *Div) {
 
 		param := sft[offset]
 		if param == Fill {
+			p.divTemp = append(p.divTemp, ch)
 			p.pfTmp = append(p.pfTmp, smt[offset])
 		} else {
 			*smt[offset] = param
 			space -= param
 		}
-	}
+	})
+
 	feed(space, p.pfTmp)
+
+	spc := space / float64(len(p.divTemp))
+
+	if d.ResizeMode < Shrink {
+		if d.Horizontal() {
+			for _, ch := range p.divTemp {
+				ch.Module.PublicWidth(spc - sumMargin(0, ch))
+			}
+		} else {
+			for _, ch := range p.divTemp {
+				ch.Module.PublicHeight(spc - sumMargin(1, ch))
+			}
+		}
+	}
+}
+
+func sumMargin(offset int, ch *Element) (r float64) {
+	arr := ch.Margin.Flatten()
+	for i := offset; i < len(arr); i += 2 {
+		if arr[i] != Fill {
+			r += arr[i]
+		}
+	}
+
+	return
 }
 
 // calculates margin in case it is Equal to Fill for all
 // children of div
-func (p *Processor) calcMargin(d *Div) {
+func (p *Processor) calcMargin(d *Element) {
 	/*
-		goal is to calculate how match free space is in div and divide it
+		goal is to calculate how match free space is in element and divide it
 		between margin equal to Fill that supports it, function
 		collects the pointers to all fill fields and feeds tham with supposed
 		values
 	*/
-	offset, space, individualSpace := p.setup(d.Horizontal, d.size)
+	offset, space, privateSize := p.setup(d.Horizontal(), d.size)
 
-	// little heck but i saves us repetitive logic
-	for _, d := range d.children.Slice() {
-		d := d.Value
+	d.ForEachChild(IgnoreHidden, func(ch *Element) {
 		p.pfTmp2 = p.pfTmp2[:0]
-		mut := d.margin.Mutator()
-		flt := d.Margin.Flatten()
-		is := individualSpace
+		mut := ch.margin.Mutator()
+		flt := ch.Margin.Flatten()
+		is := privateSize
 		for i, v := range flt {
 			// deciding how to treat margin value, notice how var offset relates to var horizontal
 			if i%2 == offset {
@@ -174,23 +202,23 @@ func (p *Processor) calcMargin(d *Div) {
 
 		// subtracting the size of div, its like this because this way it works for
 		// vertical and horizontal case
-		sft := d.Frame.Size().Flatten()
+		sft := ch.size.Flatten()
 		is -= sft[1-offset]
 		space -= sft[offset]
 
 		feed(is, p.pfTmp2)
-	}
+	})
 
 	feed(space, p.pfTmp)
 }
 
-func (p *Processor) setup(horizontal bool, size mat.Vec) (offset int, space, individualSpace float64) {
+func (p *Processor) setup(horizontal bool, size mat.Vec) (offset int, space, privateSize float64) {
 	p.pfTmp = p.pfTmp[:0]
 	offset = 1
-	individualSpace, space = size.XY()
+	privateSize, space = size.XY()
 	if horizontal {
 		offset = 0
-		space, individualSpace = size.XY()
+		space, privateSize = size.XY()
 	}
 
 	return
@@ -210,4 +238,114 @@ func feed(space float64, targets []*float64) {
 			*v = perOne
 		}
 	}
+}
+
+// Scene is base of an ui scene, it stores all elements and notifiers
+// for Processor to process
+type Scene struct {
+	Redraw, Resize Notifier
+	Root           Element
+	Assets         Assets
+	Batch          ggl.Batch
+
+	*Parser
+
+	ids    map[string]*Element
+	groups map[string][]*Element
+}
+
+// NScene returns ready-to-use scene, do not use Scene{}
+func NScene() *Scene {
+	s := &Scene{
+		ids:    map[string]*Element{},
+		groups: map[string][]*Element{},
+		Assets: Assets{
+			Styles: goss.Styles{},
+			Markdowns: map[string]*txt.Markdown{
+				"default": txt.NMarkdown(),
+			},
+		},
+	}
+
+	s.Root.init(s)
+
+	return s
+}
+
+func (s *Scene) addElement(e *Element) {
+	if e.id != "" {
+		s.ids[e.id] = e
+	}
+
+	if e.group != "" {
+		s.groups[e.group] = append(s.groups[e.group], e)
+	}
+}
+
+// ID returns element or null if no element is under id
+func (s *Scene) ID(id string) *Element {
+	return s.ids[id]
+}
+
+// Group returns all elements in given group
+func (s *Scene) Group(group string) []*Element {
+	return s.groups[group]
+}
+
+// SetSheet sets the sprite sheet Scene will use
+func (s *Scene) SetSheet(sheet *pck.Sheet) {
+	s.Assets.Sheet = sheet
+	s.Batch.Texture = ggl.NTexture(sheet.Pic, false)
+}
+
+// ReloadStyle reloads style of an element and all its children f.e.
+//
+//	s.ReloadStyle(&s.Root) // reload ewerithing
+//
+func (s *Scene) ReloadStyle(e *Element) {
+	s.InitStyle(e)
+	ch := e.children.Slice()
+	for i := 0; i < len(ch); i++ {
+		s.ReloadStyle(ch[i].Value)
+	}
+}
+
+// InitStyle initializes the stile on given element, this can be called
+// multiple times if style changes
+func (s *Scene) InitStyle(e *Element) {
+	e.Props.Style = e.Module.DefaultStyle()
+	if e.Props.Style == nil {
+		e.Props.Style = goss.Style{}
+	}
+	if e.Raw.Style != nil {
+		e.Raw.Style.Overwrite(e.Props.Style)
+	}
+	for _, st := range e.Styles {
+		style, ok := s.Assets.Styles[st]
+		if ok {
+			style.Overwrite(e.Props.Style)
+		}
+	}
+	e.Props.Init()
+	if e.Parent != nil {
+		e.Props.Inherit(e.Parent.Props.Style)
+	}
+}
+
+// Notifier ...
+type Notifier bool
+
+// Notify initiates notification
+func (n *Notifier) Notify() {
+	*n = false
+}
+
+// Done turns of the notification
+func (n *Notifier) Done() {
+	*n = true
+}
+
+// Should returns whether there is notification
+func (n Notifier) Should() bool {
+	return !bool(n)
 }

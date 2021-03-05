@@ -38,6 +38,9 @@ type Mat struct {
 // IM is Matrix used as base for all transformations
 var IM = Mat{Vec{1, 0}, Vec{0, 1}, Vec{0, 0}}
 
+// ZM is zero value Mat
+var ZM Mat
+
 // M is equivalent to:
 //
 // 	IM.ScaledXY(Vec{}, scl).Rotated(Vec{}, rot).Moved(pos)

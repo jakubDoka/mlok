@@ -95,31 +95,14 @@ func (d *data) Accept(data vertexSlice, indices Indices) {
 type batch struct {
 	data
 
-	buffer  *Buffer
-	program *Program
-	texture *Texture
-}
-
-// nbatch allows constructing batch with custom Buffer and Program for applying
-// per batch shader and related buffer structure. Passing nil absolutely fine,
-// as canvas or vindow will use theier own, if you don't even need texture use struct
-// literal (Batch{}) to construct batch
-func nbatch(texture *Texture, buffer *Buffer, program *Program) *batch {
-	return &batch{
-		texture: texture,
-		buffer:  buffer,
-		program: program,
-	}
+	Buffer  *Buffer
+	Program *Program
+	Texture *Texture
 }
 
 // Draw draws all data to target
 func (b *batch) Draw(target Renderer) {
-	target.Render(b.Vertexes, b.Indices, b.texture, b.program, b.buffer)
-}
-
-// Program returns batch program, it can be nil
-func (b *batch) Program() *Program {
-	return b.program
+	target.Render(b.Vertexes, b.Indices, b.Texture, b.Program, b.Buffer)
 }
 
 //)

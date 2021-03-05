@@ -1,5 +1,6 @@
 package ggl
 
+
 // Vertexes implements essential utility methods for any
 // struct satisfying VertexData interface. Its a gogen TEMPLATE:
 //
@@ -31,6 +32,7 @@ func (v Vertexes) Len() int {
 func (v Vertexes) VertexSize() int {
 	return 9
 }
+
 
 // Data is Vertex and indice collector, mainly utility that handles vertex offsets
 // it also stores one aditionall slice as space for preporsessing
@@ -67,6 +69,7 @@ func (d *Data) Accept(Data Vertexes, indices Indices) {
 	}
 }
 
+
 // Batch is main drawer, it performs direct draw to canvas and is used as target for Sprite.
 // Batch acts like canvas i some ways but performance difference of drawing Batch to canvas and
 // drawing canvas to canvas is significant. If you need image to ber redrawn ewer frame draw Batch
@@ -74,29 +77,13 @@ func (d *Data) Accept(Data Vertexes, indices Indices) {
 type Batch struct {
 	Data
 
-	buffer  *Buffer
-	program *Program
-	texture *Texture
-}
-
-// NBatch allows constructing Batch with custom Buffer and Program for applying
-// per Batch shader and related buffer structure. Passing nil absolutely fine,
-// as canvas or vindow will use theier own, if you don't even need texture use struct
-// literal (Batch{}) to construct Batch
-func NBatch(texture *Texture, buffer *Buffer, program *Program) *Batch {
-	return &Batch{
-		texture: texture,
-		buffer:  buffer,
-		program: program,
-	}
+	Buffer  *Buffer
+	Program *Program
+	Texture *Texture
 }
 
 // Draw draws all Data to target
 func (b *Batch) Draw(target Renderer) {
-	target.Render(b.Vertexes, b.Indices, b.texture, b.program, b.buffer)
+	target.Render(b.Vertexes, b.Indices, b.Texture, b.Program, b.Buffer)
 }
 
-// Program returns Batch program, it can be nil
-func (b *Batch) Program() *Program {
-	return b.program
-}

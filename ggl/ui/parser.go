@@ -1,0 +1,137 @@
+package ui
+
+import (
+	"strconv"
+	"strings"
+
+	"github.com/jakubDoka/goml"
+	"github.com/jakubDoka/goml/goss"
+	"github.com/jakubDoka/sterr"
+	"github.com/jakubDoka/urlp"
+)
+
+// ParserRelated errors
+var (
+	ErrGoml           = sterr.New("error in goml")
+	ErrUrlp           = sterr.New("error when loading attributes")
+	ErrPath           = sterr.New("in element %v")
+	ErrMissingFactory = sterr.New("missing factory with name %s")
+)
+
+// NoFactory is used for creating div
+type NoFactory struct{}
+
+// New implements ModuleFactory interface
+func (*NoFactory) New(goml.Element) (Module, bool) { return nil, false }
+
+// Parser handles element parsing form goml, if you don't know goml syntax read
+// the tutorial on github.com/jakubDoka/goml
+type Parser struct {
+	factories map[string]ModuleFactory
+	GP        *goml.Parser
+	GS        goss.Parser
+	UP        urlp.Parser
+}
+
+// NParser creates ready-to-use Parser
+func NParser() *Parser {
+	p := &Parser{
+		factories: map[string]ModuleFactory{},
+		UP: urlp.Parser{
+			IgnoreNotMarked: true,
+			LowerCase:       true,
+			Optional:        true,
+		},
+	}
+
+	p.GP = goml.NParser(&p.GS)
+
+	p.AddFactory("div", &NoFactory{})
+	p.AddFactory("text", &TextFactory{})
+
+	return p
+}
+
+// AddFactory adds a element factory to parser, every element with given name
+// will receive module from the factory
+func (p *Parser) AddFactory(name string, mf ModuleFactory) {
+	p.factories[name] = mf
+	p.GP.AddDefinitions(name)
+}
+
+// Parse parses goml source into list of elements
+func (p *Parser) Parse(source []byte) ([]*Element, error) {
+	div, err := p.GP.Parse(source)
+	if err != nil {
+		return nil, ErrGoml.Wrap(err)
+	}
+	elems := make([]*Element, len(div.Children))
+	for i, e := range div.Children {
+		ch, err := p.translateElement(i, e)
+		if err != nil {
+			return nil, err
+		}
+		elems[i] = ch
+	}
+	return elems, nil
+}
+
+func (p *Parser) translateElement(i int, elem goml.Element) (*Element, error) {
+	val, ok := p.factories[elem.Name]
+	if !ok {
+		return nil, ErrMissingFactory.Args(elem.Name)
+	}
+	mod, skip := val.New(elem)
+	e := &Element{Module: mod, children: NChildren(), Raw: elem}
+
+	if val, ok := elem.Attributes["name"]; ok {
+		e.name = val[0]
+	} else {
+		e.name = strconv.Itoa(i)
+	}
+	if _, ok := elem.Attributes["hidden"]; ok {
+		e.hidden = true
+	}
+	if val, ok := elem.Attributes["id"]; ok {
+		e.id = val[0]
+	}
+	if val, ok := elem.Attributes["group"]; ok {
+		e.group = val[0]
+	}
+	if val, ok := elem.Attributes["styles"]; ok {
+		if len(val) == 1 && strings.Contains(val[0], " ") { // make it more friendly, both list and string is valid
+			e.Styles = strings.Split(val[0], " ")
+		} else {
+			e.Styles = val
+		}
+	}
+
+	if skip {
+		return e, nil
+	}
+
+	var err error
+	if mod != nil {
+		err = p.UP.CustomParse(elem.Attributes, mod, "", "ui")
+	}
+	if err != nil {
+		return nil, ErrPath.Args(i).Wrap(ErrUrlp.Wrap(err))
+	}
+
+	for i, ch := range elem.Children {
+		el, err := p.translateElement(i, ch)
+		if err != nil {
+			return nil, ErrPath.Args(e.name).Wrap(err)
+		}
+		e.AddChild(el.name, el)
+	}
+
+	return e, nil
+}
+
+// ModuleFactory should be an producer of module instances for parser
+// it gives you option to handle initialization your self, witch you can
+// signalize by returning true
+type ModuleFactory interface {
+	New(elem goml.Element) (instance Module, customInit bool)
+}
