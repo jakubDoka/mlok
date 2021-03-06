@@ -7,7 +7,6 @@ import (
 	"github.com/jakubDoka/goml"
 	"github.com/jakubDoka/goml/goss"
 	"github.com/jakubDoka/sterr"
-	"github.com/jakubDoka/urlp"
 )
 
 // ParserRelated errors
@@ -22,7 +21,7 @@ var (
 type NoFactory struct{}
 
 // New implements ModuleFactory interface
-func (*NoFactory) New(goml.Element) (Module, bool) { return nil, false }
+func (*NoFactory) New() Module { return nil }
 
 // Parser handles element parsing form goml, if you don't know goml syntax read
 // the tutorial on github.com/jakubDoka/goml
@@ -30,24 +29,19 @@ type Parser struct {
 	factories map[string]ModuleFactory
 	GP        *goml.Parser
 	GS        goss.Parser
-	UP        urlp.Parser
 }
 
 // NParser creates ready-to-use Parser
 func NParser() *Parser {
 	p := &Parser{
 		factories: map[string]ModuleFactory{},
-		UP: urlp.Parser{
-			IgnoreNotMarked: true,
-			LowerCase:       true,
-			Optional:        true,
-		},
 	}
 
 	p.GP = goml.NParser(&p.GS)
 
 	p.AddFactory("div", &NoFactory{})
 	p.AddFactory("text", &TextFactory{})
+	p.AddFactory("scroll", &ScrollFactory{})
 
 	return p
 }
@@ -81,8 +75,7 @@ func (p *Parser) translateElement(i int, elem goml.Element) (*Element, error) {
 	if !ok {
 		return nil, ErrMissingFactory.Args(elem.Name)
 	}
-	mod, skip := val.New(elem)
-	e := &Element{Module: mod, children: NChildren(), Raw: elem}
+	e := &Element{Module: val.New(), children: NChildren(), Raw: elem}
 
 	if val, ok := elem.Attributes["name"]; ok {
 		e.name = val[0]
@@ -106,18 +99,6 @@ func (p *Parser) translateElement(i int, elem goml.Element) (*Element, error) {
 		}
 	}
 
-	if skip {
-		return e, nil
-	}
-
-	var err error
-	if mod != nil {
-		err = p.UP.CustomParse(elem.Attributes, mod, "", "ui")
-	}
-	if err != nil {
-		return nil, ErrPath.Args(i).Wrap(ErrUrlp.Wrap(err))
-	}
-
 	for i, ch := range elem.Children {
 		el, err := p.translateElement(i, ch)
 		if err != nil {
@@ -133,5 +114,5 @@ func (p *Parser) translateElement(i int, elem goml.Element) (*Element, error) {
 // it gives you option to handle initialization your self, witch you can
 // signalize by returning true
 type ModuleFactory interface {
-	New(elem goml.Element) (instance Module, customInit bool)
+	New() Module
 }

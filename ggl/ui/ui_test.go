@@ -97,10 +97,8 @@ func TestParser(t *testing.T) {
 						},
 					},
 					children: NChildren(),
-					Module: &Text{
-						text: "hello",
-					},
-					name: "0",
+					Module:   &Text{},
+					name:     "0",
 				},
 			},
 		},
@@ -162,7 +160,7 @@ func TestCalcMarginSize(t *testing.T) {
 			Size:   mat.V(10, 10),
 		},
 		{
-			ResizeMode: Exact,
+			Resizing: [...]ResizeMode{Exact, Exact},
 		},
 		{
 			Margin: mat.A(10, 10, 10, 10),

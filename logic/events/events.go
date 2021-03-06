@@ -55,3 +55,49 @@ func (e *Handler) ensureLength(en Enum) {
 
 // Enum is to distinguish event enumeration
 type Enum int
+
+// String handles event registration for elements
+type String map[string][]*Listener
+
+// Add adds listener to handler, keep the listener accessable if you want to
+// remove it later
+func (e String) Add(listener *Listener) {
+	evs := e[listener.Name]
+	listener.idx = len(evs)
+	e[listener.Name] = append(evs, listener)
+}
+
+// Invoke invokes the event listeners, removed listeners are skipped and deleted
+func (e String) Invoke(name string, ed interface{}) {
+	evs := e[name]
+	for i := len(evs) - 1; i >= 0; i-- {
+		if evs[i].Runner(ed) {
+			break
+		}
+	}
+}
+
+// Listener holds function tha gets called when event is triggered
+// if events returns true, all consequent events will get blocked, execution
+// goes from newest to oldest event listener
+type Listener struct {
+	Name   string
+	Runner func(interface{}) bool
+	idx    int
+	evs    String
+}
+
+// Remove removes the listener from event handler
+func (e *Listener) Remove() {
+	if e.evs == nil {
+		return
+	}
+
+	evs := e.evs[e.Name]
+	for i := e.idx; i < len(evs); i++ {
+		evs[i].idx--
+	}
+
+	evs = append(evs[:e.idx], evs[e.idx+1:]...)
+	e.evs[e.Name] = evs
+}

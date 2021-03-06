@@ -1,4 +1,5 @@
 import json
+
 src = open("colors.json")
 dist = open("colors.go", "x")
 

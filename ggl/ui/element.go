@@ -3,6 +3,7 @@ package ui
 import (
 	"gobatch/ggl"
 	"gobatch/ggl/dw"
+	"gobatch/logic/events"
 	"gobatch/mat"
 	"math"
 	"strings"
@@ -31,15 +32,18 @@ var (
 // Element is a most basic ui element from witch all ui componenets consists of
 type Element struct {
 	Props
+	InputState
 
 	Proc   dw.Preprocessor
 	Parent *Element
 	Scene  *Scene
 	Module Module
 	Raw    goml.Element
+	Events events.String
 
-	Frame  mat.AABB
-	Offest mat.Vec
+	Frame     mat.AABB
+	Offest    mat.Vec
+	ChildSize mat.Vec
 
 	margin mat.AABB
 	size   mat.Vec
@@ -55,6 +59,7 @@ type Element struct {
 func NElement() *Element {
 	return &Element{
 		children: NChildren(),
+		Events:   events.String{},
 	}
 }
 
@@ -375,6 +380,16 @@ func (e *Element) projectIndex(i *int) {
 
 // update propagates update call on modules
 func (e *Element) update(p *Processor, w *ggl.Window, delta float64) {
+	// handle mouse exit, enter
+	contains := e.Frame.Contains(w.MousePos())
+	if e.Hovering && !contains {
+		e.Hovering = false
+		e.Events.Invoke(MouseExited, nil)
+	} else if !e.Hovering && contains {
+		e.Hovering = true
+		e.Events.Invoke(MouseEntered, nil)
+	}
+
 	e.Module.Update(w, delta)
 
 	e.forChild(IgnoreHidden, func(ch *Element) {
@@ -385,21 +400,22 @@ func (e *Element) update(p *Processor, w *ggl.Window, delta float64) {
 // Redraw draws element and all its children to target, if preprocessor is not nil
 // triangles are also preprocessed
 func (e *Element) redraw(t ggl.Target, canvas *dw.Geom) {
-	canvas.Clear()
-	canvas.Restart()
-
-	var tar ggl.Target = e.Proc
-	if tar == nil {
-		tar = t
+	tar := t
+	if e.Proc != nil {
+		tar = e.Proc
 	}
 
+	canvas.Restart()
 	e.Module.Draw(tar, canvas)
 	e.forChild(IgnoreHidden, func(ch *Element) {
 		ch.redraw(tar, canvas)
 	})
+	canvas.Restart()
+	e.Module.DrawOnTop(tar, canvas)
 
 	if e.Proc != nil {
 		e.Proc.Fetch(t)
+		e.Proc.Clear()
 	}
 }
 
@@ -414,7 +430,8 @@ func (e *Element) resize(p *Processor) {
 
 	p.calcMargin(e)
 
-	e.evalSize(e.calcChildSize())
+	e.calcChildSize()
+	e.evalSize()
 
 	e.Frame = e.size.ToAABB() // main jazz, resize the frame
 }
@@ -440,28 +457,31 @@ func (e *Element) init(s *Scene) {
 }
 
 // EvalSize evaluates final size for element based of final size of children
-func (e *Element) evalSize(chSize mat.Vec) {
-	switch e.ResizeMode {
-	case Shrink:
-		e.size = chSize.Min(e.size)
-	case Expand:
-		e.size = chSize.Max(e.size)
-	case Exact:
-		e.size = chSize
-	case Ignore:
-		e.size = e.Size
+func (e *Element) evalSize() {
+	ch, sz := e.ChildSize.Flatten(), e.size.Flatten()
+	mut := e.size.Mutator()
+	for i, m := range e.Resizing {
+		switch m {
+		case Shrink:
+			*mut[i] = math.Min(ch[i], sz[i])
+		case Expand:
+			*mut[i] = math.Max(ch[i], sz[i])
+		case Exact:
+			*mut[i] = ch[i]
+		}
 	}
 }
 
 // CalcChildSize calculates children size according to element orientation
-func (e *Element) calcChildSize() (chSize mat.Vec) {
+func (e *Element) calcChildSize() {
+	e.ChildSize = mat.ZV
 	if e.Horizontal() {
-		sum := HSum{&chSize}
+		sum := HSum{&e.ChildSize}
 		e.forChild(IgnoreHidden, func(ch *Element) {
 			sum.Add(ch.spaceNeeded())
 		})
 	} else {
-		sum := VSum{&chSize}
+		sum := VSum{&e.ChildSize}
 		e.forChild(IgnoreHidden, func(ch *Element) {
 			sum.Add(ch.spaceNeeded())
 		})
@@ -472,13 +492,15 @@ func (e *Element) calcChildSize() (chSize mat.Vec) {
 
 // SizeNeeded returns how match space the element spams
 func (e *Element) spaceNeeded() mat.Vec {
-	return e.Frame.Size().Add(e.margin.Min).Add(e.margin.Max)
+	s := e.size
+	e.size = mat.ZV
+	return s.Add(e.margin.Min).Add(e.margin.Max)
 }
 
 // Move is next step after resize, size of all elements is calculated,
 // now we can move them all to correct place
 func (e *Element) move(offset mat.Vec, horizontal bool) mat.Vec {
-	off := offset.Add(e.margin.Min)
+	off := offset.Add(e.margin.Min).Add(e.Offest)
 	e.Frame = e.Frame.Moved(off)
 	e.Module.OnFrameChange()
 
@@ -518,6 +540,17 @@ var (
 	}
 )
 
+// even constants
+const (
+	MouseEntered = "mouse_entered"
+	MouseExited  = "mouse_exited"
+)
+
+// InputState ...
+type InputState struct {
+	Hovering bool
+}
+
 // Module is what makes Element alive, it defines its behavior. There is quite a but of
 // functions you might not even need, so use ModuleBase as core of your module to implement default
 // methods
@@ -530,6 +563,7 @@ type Module interface {
 	// Draw should draw the div, draw your triangles onto given target, you can use Geom as canvas
 	// though you have to draw it to target too, Geom is cleared and restarted before draw call
 	Draw(ggl.Target, *dw.Geom)
+	DrawOnTop(ggl.Target, *dw.Geom)
 	// Update is stage where your event handling and visual updates should happen, it gives you access to
 	// Processor so you can trigger global updates and mainly call p.Dirty().
 	Update(*ggl.Window, float64)
@@ -578,6 +612,10 @@ func (m *ModuleBase) Draw(t ggl.Target, g *dw.Geom) {
 	g.Fetch(t)
 }
 
+// DrawOnTop implements Module interface
+func (m *ModuleBase) DrawOnTop(t ggl.Target, g *dw.Geom) {
+}
+
 // Update implements Module interface
 func (*ModuleBase) Update(*ggl.Window, float64) {}
 
@@ -622,52 +660,3 @@ func (h *VSum) Add(size mat.Vec) {
 	h.Y += size.Y
 	h.X = math.Max(h.X, size.X)
 }
-
-// EventHandler handles event registration for elements
-type EventHandler map[string][]*EventListener
-
-// Add adds listener to handler, keep the listener accessable if you want to
-// remove it later
-func (e EventHandler) Add(listener *EventListener) {
-	evs := e[listener.Name]
-	listener.idx = len(evs)
-	e[listener.Name] = append(evs, listener)
-}
-
-// Invoke invokes the event listeners, removed listeners are skipped and deleted
-func (e EventHandler) Invoke(name string, ed *EventData) {
-	evs := e[name]
-	for i := len(evs) - 1; i >= 0; i-- {
-		if evs[i].Runner(ed) {
-			break
-		}
-	}
-}
-
-// EventListener holds function tha gets called when event is triggered
-// if events returns true, all consequent events will get blocked, execution
-// goes from newest to oldest event listener
-type EventListener struct {
-	Name   string
-	Runner func(*EventData) bool
-	idx    int
-	evs    EventHandler
-}
-
-// Remove removes the listener from event handler
-func (e *EventListener) Remove() {
-	if e.evs == nil {
-		return
-	}
-
-	evs := e.evs[e.Name]
-	for i := e.idx; i < len(evs); i++ {
-		evs[i].idx--
-	}
-
-	evs = append(evs[:e.idx], evs[e.idx+1:]...)
-	e.evs[e.Name] = evs
-}
-
-// EventData ...
-type EventData struct{}

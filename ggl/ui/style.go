@@ -31,7 +31,7 @@ type Props struct {
 	Composition
 	// resize mode sets how element should react to size of children, see
 	// constants documentation, if ResizeMode.None() then it is initialized with Expand
-	ResizeMode
+	Resizing [2]ResizeMode
 }
 
 // Horizontal reports whether style composition is horizontal
@@ -44,7 +44,14 @@ func (s *Props) Init() {
 	s.Margin = s.AABB("margin", mat.ZA)
 	s.Size = s.Vec("size", mat.ZV)
 	s.Composition = s.RawStyle.Composition("composition")
-	s.ResizeMode = s.RawStyle.ResizeMode("resize_mode")
+
+	s.Resizing[0] = s.ResizeMode("resize_mode_x")
+	s.Resizing[1] = s.ResizeMode("resize_mode_y")
+	if s.Resizing == [2]ResizeMode{} {
+		r := s.ResizeMode("resize_mode")
+		s.Resizing[0] = r
+		s.Resizing[1] = r
+	}
 }
 
 // Composition ...
@@ -101,6 +108,42 @@ const Fill float64 = 100000.767898765556788777667787666
 // RawStyle is wrapper of goss.Style and adds extra functionality
 type RawStyle struct {
 	goss.Style
+}
+
+// Bool returns boolean value under the key of def, if retrieval fails
+func (r RawStyle) Bool(key string, def bool) (v bool) {
+	v = def
+	val, ok := r.Style[key]
+	if !ok {
+		return
+	}
+
+	switch v := val[0].(type) {
+	case bool:
+		return v
+	case int:
+		return v == 1
+	}
+
+	return
+}
+
+// Float returns float under the key of default value if obtaining failed
+func (r RawStyle) Float(key string, def float64) (v float64) {
+	v = def
+	val, ok := r.Style[key]
+	if !ok {
+		return
+	}
+
+	switch v := val[0].(type) {
+	case float64:
+		return v
+	case int:
+		return float64(v)
+	}
+
+	return v
 }
 
 // Composition parses style composition, if parsing fails, Vertical is returned

@@ -105,6 +105,11 @@ func (v Vec) Inv() Vec {
 	return v
 }
 
+// Swapped returns v with swapped components
+func (v Vec) Swapped() Vec {
+	return Vec{v.Y, v.X}
+}
+
 // Flatten flatens the Vec into Array, values are
 // ordered as they would on stack
 func (v Vec) Flatten() [2]float64 {

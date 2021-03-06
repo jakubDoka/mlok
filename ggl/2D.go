@@ -23,6 +23,11 @@ type Drawer interface {
 	Draw(b Target, mat mat.Mat, mask mat.RGBA)
 }
 
+// Updater si something that can update its state based of color and transformation
+type Updater interface {
+	Update(mat mat.Mat, mask mat.RGBA)
+}
+
 // Vertex is essentia vertex struct for rendering
 type Vertex struct {
 	Pos, Tex  mat.Vec
@@ -97,7 +102,19 @@ func (n *NinePatchSprite) Resize(width, height float64) {
 	*/
 	width *= .5
 	height *= .5
-	v, h := PadMap(mat.A(-width, -height, width, height), n.Padding)
+
+	n.SetDist(mat.A(-width, -height, width, height))
+}
+
+// SetDist makes sprite drawn into dst area just by fetching it
+func (n *NinePatchSprite) SetDist(dst mat.AABB) {
+	/*
+		function first takes mapping of new frame
+		then i creates AABBs in loop for each sprite
+		mapping is centered so that sprite can be drawn
+		centered
+	*/
+	v, h := PadMap(dst, n.Padding)
 	for y := 0; y < NinePatchSide; y++ {
 		for x := 0; x < NinePatchSide; x++ {
 			n.s[y][x].tex = mat.A(v[x], h[y], v[x+1], h[y+1]).Vertices()
@@ -130,6 +147,11 @@ func (n *NinePatchSprite) Fetch(t Target) {
 func (n *NinePatchSprite) Draw(t Target, mat mat.Mat, mask mat.RGBA) {
 	n.Update(mat, mask)
 	n.Fetch(t)
+}
+
+// Size returns sprite size when its drawn with mat.IM transforation
+func (n *NinePatchSprite) Size() mat.Vec {
+	return n.s[0][0].tex[0].To(n.s[2][2].tex[2])
 }
 
 // PadMap creates padding break points with help of witch we can determinate
@@ -193,14 +215,22 @@ func (s *Sprite) Set(dst, src mat.AABB) {
 	}
 }
 
+// SetDist sets destination area where sprite will be drawn
+func (s *Sprite) SetDist(dst mat.AABB) {
+	pos := dst.Vertices()
+	for i := range s.data {
+		s.data[i].Pos = pos[i]
+	}
+}
+
 // Draw draws sprite to Batch projected by given matrix, and colored by mask
 func (s *Sprite) Draw(b Target, mat mat.Mat, mask mat.RGBA) {
 	s.Update(mat, mask)
 	b.Accept(s.data[:], SpriteIndices)
 }
 
-// LazyDraw draws sprite as it is, to change draw result call Update
-func (s *Sprite) LazyDraw(b Target) {
+// Fetch draws sprite as it is, to change draw result call Update
+func (s *Sprite) Fetch(b Target) {
 	b.Accept(s.data[:], SpriteIndices)
 }
 
@@ -210,4 +240,9 @@ func (s *Sprite) Update(mat mat.Mat, mask mat.RGBA) {
 		s.data[i].Pos = mat.Project(s.tex[i])
 		s.data[i].Color = mask
 	}
+}
+
+// Size returns sprite size when its drawn with mat.IM transforation
+func (s *Sprite) Size() mat.Vec {
+	return s.data[0].Tex.To(s.data[2].Tex)
 }

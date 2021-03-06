@@ -44,6 +44,7 @@ func NGeomDrawer() Geom {
 
 // Restart restarts the configuration to default one
 func (g *Geom) Restart() {
+	g.Clear()
 	g.geomCfg = nGeomCfg()
 }
 

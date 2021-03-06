@@ -156,3 +156,14 @@ func Round(v float64, precision int) float64 {
 	scl := math.Pow(10, float64(precision))
 	return math.Trunc(v*scl) / scl
 }
+
+// Clamp ...
+func Clamp(val, min, max float64) float64 {
+	if val > max {
+		return max
+	}
+	if val < min {
+		return min
+	}
+	return val
+}

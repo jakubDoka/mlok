@@ -97,7 +97,7 @@ func (p *Processor) calcSize(d *Element) {
 	}
 
 	// we set newly obtained private space but only if it makes sene for resize mode
-	if d.ResizeMode >= Shrink {
+	if d.Resizing[offset] >= Shrink {
 		privateSize = prev
 	}
 
@@ -140,7 +140,7 @@ func (p *Processor) calcSize(d *Element) {
 
 	spc := space / float64(len(p.divTemp))
 
-	if d.ResizeMode < Shrink {
+	if d.Resizing[offset] < Shrink {
 		if d.Horizontal() {
 			for _, ch := range p.divTemp {
 				ch.Module.PublicWidth(spc - sumMargin(0, ch))

@@ -95,7 +95,7 @@ func (d *Drawer) Draw(p *Paragraph, start, end int) {
 			}
 		}
 
-		d.glyph.LazyDraw(&p.data)
+		d.glyph.Fetch(&p.data)
 	}
 }
 

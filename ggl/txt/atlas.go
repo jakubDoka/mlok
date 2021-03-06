@@ -1,7 +1,6 @@
 package txt
 
 import (
-	"fmt"
 	"gobatch/ggl"
 	"gobatch/mat"
 	"image"
@@ -101,9 +100,9 @@ func NewAtlas(face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 			),
 			Frame: mat.A(
 				i2f(fg.frame.Min.X),
-				bounds.Max.Y-i2f(fg.frame.Min.Y),
-				i2f(fg.frame.Max.X),
 				bounds.Max.Y-i2f(fg.frame.Max.Y),
+				i2f(fg.frame.Max.X),
+				bounds.Max.Y-i2f(fg.frame.Min.Y),
 			),
 			Advance: i2f(fg.advance),
 		}
@@ -229,7 +228,6 @@ func makeMapping(face font.Face, runes []rune, padding, width fixed.Int26_6, spa
 	for _, r := range runes {
 		b, advance, ok := face.GlyphBounds(r)
 		if !ok {
-			fmt.Println(r)
 			continue
 		}
 

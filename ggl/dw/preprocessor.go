@@ -18,7 +18,10 @@ type SpriteViewport struct {
 
 // Accept implements ggl.Target interface
 func (p *SpriteViewport) Accept(vertexes ggl.Vertexes, indices ggl.Indices) {
-	p.Data.Accept(nil, indices)
+	var (
+		count int
+		prev  = len(p.Vertexes)
+	)
 	for i := 0; i < len(vertexes); i += 4 {
 		vs := [4]ggl.Vertex{}
 		copy(vs[:], vertexes[i:i+4])
@@ -27,6 +30,8 @@ func (p *SpriteViewport) Accept(vertexes ggl.Vertexes, indices ggl.Indices) {
 		if !area.Intersects(p.Area) {
 			continue
 		}
+
+		count += ggl.SpriteIndicesSize
 
 		in := area.Intersect(p.Area)
 		if in == area {
@@ -60,6 +65,10 @@ func (p *SpriteViewport) Accept(vertexes ggl.Vertexes, indices ggl.Indices) {
 
 		p.Vertexes = append(p.Vertexes, vs[:]...)
 	}
+
+	ip := len(p.Indices)
+	p.Indices = append(p.Indices, indices[:count]...)
+	p.Indices[ip:].Shift(uint32(prev))
 }
 
 // ClampedViewport clamps all vertices into Area
