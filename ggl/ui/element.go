@@ -60,6 +60,7 @@ func NElement() *Element {
 	return &Element{
 		children: NChildren(),
 		Events:   events.String{},
+		Raw:      goml.NDiv(),
 	}
 }
 
@@ -432,8 +433,7 @@ func (e *Element) resize(p *Processor) {
 
 	e.calcChildSize()
 	e.evalSize()
-
-	e.Frame = e.size.ToAABB() // main jazz, resize the frame
+	e.size = e.Module.Size(e.size)
 }
 
 // Init initializes element and its children
@@ -492,16 +492,15 @@ func (e *Element) calcChildSize() {
 
 // SizeNeeded returns how match space the element spams
 func (e *Element) spaceNeeded() mat.Vec {
-	s := e.size
-	e.size = mat.ZV
-	return s.Add(e.margin.Min).Add(e.margin.Max)
+	e.size = e.Module.FinalSize(e.size)
+	return e.size.Add(e.margin.Min).Add(e.margin.Max)
 }
 
 // Move is next step after resize, size of all elements is calculated,
 // now we can move them all to correct place
 func (e *Element) move(offset mat.Vec, horizontal bool) mat.Vec {
 	off := offset.Add(e.margin.Min).Add(e.Offest)
-	e.Frame = e.Frame.Moved(off)
+	e.Frame = e.size.ToAABB().Moved(off)
 	e.Module.OnFrameChange()
 
 	e.forChild(IgnoreHiddenReverse, func(ch *Element) {
@@ -544,6 +543,7 @@ var (
 const (
 	MouseEntered = "mouse_entered"
 	MouseExited  = "mouse_exited"
+	Click        = "click"
 )
 
 // InputState ...
@@ -569,9 +569,6 @@ type Module interface {
 	Update(*ggl.Window, float64)
 	// OnFrameChange is called by processor when frame of element changes
 	OnFrameChange()
-	// Size should return a size that element will take, BaseModule will just return Style size for example
-	// but size can depend on state of element
-	Size() mat.Vec
 	// PrivateWidth should calculate the horizontal size incase of vertical parent composition that
 	// element needs in case it changes dynamically this will be called by processor only if parent
 	// can expand based of children
@@ -582,9 +579,13 @@ type Module interface {
 	PrivateHeight(supposed float64) (desired float64)
 	// PublicWidth gives an option to modify horizontal size of element in case it has a fill
 	// property, this will be called by processor only if parent can expand based of children
-	PublicWidth(supposed float64)
+	PublicWidth(supposed float64) (desired float64)
 	// PublicHeight does same as PublicWidth thought for Height
-	PublicHeight(supposed float64)
+	PublicHeight(supposed float64) (desired float64)
+
+	Size(supposed mat.Vec) mat.Vec
+
+	FinalSize(supposed mat.Vec) mat.Vec
 }
 
 // ModuleBase is a base of every module, you should embed this struct in your module
@@ -623,21 +624,24 @@ func (*ModuleBase) Update(*ggl.Window, float64) {}
 func (*ModuleBase) OnFrameChange() {}
 
 // Size implements Module interface
-func (m *ModuleBase) Size() mat.Vec {
-	return m.Props.Size
+func (m *ModuleBase) Size(supposed mat.Vec) mat.Vec {
+	return supposed
 }
 
 // PrivateWidth implements Module interface
-func (*ModuleBase) PrivateWidth(supposed float64) (desired float64) { return }
+func (*ModuleBase) PrivateWidth(supposed float64) float64 { return supposed }
 
 // PrivateHeight implements Module interface
-func (*ModuleBase) PrivateHeight(supposed float64) (desired float64) { return }
+func (*ModuleBase) PrivateHeight(supposed float64) float64 { return supposed }
 
 // PublicWidth implements Module interface
-func (*ModuleBase) PublicWidth(supposed float64) {}
+func (*ModuleBase) PublicWidth(supposed float64) float64 { return supposed }
 
 // PublicHeight implements Module interface
-func (*ModuleBase) PublicHeight(supposed float64) {}
+func (*ModuleBase) PublicHeight(supposed float64) float64 { return supposed }
+
+// FinalSize implements Module interface
+func (*ModuleBase) FinalSize(supposed mat.Vec) mat.Vec { return supposed }
 
 // HSum calculates size of elements in horizontal composition
 type HSum struct {

@@ -59,5 +59,5 @@ func (d *dummy) Pos() mat.Vec {
 }
 
 func (d *dummy) Bounds() mat.AABB {
-	return mat.Cube(d.pos, d.size)
+	return mat.Square(d.pos, d.size)
 }

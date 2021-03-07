@@ -867,8 +867,10 @@ var (
 	YellowOrange                        = mat.RGB(1.0, 0.6824, 0.2588)
 	YellowProcess                       = mat.RGB(1.0, 0.9373, 0.0)
 	YellowRyb                           = mat.RGB(0.9961, 0.9961, 0.2)
-	Zaffre                              = mat.RGB(0.0, 0.0784, 0.6588)
+	Zaffire                             = mat.RGB(0.0, 0.0784, 0.6588)
 	ZinnwalditeBrown                    = mat.RGB(0.1725, 0.0863, 0.0314)
+	Green                               = mat.RGB(0.0, 1.0, 0.0)
+	Purple                              = mat.RGB(1.0, 0.0, 1.0)
 )
 
 // Colors contains colors with simple names mapped to the string literals
@@ -1091,5 +1093,7 @@ var Colors = map[string]mat.RGBA{
 	"wisteria":        Wisteria,
 	"xanadu":          Xanadu,
 	"yellow":          Yellow,
-	"zaffre":          Zaffre,
+	"zaffire":         Zaffire,
+	"green":           Green,
+	"purple":          Purple,
 }

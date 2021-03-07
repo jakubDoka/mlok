@@ -50,7 +50,7 @@ const (
 // SpriteIndices is slice of constant indices used by Sprite
 var SpriteIndices = Indices{0, 1, 2, 0, 3, 2}
 
-// NinePatchSprite consists of grid layout of 3x3 sprites that together form
+// Patch consists of grid layout of 3x3 sprites that together form
 // a continuous rectangle. Even though it has same properties as sprite, every
 // operation is 9x as expensive, now little showcase of how NPS works:
 //
@@ -62,15 +62,15 @@ var SpriteIndices = Indices{0, 1, 2, 0, 3, 2}
 //	| | | |			| |      | |
 //  +-+-+-+	(7, 7)	+-+------+-+ (12, 7)
 //
-type NinePatchSprite struct {
+type Patch struct {
 	s       [NinePatchSide][NinePatchSide]Sprite
 	Padding mat.AABB
 }
 
-// NNinePatchSprite creates new NPS ready-for-use
-func NNinePatchSprite(frame, padding mat.AABB) NinePatchSprite {
+// NPatch creates ready-for-use Patch
+func NPatch(frame, padding mat.AABB) Patch {
 	v, h := PadMap(frame, padding)
-	n := NinePatchSprite{Padding: padding}
+	n := Patch{Padding: padding}
 
 	for y := 0; y < NinePatchSide; y++ {
 		for x := 0; x < NinePatchSide; x++ {
@@ -90,10 +90,29 @@ func NNinePatchSprite(frame, padding mat.AABB) NinePatchSprite {
 	return n
 }
 
+// SetColor sets modulation with witch Patch gets drawn
+func (n *Patch) SetColor(value mat.RGBA) {
+	for y := 0; y < NinePatchSide; y++ {
+		for x := 0; x < NinePatchSide; x++ {
+			n.s[y][x].SetColor(value)
+		}
+	}
+}
+
+// SetIntensity sets intensity of all inner sprites, so it has same effect
+// as sprite intensity
+func (n *Patch) SetIntensity(value float64) {
+	for y := 0; y < NinePatchSide; y++ {
+		for x := 0; x < NinePatchSide; x++ {
+			n.s[y][x].SetIntensity(value)
+		}
+	}
+}
+
 // Resize resizes NPS to given width and height, corners will stay as same scale while
 // other 5 parts scale up accordingly to create continuos Rectangle. This is mainly usefull
 // for ui panels and flexible frames.
-func (n *NinePatchSprite) Resize(width, height float64) {
+func (n *Patch) Resize(width, height float64) {
 	/*
 		function first takes mapping of new frame
 		then i creates AABBs in loop for each sprite
@@ -107,7 +126,7 @@ func (n *NinePatchSprite) Resize(width, height float64) {
 }
 
 // SetDist makes sprite drawn into dst area just by fetching it
-func (n *NinePatchSprite) SetDist(dst mat.AABB) {
+func (n *Patch) SetDist(dst mat.AABB) {
 	/*
 		function first takes mapping of new frame
 		then i creates AABBs in loop for each sprite
@@ -123,7 +142,7 @@ func (n *NinePatchSprite) SetDist(dst mat.AABB) {
 }
 
 // Update transforms NPS vertices with matrix and sets mask
-func (n *NinePatchSprite) Update(mat mat.Mat, mask mat.RGBA) {
+func (n *Patch) Update(mat mat.Mat, mask mat.RGBA) {
 	for y := 0; y < NinePatchSide; y++ {
 		for x := 0; x < NinePatchSide; x++ {
 			for z, v := range n.s[y][x].tex {
@@ -135,7 +154,7 @@ func (n *NinePatchSprite) Update(mat mat.Mat, mask mat.RGBA) {
 }
 
 // Fetch implements Fetcher interface
-func (n *NinePatchSprite) Fetch(t Target) {
+func (n *Patch) Fetch(t Target) {
 	for y := 0; y < NinePatchSide; y++ {
 		for x := 0; x < NinePatchSide; x++ {
 			t.Accept(n.s[y][x].data[:], SpriteIndices)
@@ -144,18 +163,18 @@ func (n *NinePatchSprite) Fetch(t Target) {
 }
 
 // Draw implements Drawer interface
-func (n *NinePatchSprite) Draw(t Target, mat mat.Mat, mask mat.RGBA) {
+func (n *Patch) Draw(t Target, mat mat.Mat, mask mat.RGBA) {
 	n.Update(mat, mask)
 	n.Fetch(t)
 }
 
 // Size returns sprite size when its drawn with mat.IM transforation
-func (n *NinePatchSprite) Size() mat.Vec {
+func (n *Patch) Size() mat.Vec {
 	return n.s[0][0].tex[0].To(n.s[2][2].tex[2])
 }
 
 // PadMap creates padding break points with help of witch we can determinate
-// vertices of NinePatchSprite, think of v as four vertical lines and h as 4 horizontal
+// vertices of Patch, think of v as four vertical lines and h as 4 horizontal
 // lines, if you draw them on paper you will get 9 rectangles
 func PadMap(frame, padding mat.AABB) (v, h [4]float64) {
 	v = [4]float64{frame.Min.X, frame.Min.X + padding.Min.X, frame.Max.X - padding.Max.X, frame.Max.X}
@@ -188,6 +207,13 @@ func NSprite(frame mat.AABB) Sprite {
 	}
 
 	return s
+}
+
+// SetColor sets the color of sprite
+func (s *Sprite) SetColor(value mat.RGBA) {
+	for i := range s.data {
+		s.data[i].Color = value
+	}
 }
 
 // SetIntensity sets the intensity of sprite image, if you set it to 0 the rectangle in a color of sprite mask will

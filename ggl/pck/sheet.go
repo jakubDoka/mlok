@@ -2,6 +2,7 @@ package pck
 
 import (
 	"gobatch/ggl"
+	"gobatch/ggl/txt"
 	"gobatch/mat"
 	"image"
 	"image/draw"
@@ -17,102 +18,140 @@ import (
 )*/
 
 /*gen(
-	templates.Vec<PicData, Vec>
+	templates.Data<PicData, Data>
 )*/
 
 // PicData is data related to picture
 type PicData struct {
 	Name   string
-	Bounds mat.AABB
+	bounds mat.AABB
 	Img    draw.Image
+	drawer *txt.Drawer
 }
 
 // NPicData creates Slice of PicData from texture paths, it flips the textures
 // so they are not upside down
-func NPicData(paths ...string) (Vec, error) {
-	data := make(Vec, len(paths))
-	for i, v := range paths {
-		d := &data[i]
+func (d *Data) AddImages(paths ...string) error {
+	data := *d
+	for _, v := range paths {
+		d := PicData{}
 		d.Name = v
 
 		img, err := ggl.LoadImage(v)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		ggl.FlipNRGBA(img.(*image.NRGBA))
+		ggl.FlipNRGBA(img)
 
-		d.Img = img.(draw.Image)
-		d.Bounds = mat.FromRect(img.Bounds())
+		d.Img = img
+
+		data = append(data, d)
 	}
-	return data, nil
+
+	*d = data
+	return nil
+}
+
+// AddMarkdown adds markdown font textures into Data
+func (v *Data) AddMarkdown(m *txt.Markdown) {
+	for _, font := range m.Fonts {
+		*v = append(*v, PicData{
+			Name:   font.Name,
+			Img:    font.Pic,
+			drawer: font,
+		})
+	}
 }
 
 // Sheet contains sprite sheet and Regions
 type Sheet struct {
+	Data
+
+	Root    string
 	Pic     *image.NRGBA
 	Regions map[string]mat.AABB
 }
 
-// NSheet calls NPicData on paths and then NSheetFromData with data and root
+// NSheet creates new sheet containing textures from given paths
 func NSheet(root string, paths ...string) (sh *Sheet, err error) {
-	data, err := NPicData(paths...)
-	if err != nil {
-		return nil, err
+	sh = &Sheet{
+		Root: root,
 	}
-	return NSheetFromData(data, root), nil
-}
 
-// NSheetFromData creates sprite shit from given pic data, names of regions
-// will be truncated by root so "hello/root/something.png" will be put
-// under "something" in regions
-func NSheetFromData(data Vec, root string) (sh *Sheet) {
-	sh = &Sheet{Regions: map[string]mat.AABB{}}
-
-	if len(data) == 0 {
+	err = sh.AddImages(paths...)
+	if err != nil {
 		return
 	}
 
-	w, h := Pack(data)
+	sh.Pack()
+	return sh, nil
+}
+
+// Pack takes all Data in sheet and translates it into one packed image
+// and regions, regarding the current Root the names will be modified, for
+// example if root is "root" then "something/root/anything.png" will be saved under
+// kay with value "anything" into s.Regions
+func (s *Sheet) Pack() {
+	if len(s.Data) == 0 {
+		return
+	}
+
+	if s.Regions == nil {
+		s.Regions = map[string]mat.AABB{}
+	}
+	// cleanup
+	for k := range s.Regions {
+		delete(s.Regions, k)
+	}
+	for i := range s.Data {
+		d := &s.Data[i]
+		d.bounds = mat.FromRect(d.Img.Bounds())
+	}
+
+	w, h := Pack(s.Data)
 
 	bounds := image.Rect(0, 0, w, h)
 
-	sh.Pic = image.NewNRGBA(bounds)
+	s.Pic = image.NewNRGBA(bounds)
 
-	for _, d := range data {
-		r := d.Bounds.ToImage()
-		draw.Draw(sh.Pic, r, d.Img, d.Img.Bounds().Min, draw.Over)
-		name, w, h, ok := DetectSpritesheet(d.Name, root)
+	for _, d := range s.Data {
+		r := d.bounds.ToImage()
+		draw.Draw(s.Pic, r, d.Img, d.Img.Bounds().Min, draw.Over)
+		name, w, h, ok := DetectSpritesheet(d.Name, s.Root)
 
 		if ok {
 			w := float64(w)
 			h := float64(h)
-			for y, n := d.Bounds.Max.Y, 0; y > d.Bounds.Min.Y; y -= h {
-				for x := d.Bounds.Min.X; x < d.Bounds.Max.X; x += w {
+			for y, n := d.bounds.Max.Y, 0; y > d.bounds.Min.Y; y -= h {
+				for x := d.bounds.Min.X; x < d.bounds.Max.X; x += w {
 					n++
-					sh.Regions[name+strconv.Itoa(n)] = mat.A(x, y-h, x+w, y)
+					s.Regions[name+strconv.Itoa(n)] = mat.A(x, y-h, x+w, y)
 				}
 			}
 		} else {
-			sh.Regions[name] = d.Bounds
+			s.Regions[name] = d.bounds
+			if d.drawer != nil {
+				d.drawer.Region = d.bounds.Min
+			}
 		}
 	}
 
-	sh.Regions["All"] = mat.A(0, 0, float64(w), float64(h))
+	s.Regions["All"] = mat.A(0, 0, float64(w), float64(h))
 
 	return
 }
 
 // Pack packs rectangles in reasonable way, it tries to achieve
 // size efficiency not speed
-func Pack(data Vec) (width, height int) {
+func Pack(data Data) (width, height int) {
 	// to guarantee that rect that is first in the row is highest
 	data.Sort(func(a, b PicData) bool {
-		return a.Bounds.H() > b.Bounds.H()
+		return a.bounds.H() > b.bounds.H()
 	})
 
 	count := len(data)
 	if count == 1 { // useless, bail
-		return int(data[0].Bounds.W()), int(data[0].Bounds.H())
+		return int(data[0].bounds.W()), int(data[0].bounds.H())
 	}
 
 	var (
@@ -124,13 +163,13 @@ o:
 	for point < count {
 		var length float64
 		for i := 0; i < point; i++ {
-			length += data[i].Bounds.W()
+			length += data[i].bounds.W()
 		}
 
 		// it would result to infinit loop if there is rectangle that is wider then length
 		// si increase length and try again
 		for i := point; i < count; i++ {
-			if data[i].Bounds.W() > length {
+			if data[i].bounds.W() > length {
 				point++
 				continue o
 			}
@@ -146,7 +185,7 @@ o:
 			var total float64
 			breakpoints = append(breakpoints, current)
 			for current < count {
-				total += data[current].Bounds.W()
+				total += data[current].bounds.W()
 				if total > length {
 					break
 				}
@@ -157,7 +196,7 @@ o:
 		// calculating height of final cube for ratio
 		var tollness float64
 		for _, v := range breakpoints {
-			tollness += data[v].Bounds.H()
+			tollness += data[v].bounds.H()
 		}
 
 		// idk, it just kinda works like this
@@ -182,10 +221,10 @@ o:
 	for i := 0; i < len(best)-1; i++ {
 		// best can look like [0, 3, 6, 9] if there are 2 breakpoints on 3 and 6
 		for j := best[i]; j < best[i+1]; j++ {
-			data[j].Bounds = data[j].Bounds.Moved(offset)
-			offset.X += data[j].Bounds.W()
+			data[j].bounds = data[j].bounds.Moved(offset)
+			offset.X += data[j].bounds.W()
 		}
-		offset.Y += data[best[i]].Bounds.H()
+		offset.Y += data[best[i]].bounds.H()
 		offset.X = 0.0
 	}
 
@@ -196,11 +235,11 @@ o:
 // that could theoretically be build from given data, side
 // will be exactly correct only if all inputted rectangles
 // are of same size
-func calcOptimalSide(data Vec) int {
+func calcOptimalSide(data Data) int {
 	// calculate total area
 	var area float64
 	for _, p := range data {
-		area += p.Bounds.Area()
+		area += p.bounds.Area()
 	}
 
 	// side of square
@@ -208,7 +247,7 @@ func calcOptimalSide(data Vec) int {
 
 	// find the break point
 	for i, p := range data {
-		side -= p.Bounds.W()
+		side -= p.bounds.W()
 		if side <= 0 {
 			return i
 		}

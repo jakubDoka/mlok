@@ -6,7 +6,7 @@ import (
 )
 
 func TestNPSResize(t *testing.T) {
-	n := NNinePatchSprite(mat.A(0, 0, 50, 50), mat.A(10, 10, 10, 10))
+	n := NPatch(mat.A(0, 0, 50, 50), mat.A(10, 10, 10, 10))
 	res := [3][3][4]mat.Vec{
 		{
 			{mat.V(-25, -25), mat.V(-25, -15), mat.V(-15, -15), mat.V(-15, -25)},

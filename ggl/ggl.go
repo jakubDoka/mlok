@@ -492,7 +492,7 @@ func (p Ptr) ID() uint32 {
 }
 
 // LoadImage loads image from disk
-func LoadImage(p string) (image.Image, error) {
+func LoadImage(p string) (*image.NRGBA, error) {
 	imgFile, err := os.Open(p)
 	if err != nil {
 		return nil, fmt.Errorf("image %q not found on disk: %v", p, err)
@@ -503,7 +503,17 @@ func LoadImage(p string) (image.Image, error) {
 		return nil, fmt.Errorf("failed to decode %q: %v", p, err)
 	}
 
-	return img, nil
+	var res *image.NRGBA
+
+	switch v := img.(type) {
+	case *image.NRGBA:
+		res = v
+	default:
+		res = image.NewNRGBA(v.Bounds())
+		draw.Draw(res, res.Rect, img, img.Bounds().Min, 0)
+	}
+
+	return res, nil
 }
 
 // FlipNRGBA flips image over the X-axis

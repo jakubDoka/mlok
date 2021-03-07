@@ -223,6 +223,15 @@ func (r RawStyle) Vec(key string, def mat.Vec) (u mat.Vec) {
 	return
 }
 
+// Region returns a texture region, it can be hardcoded aabb or region name.
+func (r RawStyle) Region(key string, regions map[string]mat.AABB, def mat.AABB) mat.AABB {
+	m, ok := regions[r.Ident(key, "")]
+	if !ok {
+		return r.AABB(key, def)
+	}
+	return m
+}
+
 // AABB parser margin under the key, if parsing fails or margin is not present, default is returned
 func (r RawStyle) AABB(key string, def mat.AABB) (m mat.AABB) {
 	m = def

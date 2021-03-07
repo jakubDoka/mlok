@@ -35,3 +35,23 @@ func (d *Delta) Log(interval float64) {
 		d.fps = 0
 	}
 }
+
+// Limitter controls frame count per second, by deafult limmiter does nothing
+// fps has to be set
+type Limitter struct {
+	now   time.Time
+	frame time.Duration
+}
+
+// SetFPS sets fps to be limited to a given value
+func (l *Limitter) SetFPS(fps int) {
+	l.frame = time.Second / time.Duration(fps)
+	l.now = time.Now()
+}
+
+// Regulate performs frame regulation (call every frame)
+func (l *Limitter) Regulate() {
+	sleepTime := l.frame - time.Duration(time.Since(l.now).Nanoseconds())
+	time.Sleep(sleepTime)
+	l.now = l.now.Add(l.frame)
+}

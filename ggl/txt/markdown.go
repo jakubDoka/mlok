@@ -235,7 +235,7 @@ func (m *Markdown) MakeTriangles(p *Paragraph) {
 		m.Fonts[c.Font].Draw(p, c.start, c.End)
 	}
 
-	if p.raw.Last() != '\n' {
+	if len(p.raw) != 0 && p.raw.Last() != '\n' {
 		p.dots = append(p.dots, mat.V(math.MaxFloat64, p.dot.Y))
 	}
 

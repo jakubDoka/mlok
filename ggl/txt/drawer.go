@@ -90,7 +90,7 @@ func (d *Drawer) Draw(p *Paragraph, start, end int) {
 			} else {
 				prevRune = r
 				p.dots = append(p.dots, p.dot)
-				d.glyph.Set(frame, rect)
+				d.glyph.Set(frame.Moved(d.Region), rect)
 				p.bounds = p.bounds.Union(bounds)
 			}
 		}

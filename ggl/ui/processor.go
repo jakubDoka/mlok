@@ -44,8 +44,10 @@ func (p *Processor) Render(r ggl.Renderer) {
 
 // SetFrame sets the frame of Processor witch also updates all elements inside
 func (p *Processor) SetFrame(value mat.AABB) {
-	p.frame = value
-	p.scene.Resize.Notify()
+	if p.frame != value {
+		p.frame = value
+		p.scene.Resize.Notify()
+	}
 }
 
 // Update calls update on all elements, and performs resizing and redrawing if needed
@@ -117,7 +119,7 @@ func (p *Processor) calcSize(d *Element) {
 			}
 		}
 
-		sft := ch.Module.Size().Flatten()
+		sft := ch.Size.Flatten()
 		smt := ch.size.Mutator()
 
 		if sft[1-offset] == Fill {
@@ -138,16 +140,14 @@ func (p *Processor) calcSize(d *Element) {
 
 	feed(space, p.pfTmp)
 
-	spc := space / float64(len(p.divTemp))
-
 	if d.Resizing[offset] < Shrink {
 		if d.Horizontal() {
 			for _, ch := range p.divTemp {
-				ch.Module.PublicWidth(spc - sumMargin(0, ch))
+				ch.size.X = ch.Module.PublicWidth(ch.size.X)
 			}
 		} else {
 			for _, ch := range p.divTemp {
-				ch.Module.PublicHeight(spc - sumMargin(1, ch))
+				ch.size.Y = ch.Module.PublicHeight(ch.size.Y)
 			}
 		}
 	}
@@ -304,10 +304,12 @@ func (s *Scene) SetSheet(sheet *pck.Sheet) {
 //
 func (s *Scene) ReloadStyle(e *Element) {
 	s.InitStyle(e)
+	e.Module.Init(e)
 	ch := e.children.Slice()
 	for i := 0; i < len(ch); i++ {
 		s.ReloadStyle(ch[i].Value)
 	}
+	s.Resize.Notify()
 }
 
 // InitStyle initializes the stile on given element, this can be called

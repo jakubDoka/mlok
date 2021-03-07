@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"gobatch/logic/events"
 	"strconv"
 	"strings"
 
@@ -42,6 +43,9 @@ func NParser() *Parser {
 	p.AddFactory("div", &NoFactory{})
 	p.AddFactory("text", &TextFactory{})
 	p.AddFactory("scroll", &ScrollFactory{})
+	p.AddFactory("sprite", &SpriteFactory{})
+	p.AddFactory("patch", &PatchFactory{})
+	p.AddFactory("button", &ButtonFactory{})
 
 	return p
 }
@@ -75,7 +79,7 @@ func (p *Parser) translateElement(i int, elem goml.Element) (*Element, error) {
 	if !ok {
 		return nil, ErrMissingFactory.Args(elem.Name)
 	}
-	e := &Element{Module: val.New(), children: NChildren(), Raw: elem}
+	e := &Element{Module: val.New(), children: NChildren(), Raw: elem, Events: events.String{}}
 
 	if val, ok := elem.Attributes["name"]; ok {
 		e.name = val[0]

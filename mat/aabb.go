@@ -36,13 +36,13 @@ func ToAABB(a image.Rectangle) AABB {
 	}
 }
 
-// Cube returns AABB with center in c and width and height both equal to size * 2
-func Cube(c Vec, size float64) AABB {
+// Square returns AABB with center in c and width and height both equal to size * 2
+func Square(c Vec, size float64) AABB {
 	return AABB{Vec{c.X - size, c.Y - size}, Vec{c.X + size, c.Y + size}}
 }
 
-// CR returns rect witch center is equal to c, width equal to w, likewise height equal to h
-func CR(c Vec, w, h float64) AABB {
+// Centered returns rect witch center is equal to c, width equal to w, likewise height equal to h
+func Centered(c Vec, w, h float64) AABB {
 	w, h = w/2, h/2
 	return AABB{Vec{X: c.X - w, Y: c.Y - h}, Vec{X: c.X + w, Y: c.Y + h}}
 }

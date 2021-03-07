@@ -7,7 +7,7 @@ for line in inp:
 		continue
 	name, code = line.split("   ")
 	trueName = name.replace("_", " ").title().replace(" ", "").replace("Glfw", "")
-	name = trueName.replace("Key", "")
+	name = trueName.replace("Key", "").replace("Button", "")
 	if name[0].isdigit():
     		name = "_" + name
 	comment = ""
@@ -50,7 +50,7 @@ var Names = map[Key]string{
 
 for (trueName, name, comment) in values:
 	b = False
-	for i in "MouseButtonLast", "MouseButtonLeft", "MouseButtonRight", "MouseButtonMiddle", "Last":
+	for i in "Mouse8", "Mouse1", "Mouse2", "Mouse3", "Last":
 		if i == name:
 			b = True
 			break

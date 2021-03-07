@@ -25,7 +25,7 @@ func init() {
 	for i := range ASCII {
 		ASCII[i] = rune(32 + i)
 	}
-	Atlas7x13 = NewAtlas(basicfont.Face7x13, 0, ASCII)
+	Atlas7x13 = NewAtlas("default", basicfont.Face7x13, 0, ASCII)
 }
 
 // Glyph describes one glyph in an Atlas.
@@ -44,6 +44,7 @@ type Atlas struct {
 	descent    float64
 	lineHeight float64
 	spacing    float64
+	Name       string
 }
 
 // NewAtlas creates a new Atlas containing glyphs of the union of the given sets of runes (plus
@@ -54,7 +55,7 @@ type Atlas struct {
 // Creating an Atlas is rather expensive, do not create a new Atlas each frame.
 //
 // Do not destroy or close the font.Face after creating the Atlas. Atlas still uses it.
-func NewAtlas(face font.Face, spacing int, runeSets ...[]rune) *Atlas {
+func NewAtlas(name string, face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 	seen := make(map[rune]bool)
 	runes := []rune{unicode.ReplacementChar}
 	for _, set := range runeSets {
@@ -112,6 +113,7 @@ func NewAtlas(face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 		face:       face,
 		Pic:        atlasImg,
 		mapping:    mapping,
+		Name:       name,
 		spacing:    float64(spacing),
 		ascent:     i2f(face.Metrics().Ascent),
 		descent:    i2f(face.Metrics().Descent),
