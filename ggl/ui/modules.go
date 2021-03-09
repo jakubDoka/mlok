@@ -9,16 +9,190 @@ import (
 	"gobatch/mat/rgba"
 	"math"
 
+	"github.com/atotto/clipboard"
 	"github.com/jakubDoka/gogen/str"
 	"github.com/jakubDoka/goml/goss"
 )
 
-// ButtonFactory instantiates Button module
-type ButtonFactory struct{}
+// Area is a text input element, you can get its content by turning Area.Text.Text into string
+type Area struct {
+	Text
+	HoldMap
+
+	dw CursorDrawer
+
+	selected, dirty, noEffects bool
+
+	LineIdx, Line int
+
+	CursorWidth                float64
+	CursorMask, SelectionColor mat.RGBA
+}
 
 // New implements ModuleFactory interface
-func (t *ButtonFactory) New() Module {
-	return &Button{}
+func (a *Area) New() Module {
+	return &Area{}
+}
+
+// Init implements Module interface
+func (a *Area) Init(e *Element) {
+	a.Composed = true // important for next call
+	a.Text.Init(e)
+
+	a.dw = a.CursorDrawer("cursor_drawer", a.Scene.Assets.Cursors, defaultCursor{})
+	a.CursorWidth = e.Float("cursor_width", 2)
+	a.CursorMask = e.RGBA("cursor_mask", mat.White)
+	a.SelectionColor = e.RGBA("selection_color", mat.Alpha(.5))
+	a.AutoFrequency = e.Float("auto_frequency", .03)
+	a.HoldResponceSpeed = e.Float("hold_responce_speed", .5)
+
+	a.binds = map[key.Key]float64{}
+}
+
+// Update implements Module interface
+func (a *Area) Update(w *ggl.Window, delta float64) {
+	// Text.Update sets up lot of things
+	a.Text.Update(w, delta)
+
+	if !a.selected && !a.Hovering {
+		return
+	}
+
+	// we don't want effects to be applied when user is editing text
+	if w.JustPressed(key.MouseLeft) {
+		if a.selected && !a.Hovering {
+			a.NoEffects = a.noEffects
+			a.selected = false
+			a.Dirty()
+			a.Events.Invoke(Deselect, nil)
+		} else if !a.selected && a.Hovering {
+			a.noEffects = a.NoEffects
+			a.NoEffects = true
+			a.selected = true
+			a.Dirty()
+			a.Events.Invoke(Select, nil)
+			// returning as text has to get redrawn and reindexed so we can restore the cursor
+			return
+		}
+	}
+
+	if !a.selected {
+		return
+	}
+
+	// it is shortest way to handle arrow navigation
+	if (a.Line > 0 && a.Hold(key.Up, w, delta, func() {
+		a.Line--
+		a.Start = a.ProjectLine(a.LineIdx, a.Line)
+	})) || (a.Line < a.Lines()-1 && a.Hold(key.Down, w, delta, func() {
+		a.Line++
+		a.Start = a.ProjectLine(a.LineIdx, a.Line)
+	})) || (a.Start > 0 && a.Hold(key.Left, w, delta, func() {
+		a.Start--
+	})) || (a.Start < len(a.Text.Text) && a.Hold(key.Right, w, delta, func() {
+		a.Start++
+	})) || a.dirty {
+		a.LineIdx, a.Line = a.UnprojectLine(a.Start)
+		a.End = a.Start
+		a.dirty = false
+		a.Scene.Redraw.Notify()
+	}
+
+	typed := w.Typed()
+
+	// cut paste thing
+	var cut bool
+	if w.Pressed(key.LeftControl) {
+		cut = w.JustPressed(key.X)
+		if a.Start != a.End && cut {
+			a.Scene.Log(a.Element, a.Clip(a.Start, a.End))
+		} else if w.JustPressed(key.V) {
+			var err error
+			typed, err = clipboard.ReadAll()
+			a.Scene.Log(a.Element, err)
+		}
+	}
+
+	if !a.Hold(key.Enter, w, delta, func() {
+		typed = "\n"
+		a.Events.Invoke(Enter, nil)
+	}) && !a.Hold(key.Backspace, w, delta, func() {
+		if a.Start != 0 && a.Start == a.End {
+			a.Start--
+		}
+	}) && !a.Hold(key.Tab, w, delta, func() {
+		typed = "\a"
+	}) && typed == "" && !cut {
+		return
+	}
+
+	if cut { // we don't want to accidentally write something
+		typed = ""
+	}
+
+	a.Text.Text.RemoveSlice(a.Start, a.End)
+	a.Text.Text.InsertSlice(a.Start, str.NString(typed))
+	a.Events.Invoke(TextChanged, typed)
+	a.Start += len(typed)
+	a.End = a.Start
+	a.Dirty()
+	a.dirty = true
+}
+
+// DrawOnTop implements Module interface
+func (a *Area) DrawOnTop(tg ggl.Target, canvas *dw.Geom) {
+	if !a.selected {
+		return
+	}
+	a.dw.Draw(tg, canvas, a.Dot(mat.Maxi(a.Start, a.End)), mat.V(a.CursorWidth, a.Ascent*a.Scl.Y), a.CursorMask)
+	canvas.Clear()
+	a.Text.DrawOnTop(tg, canvas)
+}
+
+// Dirty is similar to Text.Dirty but it preserves the Start and End
+func (a *Area) Dirty() {
+	start, end := a.Start, a.End
+	a.Text.Dirty()
+	a.Start, a.End = start, end
+}
+
+// CursorDrawer is something that draws the cursor inside the Area when area is selected
+type CursorDrawer interface {
+	Draw(t ggl.Target, canvas *dw.Geom, base, size mat.Vec, mask mat.RGBA)
+}
+
+type defaultCursor struct{}
+
+func (d defaultCursor) Draw(t ggl.Target, canvas *dw.Geom, base, size mat.Vec, mask mat.RGBA) {
+	size.X *= .5
+	canvas.Color(mask).AABB(mat.A(base.X-size.X, base.Y, base.X+size.X, base.Y+size.Y))
+	canvas.Fetch(t)
+}
+
+// HoldMap is extracted behavior of text edit, see HoldFunction
+type HoldMap struct {
+	HoldResponceSpeed, AutoFrequency float64
+
+	binds map[key.Key]float64
+}
+
+// Hold supports Hold and repeat effect, if you hold button for long enough, action starts repeating
+func (h HoldMap) Hold(b key.Key, win *ggl.Window, delta float64, do func()) bool {
+	if win.JustPressed(b) {
+		do()
+		return true
+	} else if win.JustReleased(b) {
+		h.binds[b] = 0
+	} else if win.Pressed(b) {
+		tm := h.binds[b] + delta
+		if tm > h.HoldResponceSpeed+h.AutoFrequency {
+			do()
+			h.binds[b] = h.HoldResponceSpeed
+			return true
+		}
+		h.binds[b] = tm
+	}
+	return false
 }
 
 const buttonStateLen = 3
@@ -55,6 +229,11 @@ type Button struct {
 	selected bool
 }
 
+// New implements ModuleFactory interface
+func (b *Button) New() Module {
+	return &Button{}
+}
+
 // Init implements Module interface
 func (b *Button) Init(e *Element) {
 	b.Patch.Init(e)
@@ -64,6 +243,7 @@ func (b *Button) Init(e *Element) {
 		b.States[i].Text = parsed
 	}
 	mask := b.RGBA("all_masks", mat.White)
+
 	for i := range b.States {
 		b.States[i].Mask = mask
 	}
@@ -85,6 +265,7 @@ func (b *Button) Init(e *Element) {
 	textElem := NElement()
 	textElem.Module = &b.Text
 	b.AddChild("buttonText", textElem)
+	b.current = -1
 	b.ApplyState(idle)
 }
 
@@ -120,13 +301,20 @@ func (b *Button) ApplyState(state int) {
 		return
 	}
 	b.current = state
-
 	bs := &b.States[state]
 	b.Patch.Padding = bs.Padding
 	b.Patch.SetRegion(bs.Region)
-	b.Patch.Patch.SetColor(bs.Mask)
+	b.Patch.Mask = bs.Mask
 	b.Text.Text = bs.Text
-	b.Scene.Resize.Notify()
+	b.Text.Dirty()
+}
+
+// SetText sets text on all states to given value
+func (b *Button) SetText(text string) {
+	str := str.NString(text)
+	for i := range b.States {
+		b.States[i].Text = str
+	}
 }
 
 // ButtonState ...
@@ -134,14 +322,6 @@ type ButtonState struct {
 	Mask            mat.RGBA
 	Region, Padding mat.AABB
 	Text            str.String
-}
-
-// PatchFactory instantiates Patch module
-type PatchFactory struct{}
-
-// New implements ModuleFactory interface
-func (t *PatchFactory) New() Module {
-	return &Patch{}
 }
 
 // Patch is similar tor Sprite but uses ggl.Patch instead thus has more styling options
@@ -158,6 +338,11 @@ type Patch struct {
 	Padding, Region mat.AABB
 	Mask            mat.RGBA
 	Scale           mat.Vec
+}
+
+// New implements ModuleFactory interface
+func (p *Patch) New() Module {
+	return &Patch{}
 }
 
 // Init implements Module interface
@@ -201,14 +386,6 @@ func (p *Patch) SetPadding(value mat.AABB) {
 	p.SetRegion(p.Region)
 }
 
-// SpriteFactory instantiates Sprite module
-type SpriteFactory struct{}
-
-// New implements ModuleFactory interface
-func (t *SpriteFactory) New() Module {
-	return &Sprite{}
-}
-
 // Sprite is sprite for ui elements
 // style:
 // 	mask: 	color 		// texture modulation
@@ -218,6 +395,11 @@ type Sprite struct {
 	Sprite ggl.Sprite
 
 	Mask mat.RGBA
+}
+
+// New implements ModuleFactory interface
+func (s *Sprite) New() Module {
+	return &Sprite{}
 }
 
 // Init implements Module interface
@@ -244,14 +426,6 @@ func (s *Sprite) Draw(t ggl.Target, canvas *dw.Geom) {
 	s.Sprite.Fetch(t)
 }
 
-// ScrollFactory instantiates scroll modules
-type ScrollFactory struct{}
-
-// New implements ModuleFactory interface
-func (s *ScrollFactory) New() Module {
-	return &Scroll{}
-}
-
 // Scroll can make element visible trough scrollable viewport
 //
 // style:
@@ -269,11 +443,16 @@ type Scroll struct {
 
 	BarWidth, Friction, ScrollSensitivity  float64
 	BarColor, RailColor, IntersectionColor mat.RGBA
-	Bars                                   [2]Bar
+	X, Y                                   Bar
 	Outside                                bool
 
 	offset, vel, ratio, corner mat.Vec
 	dirty, useVel, useles      bool
+}
+
+// New implements ModuleFactory interface
+func (s *Scroll) New() Module {
+	return &Scroll{}
 }
 
 // Init implements module interface
@@ -286,17 +465,16 @@ func (s *Scroll) Init(e *Element) {
 	s.BarColor = s.RGBA("bar_color", rgba.White)
 	s.RailColor = s.RGBA("rail_color", mat.RGBA{})
 	s.IntersectionColor = s.RGBA("intersection_color", mat.RGBA{})
-	a, b := s.prt()
-	a.Use = s.Bool("bar_x", false)
-	b.Use = s.Bool("bar_y", false)
-	if !b.Use && !a.Use {
+	s.X.Use = s.Bool("bar_x", false)
+	s.Y.Use = s.Bool("bar_y", false)
+	if !s.Y.Use && !s.X.Use {
 		c := s.Bool("bars", false)
-		a.Use = c
-		b.Use = c
+		s.X.Use = c
+		s.Y.Use = c
 	}
 	s.Outside = s.Bool("outside", false)
-	a.position = 1 // to prevent snap
-	b.position = 1
+	s.X.position = 1 // to prevent snap
+	s.Y.position = 1
 }
 
 // DrawOnTop implements module interface
@@ -305,21 +483,20 @@ func (s *Scroll) DrawOnTop(t ggl.Target, c *dw.Geom) {
 		return
 	}
 
-	a, b := s.prt()
-	if a.use {
+	if s.X.use {
 		rect := mat.AABB{Min: s.Frame.Min, Max: s.corner}
 		c.Color(s.RailColor).AABB(rect)
-		rect.Min.X, rect.Max.X = s.barBounds(0)
+		rect.Min.X, rect.Max.X = s.barBounds(&s.X, 0)
 		c.Color(s.BarColor).AABB(rect)
 	}
-	if b.use {
+	if s.Y.use {
 		rect := mat.AABB{Min: s.corner, Max: s.Frame.Max}
 		c.Color(s.RailColor).AABB(rect)
-		rect.Min.Y, rect.Max.Y = s.barBounds(1)
+		rect.Min.Y, rect.Max.Y = s.barBounds(&s.Y, 1)
 		c.Color(s.BarColor).AABB(rect)
 	}
 
-	if a.use && b.use {
+	if s.X.use && s.Y.use {
 		rect := mat.A(s.corner.X, s.Frame.Min.Y, s.Frame.Max.X, s.corner.Y)
 		c.Color(s.IntersectionColor).AABB(rect)
 	}
@@ -339,9 +516,8 @@ func (s *Scroll) Update(w *ggl.Window, delta float64) {
 		s.Scene.Redraw.Notify()
 	}
 
-	a, b := s.prt()
 	if s.useVel {
-		if !a.selected && !b.selected {
+		if !s.X.selected && !s.Y.selected {
 			s.offset.AddE(s.vel)
 		}
 		if s.Friction < 0 {
@@ -365,8 +541,8 @@ func (s *Scroll) Update(w *ggl.Window, delta float64) {
 	}
 
 	if w.JustReleased(key.MouseLeft) {
-		s.Bars[0].selected = false
-		s.Bars[1].selected = false
+		s.X.selected = false
+		s.Y.selected = false
 		return
 	}
 
@@ -377,40 +553,39 @@ func (s *Scroll) Update(w *ggl.Window, delta float64) {
 	var (
 		mouse  = w.MousePrevPos()
 		move   = mouse.To(w.MousePos())
-		as, ae = s.barBounds(0)
-		bs, be = s.barBounds(1)
+		as, ae = s.barBounds(&s.X, 0)
+		bs, be = s.barBounds(&s.Y, 1)
 	)
 
-	if a.Use && a.use && a.selected || (s.corner.Y > mouse.Y && mouse.X >= as && mouse.X <= ae) {
+	if s.X.Use && s.X.use && s.X.selected || (s.corner.Y > mouse.Y && mouse.X >= as && mouse.X <= ae) {
 		if w.JustPressed(key.MouseLeft) {
-			a.selected = true
+			s.X.selected = true
 		}
-		if a.selected {
-			a.Move(-move.X)
+		if s.X.selected {
+			s.X.Move(-move.X)
 			s.dirty = true
 		}
-	} else {
+	} else if !s.Scene.TextSelected {
 		s.vel.X = move.X
 		s.useVel = true
 	}
 
-	if b.Use && b.use && b.selected || (s.corner.X < mouse.X && mouse.Y >= bs && mouse.Y <= be) {
+	if s.Y.Use && s.Y.use && s.Y.selected || (s.corner.X < mouse.X && mouse.Y >= bs && mouse.Y <= be) {
 		if w.JustPressed(key.MouseLeft) {
-			b.selected = true
+			s.Y.selected = true
 		}
-		if b.selected {
-			b.Move(move.Y)
+		if s.Y.selected {
+			s.Y.Move(move.Y)
 			s.dirty = true
 		}
-	} else {
+	} else if !s.Scene.TextSelected {
 		s.vel.Y = move.Y
 		s.useVel = true
 	}
 
 }
 
-func (s *Scroll) barBounds(side int) (float64, float64) {
-	b := &s.Bars[side]
+func (s *Scroll) barBounds(b *Bar, side int) (float64, float64) {
 	prj := b.reminder * b.position
 	if side == 0 {
 		prj = -prj - b.length
@@ -422,38 +597,36 @@ func (s *Scroll) barBounds(side int) (float64, float64) {
 
 // OnFrameChange implements module interface
 func (s *Scroll) OnFrameChange() {
-	s.ratio = s.ChildSize.Sub(s.Frame.Size())
+	size := s.Frame.Size()
+	s.ratio = s.ChildSize.Sub(size)
 	s.corner = mat.V(s.Frame.Max.X, s.Frame.Min.Y)
 
-	var (
-		mut   = s.ratio.Mutator()
-		final = s.ratio.Add(mat.V(s.BarWidth, s.BarWidth)).Flatten()
-		size  = s.Frame.Size().Flatten()
-		ch    = s.ChildSize.Flatten()
-	)
-
-	for i, v := range mut {
-		oi := (i + 1) % 2
-		b := &s.Bars[i]
-		b.space = size[i]
-		if b.Use {
-			b.use = final[i] > 0
-			if b.use {
-				if final[oi] > 0 && s.Bars[oi].Use {
-					b.space -= s.BarWidth
-					*v += s.BarWidth
-				}
-			}
-			b.length = math.Max(b.space*b.space/ch[i], 5)
-			b.reminder = b.space - b.length
-		}
+	ratio := s.ratio
+	if s.X.Use {
+		ratio.Y += s.BarWidth
+		s.X.space = size.X
+	}
+	if s.Y.Use {
+		ratio.X += s.BarWidth
+		s.Y.space = size.Y
 	}
 
-	a, b := s.prt()
-	if a.use {
+	s.X.use = s.X.Use && ratio.X > 0
+	s.Y.use = s.Y.Use && ratio.Y > 0
+
+	if s.X.use && s.Y.use {
+		s.X.space -= s.BarWidth
+		s.ratio.Y += s.BarWidth
+		s.Y.space -= s.BarWidth
+		s.ratio.X += s.BarWidth
+	}
+
+	if s.X.use {
+		s.X.CalcRatio(s.ChildSize.X)
 		s.corner.Y += s.BarWidth
 	}
-	if b.use {
+	if s.Y.use {
+		s.Y.CalcRatio(s.ChildSize.Y)
 		s.corner.X -= s.BarWidth
 	}
 
@@ -478,41 +651,35 @@ func (s *Scroll) Size(supposed mat.Vec) mat.Vec {
 
 // move applies velocity to offset
 func (s *Scroll) update() {
-	a, b := s.prt()
 	dif := s.ratio.Inv()
 	if dif.X < 0 {
-		if a.Use && (!s.useVel || a.selected) {
-			s.offset.X = dif.X * (1 - a.position) // needs to be inverted or it ll look unnatural
+		if s.X.Use && (!s.useVel || s.X.selected) {
+			s.offset.X = dif.X * (1 - s.X.position) // needs to be inverted or it ll look unnatural
 		} else {
-
 			s.offset.X = mat.Clamp(s.offset.X, dif.X, 0)
-			a.position = 1 - s.offset.X/dif.X // make sure to move bar too
+			s.X.position = 1 - s.offset.X/dif.X // make sure to move bar too
 		}
 	} else {
 		s.offset.X = 0
 	}
 
 	if dif.Y < 0 {
-		if b.Use && (!s.useVel || b.selected) {
-			s.offset.Y = dif.Y * b.position
+		if s.Y.Use && (!s.useVel || s.Y.selected) {
+			s.offset.Y = dif.Y * s.Y.position
 		} else {
 			s.offset.Y = mat.Clamp(s.offset.Y, dif.Y, 0)
-			b.position = s.offset.Y / dif.Y
+			s.Y.position = s.offset.Y / dif.Y
 		}
 	} else {
 		s.offset.Y = 0
 	}
 }
 
-func (s *Scroll) prt() (a, b *Bar) {
-	return &s.Bars[0], &s.Bars[1]
-}
-
 // move moves all elements by delta
 func (s *Scroll) updateOffset() {
 	ch := s.children.Slice()
 	off := s.offset
-	if s.Bars[0].use && s.Bars[1].use { // have to shift whole thing because of strange dimensions
+	if s.X.use && s.Y.use { // have to shift whole thing because of strange dimensions
 		off.Y += s.BarWidth
 	}
 	for i := 0; i < len(ch); i++ {
@@ -529,17 +696,15 @@ type Bar struct {
 	length, space, reminder float64
 }
 
+// CalcRatio calculates length and reminder of bar
+func (b *Bar) CalcRatio(size float64) {
+	b.length = math.Max(b.space*b.space/size, 5)
+	b.reminder = b.space - b.length
+}
+
 // Move moves the bar
 func (b *Bar) Move(vel float64) {
 	b.position = mat.Clamp(b.position+vel/b.reminder, 0, 1)
-}
-
-// TextFactory instantiates text modules
-type TextFactory struct{}
-
-// New implements module factory interface
-func (t *TextFactory) New() Module {
-	return &Text{}
 }
 
 // Text handles text rendering
@@ -547,15 +712,25 @@ type Text struct {
 	ModuleBase
 	txt.Paragraph
 	*txt.Markdown
+	dirty, Composed           bool
+	SelectionColor            mat.RGBA
+	Start, End, LineIdx, Line int
+}
+
+// New implements module factory interface
+func (t *Text) New() Module {
+	return &Text{}
 }
 
 // DefaultStyle implements Module interface
 func (t *Text) DefaultStyle() goss.Style {
 	return goss.Style{
-		"text_scale":  {"inherit"},
-		"text_color":  {"inherit"},
-		"text_size":   {"inherit"},
-		"text_margin": {"inherit"},
+		"text_scale":           {"inherit"},
+		"text_color":           {"inherit"},
+		"text_size":            {"inherit"},
+		"text_margin":          {"inherit"},
+		"text_background":      {"inherit"},
+		"text_selection_color": {"inherit"},
 	}
 }
 
@@ -572,13 +747,20 @@ func (t *Text) Init(e *Element) {
 	t.Markdown = mkd
 	t.Scl = t.Vec("text_scale", mat.V(1, 1))
 	t.Mask = t.RGBA("text_color", mat.White)
-	t.Props.Size = t.Vec("text_size", mat.V(Fill, Fill))
-	t.Props.Margin = t.AABB("text_margin", mat.A(4, 4, 4, 4))
+	t.SelectionColor = t.RGBA("text_selection_color", mat.Alpha(.5))
+	if !t.Composed {
+		t.Props.Size = t.Vec("text_size", mat.V(Fill, Fill))
+		t.Props.Margin = t.AABB("text_margin", mat.A(4, 4, 4, 4))
+		t.Background = t.RGBA("text_background", t.Background)
+	}
+	t.NoEffects = t.Bool("no_effects", false)
 	t.Text = str.NString(t.Raw.Attributes.Ident("text", string(t.Text)))
+	t.Dirty()
 }
 
 // Draw implements Module interface
 func (t *Text) Draw(tr ggl.Target, g *dw.Geom) {
+	t.ModuleBase.Draw(tr, g)
 	t.Paragraph.Draw(tr)
 }
 
@@ -588,34 +770,90 @@ func (t *Text) Update(w *ggl.Window, delta float64) {
 	if t.Changes() {
 		t.Scene.Redraw.Notify()
 	}
+
+	start, end := t.Start, t.End
+	if start > end {
+		start, end = end, start
+	}
+
+	if w.Pressed(key.LeftControl) {
+		if start != end && w.JustPressed(key.C) {
+			t.Scene.Log(t.Element, t.Clip(start, end))
+		}
+	}
+
+	if !t.Hovering && start == end {
+		return
+	}
+
+	// selection start
+	if w.JustPressed(key.MouseLeft) {
+		t.Start, t.LineIdx, t.Line = t.CursorFor(w.MousePos())
+		t.Scene.Redraw.Notify()
+	}
+
+	// selection dragging
+	if w.Pressed(key.MouseLeft) {
+		oldI, oldL, oldE := t.LineIdx, t.Line, t.End
+		t.End, t.LineIdx, t.Line = t.CursorFor(w.MousePos())
+		if oldE != t.End {
+			t.Scene.Redraw.Notify()
+		}
+		if t.End > t.Start {
+			t.LineIdx, t.Line = oldI, oldL
+		}
+	}
+}
+
+// DrawOnTop implements Module interface
+func (t *Text) DrawOnTop(tg ggl.Target, canvas *dw.Geom) {
+	start, end := t.Start, t.End
+	if start != end {
+		t.Scene.TextSelected = true
+		if start > end {
+			start, end = end, start
+		}
+
+		for i := start; i < end; i++ {
+			min := t.Dot(i)
+			min.Y -= t.Descent * t.Scl.Y
+
+			max := t.Dot(i + 1)
+			max.Y += t.Ascent * t.Scl.Y
+
+			canvas.Color(t.SelectionColor).AABB(mat.AABB{Min: min, Max: max})
+		}
+	}
+
+	canvas.Fetch(tg)
 }
 
 // PrivateWidth implements Module interface
 func (t *Text) PrivateWidth(supposed float64) (desired float64) {
 	if t.Props.Size.X != Fill {
-		return
+		return supposed
 	}
 
 	width := supposed / t.Scl.X
 
-	if width != t.Width {
+	if width != t.Width || t.dirty {
 		t.Width = width
 		t.Markdown.Parse(&t.Paragraph)
+		t.dirty = false
 	}
 
-	t.size.X = t.Bounds().W() * t.Scl.X
+	t.size.X = math.Max(t.Bounds().W()*t.Scl.X, supposed)
 	return t.size.X
 }
 
 // PublicHeight implements Module interface
 func (t *Text) PublicHeight(supposed float64) float64 {
-	return t.Paragraph.Bounds().H() * t.Scl.Y
+	return math.Max(t.Paragraph.Bounds().H()*t.Scl.Y, supposed)
 }
 
 // PublicWidth implements Module interface
 func (t *Text) PublicWidth(supposed float64) float64 {
 	width := t.PrivateWidth(supposed)
-	t.PublicHeight(0)
 	return width
 }
 
@@ -628,15 +866,31 @@ func (t *Text) OnFrameChange() {
 // Size implements Module interface
 func (t *Text) Size(supposed mat.Vec) mat.Vec {
 	if t.Props.Size.X != Fill {
-		t.Width = supposed.X / t.Scl.X
-		t.Markdown.Parse(&t.Paragraph)
+		width := supposed.X / t.Scl.X
+		if width != t.Width || t.dirty {
+			t.Width = width
+			t.Markdown.Parse(&t.Paragraph)
+			t.dirty = false
+		}
 	}
 
 	return supposed.Max(t.Bounds().Size().Mul(t.Scl))
 }
 
+// Clip copies the range into clipboard
+func (t *Text) Clip(start, end int) error {
+	return clipboard.WriteAll(string(t.Compiled[start:end]))
+}
+
 // SetText sets text and displays the change
 func (t *Text) SetText(text string) {
 	t.Paragraph.Text = str.NString(text)
+	t.Dirty()
+}
+
+// Dirty forces text to update
+func (t *Text) Dirty() {
+	t.dirty = true
+	t.Start, t.End = 0, 0
 	t.Scene.Resize.Notify()
 }

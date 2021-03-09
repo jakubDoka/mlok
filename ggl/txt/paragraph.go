@@ -31,8 +31,9 @@ type Paragraph struct {
 	// it does not overflows Width, though it only breaks on spaces, if width
 	// is 0 it will never wrap
 	Width float64
-	// this field is only used if it isn't negative and it alters LineHight (spooks)
-	LineHeight, Ascent float64
+	// Fields are only relevent if Custom Lineheight is true, othervise they will
+	// get overwritten
+	LineHeight, Ascent, Descent float64
 	// if this is true no effects are displayed
 	NoEffects bool
 	// set this to true if you want it custom
@@ -47,14 +48,15 @@ type Paragraph struct {
 	// drawer, Text is not used
 	Text str.String
 
-	data ggl.Data
+	data, selection ggl.Data
 
 	progress float64
+	lines    []line
 	dots     []mat.Vec
 	dot      mat.Vec
 	bounds   mat.AABB
 
-	raw str.String
+	Compiled str.String
 
 	changing, instant Effs
 	chunks            FEffs
@@ -126,21 +128,65 @@ func (p *Paragraph) Draw(t ggl.Target) {
 	t.Accept(p.Data.Vertexes, p.Data.Indices)
 }
 
-// CursorFor returns snapped position of cursor and its index, index is between 0 and
-// len(displayedGlyphs)+1 if you are using Effects and try to use cursor index to insert into
-// Text your attempt will fail as with effects present len(Text) > len(displayedGlyphs)
-// Note that you first have to call Markdown.Parse on paragraph that creates mapping for
-// finding cursor, othervise you will end up with zero values or invalid values.
-func (p *Paragraph) CursorFor(mouse mat.Vec) (pos mat.Vec, idx int) {
+// CursorFor returns index of a dot on witch the cursor is nad insertcion index
+// that is where you should insert the text to make it look like cursor is writing.
+// Then there is line local position and index of a line
+func (p *Paragraph) CursorFor(mouse mat.Vec) (global, local, line int) {
 	mouse = p.Mat().Unproject(mouse)
 
-	for i, pos := range p.dots {
-		if pos.X >= mouse.X && pos.Y <= mouse.Y {
-			return pos, i
+	y := 0
+	for ; y < len(p.lines); y++ {
+		if p.lines[y].level < mouse.Y {
+			break
 		}
 	}
 
-	return
+	if y >= len(p.lines) { // its under
+		y--
+	}
+
+	r := p.lines[y]
+	x := r.start
+	for ; x < r.end; x++ {
+		if p.dots[x].X > mouse.X {
+			break
+		}
+	}
+
+	if x > 0 { // its before the charater
+		x--
+	}
+
+	return x, x - r.start, y
+}
+
+// Dot returns dot at given index
+func (p *Paragraph) Dot(i int) mat.Vec {
+	return p.Mat().Project(p.dots[i])
+}
+
+// ProjectLine projects line and local index intro global index
+// complexity is O(1)
+func (p *Paragraph) ProjectLine(i, line int) int {
+	l := p.lines[line]
+	return mat.Mini(l.start+i, l.end-1)
+}
+
+// UnprojectLine does reverse of Project line complexity is O(n)
+// where n is len(p.lines)
+func (p *Paragraph) UnprojectLine(idx int) (local, line int) {
+	for i, l := range p.lines {
+		if idx < l.end {
+			return idx - l.start, i
+		}
+	}
+
+	return -1, -1
+}
+
+// Lines returns count of lines in paragraph
+func (p *Paragraph) Lines() int {
+	return len(p.lines)
 }
 
 // Bounds returns bounding rectangle of untransformed text, bounds are valid only after
@@ -153,4 +199,10 @@ func (p *Paragraph) Bounds() mat.AABB {
 func (p *Paragraph) SetCenter(pos mat.Vec) {
 	v := p.bounds.ToVec().Mul(mat.V(.5, -.5))
 	p.Pos = pos.Sub(v)
+}
+
+// line stores start end and level of a line
+type line struct {
+	level      float64
+	start, end int
 }

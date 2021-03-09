@@ -5,6 +5,7 @@ import (
 	"gobatch/ggl/txt"
 	"gobatch/mat"
 	"gobatch/mat/rgba"
+	"math"
 
 	"github.com/jakubDoka/goml/goss"
 )
@@ -15,6 +16,8 @@ type Assets struct {
 	*pck.Sheet
 	// Markdown is for text rendering
 	Markdowns map[string]*txt.Markdown
+	// Cursors are avaliable cursor drawers
+	Cursors map[string]CursorDrawer
 	// styles should be supplied from .goss files
 	goss.Styles
 }
@@ -41,8 +44,8 @@ func (s *Props) Horizontal() bool {
 
 // Init initializes the style
 func (s *Props) Init() {
-	s.Margin = s.AABB("margin", mat.ZA)
-	s.Size = s.Vec("size", mat.ZV)
+	s.Margin = s.AABB("margin", s.Margin)
+	s.Size = s.Vec("size", s.Size)
 	s.Composition = s.RawStyle.Composition("composition")
 
 	s.Resizing[0] = s.ResizeMode("resize_mode_x")
@@ -104,10 +107,30 @@ var resizeModes = map[string]ResizeMode{
 // Fill - if Margin is equal Fill it will take a remaining space in element
 // if there are multiple elements with fill margin, space is split between them
 const Fill float64 = 100000.767898765556788777667787666
+const unknown float64 = math.MaxFloat64
 
 // RawStyle is wrapper of goss.Style and adds extra functionality
 type RawStyle struct {
 	goss.Style
+}
+
+// CursorDrawer retrieves a cursor drawer from style
+func (r RawStyle) CursorDrawer(key string, drawers map[string]CursorDrawer, def CursorDrawer) (v CursorDrawer) {
+	v = def
+	val, ok := r.Style[key]
+	if !ok {
+		return
+	}
+
+	switch vl := val[0].(type) {
+	case string:
+		val, ok := drawers[vl]
+		if ok {
+			return val
+		}
+	}
+
+	return
 }
 
 // Bool returns boolean value under the key of def, if retrieval fails
@@ -290,8 +313,13 @@ func (r RawStyle) RGBA(key string, def mat.RGBA) (c mat.RGBA) {
 
 	channels := [4]float64{}
 	for i := 0; i < len(channels) && i < len(val); i++ {
-		channels[i], ok = val[i].(float64)
-		if !ok {
+
+		switch vl := val[i].(type) {
+		case float64:
+			channels[i] = vl
+		case int:
+			channels[i] = float64(vl)
+		default:
 			return
 		}
 	}

@@ -158,7 +158,7 @@ func Rad(angle, length float64) Vec {
 
 // String returns the string representation of the vector v.
 func (v Vec) String() string {
-	return fmt.Sprintf("V(%.3f %.3f)", v.X, v.Y)
+	return fmt.Sprintf("V(%v %v)", ff(v.X), ff(v.Y))
 }
 
 // Floor converts x and y to their integer equivalents.

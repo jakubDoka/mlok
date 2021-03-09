@@ -53,6 +53,14 @@ func Alpha(a float64) RGBA {
 	return RGBA{a, a, a, a}
 }
 
+// Inverted returns inverted color, except alpha channel
+func (r RGBA) Inverted() RGBA {
+	r.R = 1 - r.R
+	r.G = 1 - r.G
+	r.B = 1 - r.B
+	return r
+}
+
 // Add adds color d to color r component-wise and returns the result (the components are not
 // clamped).
 func (r RGBA) Add(d RGBA) RGBA {

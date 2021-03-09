@@ -169,23 +169,18 @@ func (a *Atlas) DrawRune(prevR, r rune, dot mat.Vec) (rect, frame, bounds mat.AA
 		prevR = unicode.ReplacementChar
 	}
 
+	var kern float64
 	if prevR >= 0 {
-		dot.X += a.Kern(prevR, r)
+		kern = a.Kern(prevR, r)
 	}
+
+	dot.X += kern
 
 	glyph := a.Glyph(r)
 
 	rect = glyph.Frame.Moved(dot.Sub(glyph.Dot))
-	bounds = rect
 
-	if bounds.Area() != 0 {
-		bounds = mat.A(
-			bounds.Min.X+a.spacing,
-			dot.Y-a.Descent(),
-			bounds.Max.X-a.spacing,
-			dot.Y+a.Ascent(),
-		)
-	}
+	bounds = mat.A(dot.X-kern, dot.Y-a.Descent(), dot.X+glyph.Advance, dot.Y+a.Ascent())
 
 	dot.X += glyph.Advance
 
@@ -225,7 +220,7 @@ func makeMapping(face font.Face, runes []rune, padding, width fixed.Int26_6, spa
 	additional := fixed.I(2 * spacing)
 
 	dot := fixed.P(0, 0)
-	dot.Y = face.Metrics().Ascent
+	dot.Y = face.Metrics().Ascent + fixed.I(spacing)
 
 	for _, r := range runes {
 		b, advance, ok := face.GlyphBounds(r)
@@ -265,6 +260,10 @@ func makeMapping(face font.Face, runes []rune, padding, width fixed.Int26_6, spa
 			dot.Y += padding
 			dot.Y = fixed.I(dot.Y.Ceil())
 		}
+	}
+
+	if dot.X != 0 {
+		bounds.Max.Y += fixed.I(spacing)
 	}
 
 	*buffer = buff

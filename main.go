@@ -8,6 +8,7 @@ import (
 	"gobatch/logic/events"
 	"gobatch/logic/frame"
 	"gobatch/mat"
+	_ "image/png"
 )
 
 func main() {
@@ -44,14 +45,14 @@ func main() {
 		size: fill;
 		composition: horizontal;
 	">
+		<area style="size: 100; margin: 0 20;background: black;"/>
 		<scroll style="
 			resize_mode: ignore;
 			size: 800 400;
 			margin: fill;
 			background: green;
 			friction: 5;
-			bar_y: true;
-			outside: true;
+			bars: true;
 			scroll_sensitivity: 5;
 			bar_color: wheat;
 		">
@@ -63,6 +64,7 @@ func main() {
 				patch_scale: 0.4 0.4;
 				size: fill;
 			" idle_text="idle" hover_text="hover" pressed_text="pressed"/>
+			
 			<div style="
 				text_scale: 1; 
 				text_margin: fill;

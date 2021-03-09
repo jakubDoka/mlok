@@ -3,7 +3,6 @@ package txt
 import (
 	"gobatch/ggl"
 	"gobatch/mat"
-	"math"
 	"unicode"
 
 	"github.com/jakubDoka/gogen/str"
@@ -34,32 +33,37 @@ func NDrawer(atlas *Atlas) *Drawer {
 // Write writes string to paragraph
 func (d *Drawer) Write(p *Paragraph, text string) {
 	s := str.NString(text)
-	start := len(p.raw)
-	p.raw = append(p.Text, s...)
-	d.Draw(p, start, len(p.raw))
+	start := len(p.Compiled)
+	p.Compiled = append(p.Text, s...)
+	d.Draw(p, start, len(p.Compiled))
 }
 
-// Draw draws a slice of p.raw to p.data, text continused where last draw stopped
+// Draw draws a slice of p.Compiled to p.data, text continused where last draw stopped
 func (d *Drawer) Draw(p *Paragraph, start, end int) {
 	var (
-		prevRune rune = -1
+		prev rune = -1
 		// last stores data about last seen space
 		last struct {
 			present             bool
 			idx, vertex, indice int
+			dot                 mat.Vec
+			bounds              mat.AABB
 		}
 		rect, frame, bounds mat.AABB
 		control             bool
 	)
 
 	for i := start; i < end; i++ {
-		r := p.raw[i]
+		r := p.Compiled[i]
 
 		if r == ' ' {
 			last.idx = i
 			last.vertex = p.data.Vertexes.Len()
 			last.indice = len(p.data.Indices)
 			last.present = true
+			last.dot = p.dot
+			last.bounds = p.bounds
+			control = false
 		} else {
 			control = d.ControlRune(r, p)
 		}
@@ -69,11 +73,14 @@ func (d *Drawer) Draw(p *Paragraph, start, end int) {
 			// its a glyph it should hold a place
 			d.glyph.Clear()
 		} else {
-			rect, frame, bounds, p.dot = d.DrawRune(prevRune, r, p.dot)
+			rect, frame, bounds, p.dot = d.DrawRune(prev, r, p.dot)
 			// text is overflowing bounds so erase last word and write it on new line
 			// but only if there is a space to break it on
 			if p.Width != 0 && last.present && p.dot.X > p.Width {
-				p.dots = p.dots[:last.idx]
+				p.dots = p.dots[:last.idx+1]
+				p.dot = last.dot
+				p.bounds = last.bounds
+
 				d.ControlRune('\n', p)
 				d.glyph.Clear()
 
@@ -83,44 +90,42 @@ func (d *Drawer) Draw(p *Paragraph, start, end int) {
 
 				// space is now replaced with newline, reusing it would create endless loop
 				last.present = false
-				prevRune = '\n'
+				r = '\n'
 
 				i = last.idx
-				p.raw[i] = '\n'
+				p.Compiled[i] = r
 			} else {
-				prevRune = r
 				p.dots = append(p.dots, p.dot)
 				d.glyph.Set(frame.Moved(d.Region), rect)
 				p.bounds = p.bounds.Union(bounds)
 			}
 		}
 
+		prev = r
 		d.glyph.Fetch(&p.data)
 	}
+
+	p.bounds = p.bounds.Union(mat.Square(p.dot, 0))
 }
 
 // ControlRune changes dot accordingly if inputted rune is control rune, also returns whether
 // change happened, it also appends a new dot to slice
 func (d *Drawer) ControlRune(r rune, p *Paragraph) bool {
-	var nDot mat.Vec
-
 	switch r {
 	case '\n':
-		// little hack to make cursor snap to end of line
-		nDot = mat.V(math.MaxFloat64, p.dot.Y)
+		p.lines[len(p.lines)-1].end = len(p.dots)
 		p.dot.X = 0
 		p.dot.Y -= p.LineHeight
+		p.lines = append(p.lines, line{p.dot.Y, len(p.dots), -1})
 	case '\r':
 		p.dot.X = 0
-		nDot = p.dot
 	case '\t':
 		p.dot.X += d.tab
-		nDot = p.dot
 	default:
 		return false
 	}
 
-	p.dots = append(p.dots, nDot)
+	p.dots = append(p.dots, p.dot)
 	return true
 }
 

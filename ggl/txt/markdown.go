@@ -109,8 +109,11 @@ func (m *Markdown) Parse(p *Paragraph) {
 		}
 	}
 
-	p.raw = p.raw[:0]
-	p.raw = append(p.raw, p.Text...)
+	p.Compiled = append(p.Compiled[:0], p.Text...)
+
+	p.changing.Clear()
+	p.instant.Clear()
+	p.chunks.Clear()
 
 	if !p.NoEffects {
 		m.CollectEffects(p)
@@ -119,15 +122,11 @@ func (m *Markdown) Parse(p *Paragraph) {
 
 	m.ResolveChunks(p)
 	m.MakeTriangles(p)
-
 	return
 }
 
 // CollectEffects removes all valid effect syntax and stores parsed effects in paragraph
 func (m *Markdown) CollectEffects(p *Paragraph) {
-	p.changing.Clear()
-	p.instant.Clear()
-	p.chunks.Clear()
 
 	var (
 		mv, i int
@@ -143,14 +142,14 @@ func (m *Markdown) CollectEffects(p *Paragraph) {
 		p.AddEff(ef)
 	}
 o:
-	for ; i < len(p.raw); i += mv {
-		b := p.raw[i]
+	for ; i < len(p.Compiled); i += mv {
+		b := p.Compiled[i]
 		mv = 1
 
 		switch b {
 		case BlockEnd: // fond text that should be skipped
 			if len(m.stack2) != 0 {
-				p.raw.Remove(i)
+				p.Compiled.Remove(i)
 				mv = 0
 				push()
 				continue
@@ -161,26 +160,26 @@ o:
 			continue
 		}
 
-		if i+2 >= len(p.raw) || !str.IsIdent(byte(p.raw[i+1])) { //shortcut can't fit there or space right after explanation mark
+		if i+2 >= len(p.Compiled) || !str.IsIdent(byte(p.Compiled[i+1])) { //shortcut can't fit there or space right after explanation mark
 			continue
 		}
 
-		if p.raw[i+2] == BlockStart { // in case of shortcut - shortcut is always just one rune
-			ident, ok = m.Shortcuts[p.raw[i+1]]
+		if p.Compiled[i+2] == BlockStart { // in case of shortcut - shortcut is always just one rune
+			ident, ok = m.Shortcuts[p.Compiled[i+1]]
 			if !ok { // invalid shortcut so ignore it
 				continue
 			}
-			p.raw.RemoveSlice(i, i+3)
+			p.Compiled.RemoveSlice(i, i+3)
 			mv = 0
 		} else { // find out full identifier
 			k := i + 1
 			for {
-				if k >= len(p.raw) {
+				if k >= len(p.Compiled) {
 					continue o //out of bounds and we haven't even found non ident byte, ignoring
 				}
 
-				if !str.IsIdent(byte(p.raw[k])) {
-					if p.raw[k] != BlockStart {
+				if !str.IsIdent(byte(p.Compiled[k])) {
+					if p.Compiled[k] != BlockStart {
 						continue o //ident should end with BlockStart, ignoring
 					}
 					break
@@ -188,7 +187,7 @@ o:
 				k++
 			}
 
-			ident = string(p.raw[i+1 : k]) // i+1 because we are not including ident
+			ident = string(p.Compiled[i+1 : k]) // i+1 because we are not including ident
 
 			if b == ColorIdent { // this can also be color ident so handle it
 				ce, err := NColorEffect(ident, i)
@@ -199,7 +198,7 @@ o:
 				ident = NullIdent // we don't want to handle ident twice
 			}
 
-			p.raw.RemoveSlice(i, k+1)
+			p.Compiled.RemoveSlice(i, k+1)
 			mv = 0
 		}
 
@@ -225,18 +224,20 @@ o:
 // for anything to show up
 func (m *Markdown) MakeTriangles(p *Paragraph) {
 	p.data.Clear()
-	p.dots = p.dots[:0]
-	p.dot = mat.V(0, -p.Ascent)
-	p.bounds = mat.AABB{Min: p.dot, Max: p.dot}
 
-	p.dots = append(p.dots, p.dot)
+	p.dot = mat.V(0, -p.Ascent)
+	p.bounds = mat.A(0, -p.Ascent, 0, 0)
+
+	p.dots = append(p.dots[:0], p.dot)
+	p.lines = append(p.lines[:0], line{p.dot.Y, 0, -1})
 
 	for _, c := range p.chunks {
 		m.Fonts[c.Font].Draw(p, c.start, c.End)
 	}
 
-	if len(p.raw) != 0 && p.raw.Last() != '\n' {
-		p.dots = append(p.dots, mat.V(math.MaxFloat64, p.dot.Y))
+	end := &p.lines[len(p.lines)-1]
+	if end.end == -1 {
+		end.end = len(p.dots)
 	}
 
 	for _, e := range p.instant { //instant effects are applied to base data
@@ -247,7 +248,7 @@ func (m *Markdown) MakeTriangles(p *Paragraph) {
 // ResolveChunks gets rid of nested FontEffects as nesting of then does not make sense
 // it turns ranges like 0-10 3-7 to 0-3 3-7 7-10 so no ranges overlap.
 func (m *Markdown) ResolveChunks(p *Paragraph) {
-	fef := NFontEffect(p.Font, 0, len(p.raw))
+	fef := NFontEffect(p.Font, 0, len(p.Compiled))
 	p.chunks = p.chunks[:0]
 	if p.NoEffects {
 		p.chunks = append(p.chunks, fef)
@@ -262,6 +263,7 @@ func (m *Markdown) ResolveChunks(p *Paragraph) {
 		f := m.Fonts[p.Font]
 		p.LineHeight = f.LineHeight()
 		p.Ascent = f.Ascent()
+		p.Descent = f.Descent()
 	}
 
 	for _, c := range p.chunks {
@@ -269,6 +271,7 @@ func (m *Markdown) ResolveChunks(p *Paragraph) {
 			f := m.Fonts[c.Font]
 			p.LineHeight = math.Max(p.LineHeight, f.LineHeight())
 			p.Ascent = math.Max(p.Ascent, f.Ascent())
+			p.Descent = math.Max(p.Descent, f.Descent())
 		}
 
 		for len(m.stack) != 0 {

@@ -20,7 +20,7 @@ func R(ox, oy, vx, vy float64) Ray {
 }
 
 func (r Ray) String() string {
-	return fmt.Sprintf("R(O(%.3f %.3f) V(%.3f %.3f))", r.O.X, r.O.Y, r.V.X, r.V.Y)
+	return fmt.Sprintf("R(O(%v %v) V(%v %v))", ff(r.O.X), ff(r.O.Y), ff(r.V.X), ff(r.V.Y))
 }
 
 // IntersectionPoint calculates the intersection point between two rays

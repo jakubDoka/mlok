@@ -63,6 +63,7 @@ func (p *Processor) Update(w *ggl.Window, delta float64) {
 
 // Redraw redraws ewerithing if needed
 func (p *Processor) Redraw() {
+	p.scene.TextSelected = false
 	p.scene.Batch.Clear()
 	p.scene.Root.redraw(&p.scene.Batch, &p.canvas)
 	p.scene.Redraw.Done()
@@ -80,6 +81,25 @@ func (p *Processor) Resize() {
 	p.scene.Resize.Done()
 	p.scene.Redraw.Notify()
 }
+
+/*func (p *Processor) calcHCompSize(d *Element) {
+	size := d.size
+	p.divTemp = p.divTemp[:0]
+	d.forChild(IgnoreHidden, func(ch *Element) {
+		w := ch.Module.Width()
+		if w == Fill || w == unknown {
+			p.divTemp = append(p.divTemp, ch)
+		} else {
+			size.X -= w
+		}
+	})
+
+	perChild := size.X / float64(len(p.divTemp))
+
+	d.forChild(IgnoreHidden, func(ch *Element) {
+
+	})
+}*/
 
 // calcSize calculates all sizes equal to Fill amongst children of d
 func (p *Processor) calcSize(d *Element) {
@@ -151,6 +171,7 @@ func (p *Processor) calcSize(d *Element) {
 			}
 		}
 	}
+
 }
 
 func sumMargin(offset int, ch *Element) (r float64) {
@@ -248,6 +269,8 @@ type Scene struct {
 	Assets         Assets
 	Batch          ggl.Batch
 
+	TextSelected bool
+
 	*Parser
 
 	ids    map[string]*Element
@@ -264,8 +287,14 @@ func NScene() *Scene {
 			Markdowns: map[string]*txt.Markdown{
 				"default": txt.NMarkdown(),
 			},
+			Cursors: map[string]CursorDrawer{},
 		},
+		Parser: NParser(),
 	}
+
+	s.SetSheet(&pck.Sheet{
+		Pic: txt.Atlas7x13.Pic,
+	})
 
 	s.Root.init(s)
 
@@ -296,6 +325,14 @@ func (s *Scene) Group(group string) []*Element {
 func (s *Scene) SetSheet(sheet *pck.Sheet) {
 	s.Assets.Sheet = sheet
 	s.Batch.Texture = ggl.NTexture(sheet.Pic, false)
+}
+
+// Log Invokes Error event on scene root and passes ErrorEventData as event argument
+func (s *Scene) Log(e *Element, err error) {
+	if err == nil {
+		return
+	}
+	s.Root.Events.Invoke(Error, ErrorEventData{e, err})
 }
 
 // ReloadStyle reloads style of an element and all its children f.e.
@@ -350,4 +387,10 @@ func (n *Notifier) Done() {
 // Should returns whether there is notification
 func (n Notifier) Should() bool {
 	return !bool(n)
+}
+
+// ErrorEventData ...
+type ErrorEventData struct {
+	Element *Element
+	Err     error
 }

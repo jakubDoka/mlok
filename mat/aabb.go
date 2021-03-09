@@ -72,7 +72,7 @@ func (a AABB) ToVec() Vec {
 
 // String returns the string representation of the AABB.
 func (a AABB) String() string {
-	return fmt.Sprintf("A(%.3f %.3f %.3f %.3f)", a.Min.X, a.Min.Y, a.Max.X, a.Max.Y)
+	return fmt.Sprintf("A(%v %v %v %v)", ff(a.Min.X), ff(a.Min.Y), ff(a.Max.X), ff(a.Max.Y))
 }
 
 // Norm returns the AABB in normal form, such that Max is component-wise greater or equal than Min.

@@ -40,12 +40,13 @@ func NParser() *Parser {
 
 	p.GP = goml.NParser(&p.GS)
 
-	p.AddFactory("div", &NoFactory{})
-	p.AddFactory("text", &TextFactory{})
-	p.AddFactory("scroll", &ScrollFactory{})
-	p.AddFactory("sprite", &SpriteFactory{})
-	p.AddFactory("patch", &PatchFactory{})
-	p.AddFactory("button", &ButtonFactory{})
+	p.AddFactory("div", &ModuleBase{})
+	p.AddFactory("text", &Text{})
+	p.AddFactory("scroll", &Scroll{})
+	p.AddFactory("sprite", &Sprite{})
+	p.AddFactory("patch", &Patch{})
+	p.AddFactory("button", &Button{})
+	p.AddFactory("area", &Area{})
 
 	return p
 }

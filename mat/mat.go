@@ -7,6 +7,7 @@ package mat
 import (
 	"fmt"
 	"math"
+	"strconv"
 )
 
 // Tran is standard transform with some utility, it plays well with ggl.Sprite
@@ -66,9 +67,9 @@ func (m Mat) Raw() [9]float32 {
 //   fmt.Println(m) // Mat(1 0 0 | 0 1 0)
 func (m Mat) String() string {
 	return fmt.Sprintf(
-		"Mat(%.3f %.3f %.3f | %.3f %.3f %.3f)",
-		m.X.X, m.Y.X, m.C.X,
-		m.X.Y, m.Y.Y, m.C.Y,
+		"Mat(%v %v %v | %v %v %v)",
+		ff(m.X.X), ff(m.Y.X), ff(m.C.X),
+		ff(m.X.Y), ff(m.Y.Y), ff(m.C.Y),
 	)
 }
 
@@ -166,4 +167,8 @@ func Clamp(val, min, max float64) float64 {
 		return min
 	}
 	return val
+}
+
+func ff(f float64) string {
+	return strconv.FormatFloat(f, 'f', -1, 64)
 }

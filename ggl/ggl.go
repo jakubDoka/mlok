@@ -17,7 +17,6 @@ import (
 	"gobatch/refl"
 	"image"
 	"image/draw"
-	_ "image/png" // to support png
 	"io/ioutil"
 	"os"
 	"reflect"

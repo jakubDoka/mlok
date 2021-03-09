@@ -30,3 +30,11 @@ func Mini(a, b int) int {
 	}
 	return b
 }
+
+// Absi ...
+func Absi(a int) int {
+	if a < 0 {
+		return -a
+	}
+	return a
+}
