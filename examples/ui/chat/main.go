@@ -29,18 +29,24 @@ func main() {
 		<scroll id="chat" style="
 			background: almond;
 			size: 500 fill;
-			bars: true;
+			bar_y: true;
 			outside: true;
 			text_scale: 4; 
 			resize_mode: ignore;
 		"> 
 			<text text="The Chat" style="
-				scale: 4;
 				text_color: 1 0.5 0.5;
-				text_size: 0 100;
+				text_size: 0 0;
 				text_margin: fill 10;
 			"/>
-			<text id="chat-text"/>
+			<div style="
+				size: fill;
+				background: .3;
+				margin: 10;
+				text_scale: 2;
+			">
+				<text id="chat-text"/>
+			</>
 			<div style="
 				composition: horizontal;
 				margin: 10;
@@ -52,7 +58,7 @@ func main() {
 					text_scale: 2;
 					size: fill 0;
 				"/>
-				<button style="
+				<button id="send" name="target" style="
 					all_masks: 1 0.5 0.5;
 					hover_mask: green;
 					size: 0 fill;
@@ -72,8 +78,10 @@ func main() {
 	}
 
 	chat := scene.ID("chat")
-	//chatText := scene.ID("chat-text").Module.(*ui.Text)
+	chatText := scene.ID("chat-text").Module.(*ui.Text)
 	alter := scene.ID("alter").Module.(*ui.Button)
+	input := scene.ID("input").Module.(*ui.Area)
+	send := scene.ID("send")
 
 	alter.Events.Add(&events.Listener{
 		Name: ui.Click,
@@ -85,6 +93,17 @@ func main() {
 				alter.SetText("show")
 			}
 			chat.SetHidden(!hidden)
+			return false
+		},
+	})
+
+	send.Events.Add(&events.Listener{
+		Name: ui.Click,
+		Runner: func(i interface{}) bool {
+			chatText.Text = append(chatText.Text, []rune("#ff00ff[[you]]:] ")...)
+			chatText.Text = append(chatText.Text, input.Text.Text...)
+			chatText.Text = append(chatText.Text, '\n')
+			input.SetText("")
 			return false
 		},
 	})

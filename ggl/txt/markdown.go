@@ -150,6 +150,9 @@ o:
 		case BlockEnd: // fond text that should be skipped
 			if len(m.stack2) != 0 {
 				p.Compiled.Remove(i)
+				if i < p.Compiled.Len() && p.Compiled[i] == ']' {
+					continue
+				}
 				mv = 0
 				push()
 				continue
@@ -226,7 +229,7 @@ func (m *Markdown) MakeTriangles(p *Paragraph) {
 	p.data.Clear()
 
 	p.dot = mat.V(0, -p.Ascent)
-	p.bounds = mat.A(0, -p.Ascent, 0, 0)
+	p.bounds = mat.A(0, -p.LineHeight, 0, 0)
 
 	p.dots = append(p.dots[:0], p.dot)
 	p.lines = append(p.lines[:0], line{p.dot.Y, 0, -1})

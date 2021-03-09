@@ -828,53 +828,72 @@ func (t *Text) DrawOnTop(tg ggl.Target, canvas *dw.Geom) {
 	canvas.Fetch(tg)
 }
 
-// PrivateWidth implements Module interface
-func (t *Text) PrivateWidth(supposed float64) (desired float64) {
-	if t.Props.Size.X != Fill {
-		return supposed
-	}
-
-	width := supposed / t.Scl.X
-
-	if width != t.Width || t.dirty {
-		t.Width = width
-		t.Markdown.Parse(&t.Paragraph)
-		t.dirty = false
-	}
-
-	t.size.X = math.Max(t.Bounds().W()*t.Scl.X, supposed)
-	return t.size.X
-}
-
-// PublicHeight implements Module interface
-func (t *Text) PublicHeight(supposed float64) float64 {
-	return math.Max(t.Paragraph.Bounds().H()*t.Scl.Y, supposed)
-}
-
-// PublicWidth implements Module interface
-func (t *Text) PublicWidth(supposed float64) float64 {
-	width := t.PrivateWidth(supposed)
-	return width
-}
-
 // OnFrameChange implements Module interface
 func (t *Text) OnFrameChange() {
 	t.Pos = mat.V(t.Frame.Min.X, t.Frame.Max.Y)
 	t.Paragraph.Update(0)
 }
 
-// Size implements Module interface
-func (t *Text) Size(supposed mat.Vec) mat.Vec {
-	if t.Props.Size.X != Fill {
-		width := supposed.X / t.Scl.X
-		if width != t.Width || t.dirty {
-			t.Width = width
-			t.Markdown.Parse(&t.Paragraph)
-			t.dirty = false
-		}
-	}
+// MinSize implements Module interface
+func (t *Text) MinSize() mat.Vec {
+	t.Paragraph.Width = 0
+	t.Markdown.Parse(&t.Paragraph)
+	return t.Bounds().Size().Mul(t.Scl).Add(t.MarginRealSize())
+}
 
-	return supposed.Max(t.Bounds().Size().Mul(t.Scl))
+// Width implements Module interface
+func (t *Text) Width(height float64) float64 {
+	if height == -1 {
+		return t.Bounds().W() * t.Scl.X
+	}
+	return Fill
+}
+
+// Height implements Module interface
+func (t *Text) Height(width float64) float64 {
+	if width == -1 {
+		return t.Bounds().H() * t.Scl.Y
+	}
+	t.UpdateParagraph(width)
+	return t.Bounds().H() * t.Scl.Y
+}
+
+// OfferWidth implements Module interface
+func (t *Text) OfferWidth(width float64) float64 {
+	t.UpdateParagraph(width)
+	return math.Max(t.Bounds().W()*t.Scl.Y, width)
+}
+
+// PrivateWidth implements Module interface
+func (t *Text) PrivateWidth(width float64) float64 {
+	return t.OfferWidth(width)
+}
+
+// PrivateHeight implements Module interface
+func (t *Text) PrivateHeight(height float64) float64 {
+	return math.Max(t.Bounds().H()*t.Scl.Y, height)
+}
+
+// FinalWidth implements Module interface
+func (t *Text) FinalWidth(width float64) {
+	t.UpdateParagraph(width)
+}
+
+// UpdateParagraph updates the paragraph to fit given width, though can end up bigger
+func (t *Text) UpdateParagraph(width float64) {
+	unq := width != t.Paragraph.Width*t.Scl.X
+	if unq || t.dirty {
+		if t.Props.Size.X != Fill {
+			if unq {
+				t.Paragraph.Width = t.Props.Size.X / t.Scl.X
+			}
+		} else {
+			if unq {
+				t.Paragraph.Width = width / t.Scl.X
+			}
+		}
+		t.Markdown.Parse(&t.Paragraph)
+	}
 }
 
 // Clip copies the range into clipboard

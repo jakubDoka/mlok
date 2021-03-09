@@ -1,11 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"gobatch/ggl"
 	"gobatch/ggl/pck"
 	"gobatch/ggl/ui"
-	"gobatch/logic/events"
 	"gobatch/logic/frame"
 	"gobatch/mat"
 	_ "image/png"
@@ -40,60 +38,20 @@ func main() {
 	s.Parser = ui.NParser()
 
 	err = s.Root.AddGoml([]byte(`
-	<div style="
-		background: red;
-		size: fill;
-		composition: horizontal;
-	">
-		<area style="size: 100; margin: 0 20;background: black;"/>
-		<scroll style="
-			resize_mode: ignore;
-			size: 800 400;
-			margin: fill;
-			background: green;
-			friction: 5;
-			bars: true;
-			scroll_sensitivity: 5;
-			bar_color: wheat;
-		">
-			<button id="button" style="
-				all_regions: square;
-				text_margin: fill;
-				text_scale: 10;
-				text_size: 0; 
-				patch_scale: 0.4 0.4;
-				size: fill;
-			" idle_text="idle" hover_text="hover" pressed_text="pressed"/>
-			
-			<div style="
-				text_scale: 1; 
-				text_margin: fill;
-				text_size: 100 fill;
-				background: almond; 
-				text_color: gray;
-				size: fill;
-			">
-				There hes to be a way to write code that makes it more pleasant and bug free,
-				though i probably will never find out judging from how stupid i am already. 
-				Newertheless this cost me lot of pain but here it is, some decent ui system.
-				All elements can be defined in #FF00FF[goml] and styled with #FF00FF[goss]. 
-			</>
+	<div style="background: 1;size: fill;composition: horizontal;margin: 10;">
+		<div style="background: 0.5;size: fill;margin: 10;"> 
+			<div style="background: 0.5;size: fill;"/>
+			hello
+			<div style="background: 0.5;size: fill;"/>
 		</>
+		<div style="background: 0;size: fill;"/>
 	</>
+	<div style="background: 0.5;size: fill;"/>
 	`))
 
 	if err != nil {
 		panic(err)
 	}
-
-	button := s.ID("button")
-	button.Events.Add(&events.Listener{
-		Name: ui.Click,
-		Runner: func(i interface{}) bool {
-			fmt.Println("button clicked")
-			return false
-		},
-	})
 
 	p := ui.Processor{}
 

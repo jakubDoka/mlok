@@ -18,8 +18,8 @@ type Processor struct {
 	frame  mat.AABB
 	canvas dw.Geom
 
-	pfTmp, pfTmp2 []*float64
-	divTemp       []*Element
+	margins           []*float64
+	filled, processed []*Element
 }
 
 // NProcessor create processor with blanc scene, so it can be used right away
@@ -75,6 +75,7 @@ func (p *Processor) Redraw() {
 func (p *Processor) Resize() {
 
 	p.scene.Root.size = p.frame.Size()
+	p.scene.Root.calcMinSize()
 	p.scene.Root.resize(p)
 	p.scene.Root.move(p.frame.Min, false)
 
@@ -82,183 +83,243 @@ func (p *Processor) Resize() {
 	p.scene.Redraw.Notify()
 }
 
-/*func (p *Processor) calcHCompSize(d *Element) {
-	size := d.size
-	p.divTemp = p.divTemp[:0]
-	d.forChild(IgnoreHidden, func(ch *Element) {
-		w := ch.Module.Width()
-		if w == Fill || w == unknown {
-			p.divTemp = append(p.divTemp, ch)
-		} else {
-			size.X -= w
-		}
-	})
+func (p *Processor) calcMargin(d *Element, remain mat.Vec) {
+	var (
+		fm formatter
+		// don want to allocate if we don't have to
+		hfm hFormatter
+		vfm vFormatter
+	)
 
-	perChild := size.X / float64(len(p.divTemp))
-
-	d.forChild(IgnoreHidden, func(ch *Element) {
-
-	})
-}*/
-
-// calcSize calculates all sizes equal to Fill amongst children of d
-func (p *Processor) calcSize(d *Element) {
-	offset, space, privateSize := p.setup(d.Horizontal(), d.size)
-
-	prev := privateSize
 	if d.Horizontal() {
-		d.forChild(IgnoreHidden, func(ch *Element) {
-			m := sumMargin(1, ch)
-			privateSize = math.Max(ch.Module.PrivateHeight(privateSize-m)+m, privateSize)
-		})
+		fm = &hfm
 	} else {
-		d.forChild(IgnoreHidden, func(ch *Element) {
-			m := sumMargin(0, ch)
-			privateSize = math.Max(ch.Module.PrivateWidth(privateSize-m)+m, privateSize)
-		})
+		fm = &vfm
 	}
 
-	// we set newly obtained private space but only if it makes sene for resize mode
-	if d.Resizing[offset] >= Shrink {
-		privateSize = prev
-	}
+	p.margins = p.margins[:0]
 
-	p.divTemp = p.divTemp[:0]
-	d.forChild(IgnoreHidden, func(ch *Element) {
-		flt := ch.Margin.Flatten()
-		is := privateSize
-		for i, v := range flt {
-			if i%2 == offset {
-				if v != Fill {
-					space -= v
-				}
-			} else {
-				if v != Fill {
-					is -= v
-				}
-			}
+	s := d.children.Slice()
+	for i := 0; i < len(s); i++ {
+		ch := s[i].Value
+		if ch.hidden {
+			continue
 		}
 
-		sft := ch.Size.Flatten()
-		smt := ch.size.Mutator()
+		fm.set(ch)
+		ch.margin = ch.Margin
 
-		if sft[1-offset] == Fill {
-			*smt[1-offset] = is
-		} else {
-			*smt[1-offset] = sft[1-offset]
+		a, b := fm.marginPtrX()
+		if *a == Fill {
+			p.margins = append(p.margins, a)
+		}
+		if *b == Fill {
+			p.margins = append(p.margins, b)
 		}
 
-		param := sft[offset]
-		if param == Fill {
-			p.divTemp = append(p.divTemp, ch)
-			p.pfTmp = append(p.pfTmp, smt[offset])
-		} else {
-			*smt[offset] = param
-			space -= param
-		}
-	})
-
-	feed(space, p.pfTmp)
-
-	if d.Resizing[offset] < Shrink {
-		if d.Horizontal() {
-			for _, ch := range p.divTemp {
-				ch.size.X = ch.Module.PublicWidth(ch.size.X)
-			}
-		} else {
-			for _, ch := range p.divTemp {
-				ch.size.Y = ch.Module.PublicHeight(ch.size.Y)
-			}
+		sz := remain.Y - fm.y()
+		a, b = fm.marginPtrY()
+		if *a == Fill && *b == Fill {
+			sz *= .5
+			*a = sz
+			*b = sz
+		} else if *b == Fill {
+			sz -= *a
+			*b = sz
+		} else if *a == Fill {
+			sz -= *b
+			*a = sz
 		}
 	}
 
+	if len(p.margins) == 0 {
+		return
+	}
+
+	perChild := remain.X / float64(len(p.margins))
+	for _, v := range p.margins {
+		*v = perChild
+	}
 }
 
-func sumMargin(offset int, ch *Element) (r float64) {
-	arr := ch.Margin.Flatten()
-	for i := offset; i < len(arr); i += 2 {
-		if arr[i] != Fill {
-			r += arr[i]
+func (p *Processor) calcSize(d *Element) (remain mat.Vec) {
+	var (
+		fm formatter
+		// don want to allocate if we don't have to
+		hfm hFormatter
+		vfm vFormatter
+	)
+
+	if d.Horizontal() {
+		fm = &hfm
+	} else {
+		fm = &vfm
+	}
+
+	size := fm.space(d.size)
+	p.filled = p.filled[:0]
+	p.processed = p.processed[:0]
+
+	s := d.children.Slice()
+	for i := 0; i < len(s); i++ {
+		ch := s[i].Value
+		if ch.hidden {
+			continue
+		}
+
+		fm.set(ch)
+		p.processed = append(p.processed, s[i].Value)
+
+		c := fm.constantX(size.Y - fm.marginY())
+		size.X -= fm.marginX()
+		if c == Fill {
+			p.filled = append(p.filled, ch)
+		} else {
+			size.X -= c
+			fm.setX(c)
 		}
 	}
 
+	ln := float64(len(p.filled))
+	if ln != 0 {
+		perChild := size.X / ln
+
+		for _, ch := range p.filled {
+			ln--
+			fm.set(ch)
+			val := fm.offer(perChild)
+			fm.setX(val)
+			size.X = math.Max(size.X-val, 0)
+			if val != perChild {
+				perChild = size.X / ln
+			}
+		}
+		p.filled = p.filled[:0]
+	}
+
+	for _, ch := range p.processed {
+		fm.set(ch)
+		c := fm.constantY()
+		m := fm.marginY()
+		if c == Fill {
+
+			val := fm.private(size.Y - m)
+			size.Y = math.Max(val+m, size.Y)
+			p.filled = append(p.filled, ch)
+		} else {
+			size.Y = math.Max(c+m, size.Y)
+			fm.setY(c)
+		}
+	}
+
+	for _, ch := range p.filled {
+		fm.set(ch)
+		val := size.Y - fm.marginY()
+		fm.final(val)
+		fm.setY(val)
+
+	}
+
+	return size
+}
+
+type vFormatter struct {
+	e *Element
+}
+
+func (v *vFormatter) set(e *Element)              { v.e = e }
+func (v *vFormatter) space(value mat.Vec) mat.Vec { return value.Swapped() }
+
+func (v *vFormatter) constantX(y float64) float64 {
+	return math.Max(v.e.Module.Height(y), v.e.ChildSize.Y)
+}
+
+func (v *vFormatter) constantY() float64 {
+	return math.Max(v.e.Module.Width(-1), v.e.ChildSize.X)
+}
+
+func (v *vFormatter) marginX() (spc float64)        { return marginY(v.e) }
+func (v *vFormatter) marginY() (spc float64)        { return marginX(v.e) }
+func (v *vFormatter) marginPtrX() (l, r *float64)   { return marginPtrY(v.e) }
+func (v *vFormatter) marginPtrY() (b, t *float64)   { return marginPtrX(v.e) }
+func (v *vFormatter) setX(value float64)            { v.e.size.Y = value }
+func (v *vFormatter) setY(value float64)            { v.e.size.X = value }
+func (v *vFormatter) offer(value float64) float64   { return v.e.Module.OfferHeight(value) }
+func (v *vFormatter) private(value float64) float64 { return v.e.Module.PrivateWidth(value) }
+func (v *vFormatter) final(value float64)           { v.e.Module.FinalWidth(value) }
+func (v *vFormatter) y() float64                    { return v.e.size.X }
+
+type hFormatter struct {
+	e *Element
+}
+
+func (h *hFormatter) set(e *Element)              { h.e = e }
+func (h *hFormatter) space(value mat.Vec) mat.Vec { return value }
+
+func (h *hFormatter) constantX(y float64) float64 {
+	return math.Max(h.e.Module.Width(y), h.e.ChildSize.X)
+}
+
+func (h *hFormatter) constantY() float64 {
+	return math.Max(h.e.Module.Height(-1), h.e.ChildSize.Y)
+}
+
+func (h *hFormatter) marginX() (spc float64)        { return marginX(h.e) }
+func (h *hFormatter) marginY() (spc float64)        { return marginY(h.e) }
+func (h *hFormatter) marginPtrX() (l, r *float64)   { return marginPtrX(h.e) }
+func (h *hFormatter) marginPtrY() (b, t *float64)   { return marginPtrY(h.e) }
+func (h *hFormatter) setX(value float64)            { h.e.size.X = value }
+func (h *hFormatter) setY(value float64)            { h.e.size.Y = value }
+func (h *hFormatter) offer(value float64) float64   { return h.e.Module.OfferWidth(value) }
+func (h *hFormatter) private(value float64) float64 { return h.e.Module.PrivateHeight(value) }
+func (h *hFormatter) final(value float64)           { h.e.Module.FinalHeight(value) }
+func (h *hFormatter) y() float64                    { return h.e.size.Y }
+
+type formatter interface {
+	set(e *Element)
+	space(mat.Vec) mat.Vec
+	constantX(y float64) float64
+	constantY() float64
+	marginX() float64
+	marginY() float64
+	marginPtrX() (l, r *float64)
+	marginPtrY() (b, t *float64)
+	setX(float64)
+	setY(float64)
+	offer(float64) float64
+	private(float64) float64
+	final(float64)
+	y() float64
+}
+
+func marginX(e *Element) (spc float64) {
+	l, _, r, _ := e.Margin.Deco()
+	if l != Fill {
+		spc += l
+	}
+	if r != Fill {
+		spc += r
+	}
 	return
 }
 
-// calculates margin in case it is Equal to Fill for all
-// children of div
-func (p *Processor) calcMargin(d *Element) {
-	/*
-		goal is to calculate how match free space is in element and divide it
-		between margin equal to Fill that supports it, function
-		collects the pointers to all fill fields and feeds tham with supposed
-		values
-	*/
-	offset, space, privateSize := p.setup(d.Horizontal(), d.size)
-
-	d.forChild(IgnoreHidden, func(ch *Element) {
-		p.pfTmp2 = p.pfTmp2[:0]
-		mut := ch.margin.Mutator()
-		flt := ch.Margin.Flatten()
-		is := privateSize
-		for i, v := range flt {
-			// deciding how to treat margin value, notice how var offset relates to var horizontal
-			if i%2 == offset {
-				if v == Fill {
-					p.pfTmp = append(p.pfTmp, mut[i])
-				} else {
-					*mut[i] = v
-					space -= v
-				}
-			} else {
-				if v == Fill {
-					p.pfTmp2 = append(p.pfTmp2, mut[i])
-				} else {
-					*mut[i] = v
-					is -= v
-				}
-			}
-
-		}
-
-		// subtracting the size of div, its like this because this way it works for
-		// vertical and horizontal case
-		sft := ch.size.Flatten()
-		is -= sft[1-offset]
-		space -= sft[offset]
-
-		feed(is, p.pfTmp2)
-	})
-
-	feed(space, p.pfTmp)
-}
-
-func (p *Processor) setup(horizontal bool, size mat.Vec) (offset int, space, privateSize float64) {
-	p.pfTmp = p.pfTmp[:0]
-	offset = 1
-	privateSize, space = size.XY()
-	if horizontal {
-		offset = 0
-		space, privateSize = size.XY()
+func marginY(e *Element) (spc float64) {
+	_, b, _, t := e.Margin.Deco()
+	if b != Fill {
+		spc += b
 	}
-
+	if t != Fill {
+		spc += t
+	}
 	return
 }
 
-// feed performs final space division between elements
-func feed(space float64, targets []*float64) {
-	if space <= 0 {
-		// make sure they are zero, this gets rid of old values
-		for _, v := range targets {
-			*v = 0
-		}
-	} else {
-		// split equally
-		perOne := space / float64(len(targets))
-		for _, v := range targets {
-			*v = perOne
-		}
-	}
+func marginPtrX(e *Element) (a, b *float64) {
+	return &e.margin.Min.X, &e.margin.Max.X
+}
+
+func marginPtrY(e *Element) (a, b *float64) {
+	return &e.margin.Min.Y, &e.margin.Max.Y
 }
 
 // Scene is base of an ui scene, it stores all elements and notifiers
