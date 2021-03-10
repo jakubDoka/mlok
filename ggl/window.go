@@ -4,6 +4,7 @@ import (
 	"gobatch/ggl/key"
 	"gobatch/mat"
 	"log"
+	"runtime"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"
@@ -42,6 +43,7 @@ type Window struct {
 
 // NWindow creates new window from WindowConfig, if config is nil, default one will  be used
 func NWindow(config *WindowConfig) (*Window, error) {
+	runtime.LockOSThread()
 
 	if config == nil {
 		config = &WindowConfig{

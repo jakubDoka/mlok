@@ -30,6 +30,7 @@ func NProcessor() *Processor {
 // SetScene ...
 func (p *Processor) SetScene(s *Scene) {
 	p.scene = s
+	s.Resize.Notify()
 }
 
 // Fetch implements ggl.Fetcher interface

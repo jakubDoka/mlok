@@ -62,6 +62,7 @@ var SpriteIndices = Indices{0, 1, 2, 0, 3, 2}
 //	| | | |			| |      | |
 //  +-+-+-+	(7, 7)	+-+------+-+ (12, 7)
 //
+// Patch is not window thread dependant
 type Patch struct {
 	s       [NinePatchSide][NinePatchSide]Sprite
 	Padding mat.AABB
@@ -184,6 +185,8 @@ func PadMap(frame, padding mat.AABB) (v, h [4]float64) {
 
 // Sprite is most efficient way of drawing textures to Batch (if you find faster way i welcome your pr)
 // sprite does not allocate any memory all data is on stack, its designed to be easily copied by value.
+//
+// Sprite is not window thread dependant
 type Sprite struct {
 	tex  [4]mat.Vec
 	data [4]Vertex

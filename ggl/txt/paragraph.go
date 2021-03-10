@@ -44,9 +44,9 @@ type Paragraph struct {
 
 	// Font determinate base
 	Font string
-	// Text is only important to markdown, when you are drawing directly with
-	// drawer, Text is not used
-	Text str.String
+	// Content is only important to markdown, when you are drawing directly with
+	// drawer, Content is not used
+	Content str.String
 
 	data, selection ggl.Data
 

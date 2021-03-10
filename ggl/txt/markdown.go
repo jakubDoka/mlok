@@ -99,7 +99,7 @@ func (m *Markdown) GenerateShortcuts() {
 	}
 }
 
-// Parse turns markdown stored in p.Text into final text with effects, for markdown syntax see
+// Parse turns markdown stored in p.Content into final text with effects, for markdown syntax see
 // struct documentation
 func (m *Markdown) Parse(p *Paragraph) {
 	if _, ok := m.Fonts[p.Font]; !ok {
@@ -109,7 +109,7 @@ func (m *Markdown) Parse(p *Paragraph) {
 		}
 	}
 
-	p.Compiled = append(p.Compiled[:0], p.Text...)
+	p.Compiled = append(p.Compiled[:0], p.Content...)
 
 	p.changing.Clear()
 	p.instant.Clear()

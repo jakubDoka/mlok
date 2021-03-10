@@ -10,13 +10,17 @@ import (
 
 func main() {
 	// example shows how you can render the sprite on s screen
-	win, err := ggl.NWindow(nil)
+
+	// IMPORTANT: the thread you create the window in will be considered main thread
+	// where opengl operates. Unless specified othervise, calling methods and functions
+	// from ggl has to be performed on this thread.
+	win, err := ggl.NWindow(nil) // nil means default config
 	if err != nil {
 		panic(err)
 	}
 
-	// loading texture from disk and setting up opengl object in one step
-	// returned value is pointer with some data simple data like texture size
+	// Loading texture from disk and setting up opengl object in one step.
+	// returned value is pointer with some simple data like texture size
 	texture, err := ggl.LoadTexture("../../assets/plane.jpg")
 	if err != nil {
 		panic(err)
@@ -27,7 +31,7 @@ func main() {
 	batch := ggl.Batch{Texture: texture}
 
 	// Sprite has to be set up but don't get misled by constructor, creating sprite
-	// is very cheap as sprite live on stack (simplyfed, of course go have no stack or heap)
+	// is very cheap as sprite lives on stack
 	sprite := ggl.NSprite(texture.Frame())
 
 	// little helper, it measures a frame time
@@ -54,6 +58,9 @@ func main() {
 
 		// We then draw sprite in its current stats to batch batch is composed of ggl.Data
 		// which accepts the vertex data sprite produces, all it does is appending to slice
+		// sprite cannot draw directly to window or framebuffer as that is highly inefficient.
+		// You can always use composition and create your own sprite from Batch and Sprite
+		// to abstract batching.
 		sprite.Fetch(&batch)
 
 		// now we are getting little too fancy

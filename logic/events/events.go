@@ -71,7 +71,8 @@ func (e String) Add(listener *Listener) {
 func (e String) Invoke(name string, ed interface{}) {
 	evs := e[name]
 	for i := len(evs) - 1; i >= 0; i-- {
-		if evs[i].Runner(ed) {
+		evs[i].Runner(ed)
+		if evs[i].Block {
 			break
 		}
 	}
@@ -82,7 +83,8 @@ func (e String) Invoke(name string, ed interface{}) {
 // goes from newest to oldest event listener
 type Listener struct {
 	Name   string
-	Runner func(interface{}) bool
+	Block  bool
+	Runner func(interface{})
 	idx    int
 	evs    String
 }

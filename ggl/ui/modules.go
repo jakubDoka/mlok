@@ -89,7 +89,7 @@ func (a *Area) Update(w *ggl.Window, delta float64) {
 		a.Start = a.ProjectLine(a.LineIdx, a.Line)
 	})) || (a.Start > 0 && a.Hold(key.Left, w, delta, func() {
 		a.Start--
-	})) || (a.Start < len(a.Text.Text) && a.Hold(key.Right, w, delta, func() {
+	})) || (a.Start < len(a.Content) && a.Hold(key.Right, w, delta, func() {
 		a.Start++
 	})) || a.dirty {
 		a.LineIdx, a.Line = a.UnprojectLine(a.Start)
@@ -130,10 +130,11 @@ func (a *Area) Update(w *ggl.Window, delta float64) {
 		typed = ""
 	}
 
-	a.Text.Text.RemoveSlice(a.Start, a.End)
-	a.Text.Text.InsertSlice(a.Start, str.NString(typed))
+	nv := str.NString(typed)
+	a.Content.RemoveSlice(a.Start, a.End)
+	a.Content.InsertSlice(a.Start, nv)
 	a.Events.Invoke(TextChanged, typed)
-	a.Start += len(typed)
+	a.Start += len(nv)
 	a.End = a.Start
 	a.Dirty()
 	a.dirty = true
@@ -262,9 +263,26 @@ func (b *Button) Init(e *Element) {
 		bs.Region = e.Region(s+"_region", e.Scene.Assets.Regions, bs.Region)
 		bs.Padding = b.AABB(s+"_padding", bs.Padding)
 	}
-	textElem := NElement()
-	textElem.Module = &b.Text
-	b.AddChild("buttonText", textElem)
+
+	if b.ChildCount() == 0 {
+		textElem := NElement()
+		textElem.Module = &b.Text
+		b.AddChild("buttonText", textElem)
+	} else {
+		var found bool
+		b.ForChild(func(ch *Element) {
+			if found {
+				return
+			}
+			_, ok := ch.Module.(*Text)
+			if ok {
+				ch.Module = &b.Text
+				ch.SetName("buttonText")
+				found = true
+			}
+		})
+	}
+
 	b.current = -1
 	b.ApplyState(idle)
 }
@@ -305,7 +323,7 @@ func (b *Button) ApplyState(state int) {
 	b.Patch.Padding = bs.Padding
 	b.Patch.SetRegion(bs.Region)
 	b.Patch.Mask = bs.Mask
-	b.Text.Text = bs.Text
+	b.Text.Content = bs.Text
 	b.Text.Dirty()
 }
 
@@ -501,11 +519,14 @@ func (s *Scroll) DrawOnTop(t ggl.Target, c *dw.Geom) {
 func (s *Scroll) Update(w *ggl.Window, delta float64) {
 	if s.dirty {
 		s.dirty = false
+		s.update()
+		s.updateOffset()
 		s.move(s.Frame.Min.Sub(s.margin.Min).Sub(s.Offest), false)
 		s.Scene.Redraw.Notify()
 	}
 
 	if s.useVel {
+		s.useVel = s.vel.Len2() > .01
 		if !s.X.selected && !s.Y.selected {
 			s.offset.AddE(s.vel)
 		}
@@ -516,7 +537,7 @@ func (s *Scroll) Update(w *ggl.Window, delta float64) {
 			s.vel.SubE(s.vel.Scaled(math.Min(s.Friction*delta, 1)))
 		}
 		s.dirty = true
-		s.useVel = s.vel.Len2() > .01
+
 	}
 
 	if !s.Hovering {
@@ -619,8 +640,6 @@ func (s *Scroll) OnFrameChange() {
 		s.corner.X -= s.BarWidth
 	}
 
-	s.update()
-	s.updateOffset()
 	s.SpriteViewport.Area = s.Frame
 }
 
@@ -729,7 +748,7 @@ func (t *Text) Init(e *Element) {
 		t.Background = t.RGBA("text_background", t.Background)
 	}
 	t.NoEffects = t.Bool("no_effects", false)
-	t.Text = str.NString(t.Raw.Attributes.Ident("text", string(t.Text)))
+	t.Content = str.NString(t.Raw.Attributes.Ident("text", string(t.Content)))
 	t.Dirty()
 }
 
@@ -885,7 +904,7 @@ func (t *Text) Clip(start, end int) error {
 
 // SetText sets text and displays the change
 func (t *Text) SetText(text string) {
-	t.Paragraph.Text = str.NString(text)
+	t.Content = str.NString(text)
 	t.Dirty()
 }
 

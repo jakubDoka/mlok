@@ -8,7 +8,7 @@ import (
 	"github.com/jakubDoka/gogen/str"
 )
 
-// Drawer draws text for TextBox
+// Drawer draws text for ContentBox
 type Drawer struct {
 	*Atlas
 	Region mat.Vec
@@ -34,7 +34,7 @@ func NDrawer(atlas *Atlas) *Drawer {
 func (d *Drawer) Write(p *Paragraph, text string) {
 	s := str.NString(text)
 	start := len(p.Compiled)
-	p.Compiled = append(p.Text, s...)
+	p.Compiled = append(p.Content, s...)
 	d.Draw(p, start, len(p.Compiled))
 }
 
