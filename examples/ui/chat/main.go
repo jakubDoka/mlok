@@ -26,26 +26,27 @@ func main() {
 		composition: horizontal;
 		size: fill;
 	">
-		<scroll id="chat" style="
+		<div id="chat" style="
 			background: almond;
 			size: 500 fill;
-			bar_y: true;
-			outside: true;
-			text_scale: 4; 
 			resize_mode: ignore;
 		"> 
 			<text text="The Chat" style="
 				text_color: 1 0.5 0.5;
-				text_size: 0 0;
-				text_margin: fill 10;
+				text_size: 0;
+				text_scale: 4;
+				text_margin: fill 0;
 			"/>
-			<div style="
+			<scroll style="
 				size: fill;
-				background: .3;
+				resize_mode: ignore;
+				bar_y: true;
+				padding: 0 0 20 0;
+				background: 0.3;
 				margin: 10;
 				text_scale: 2;
 			">
-				<text id="chat-text"/>
+				<text id="chat-text" name="target"/>
 			</>
 			<div style="
 				composition: horizontal;
@@ -58,13 +59,12 @@ func main() {
 					text_scale: 2;
 					size: fill 0;
 				"/>
-				<button id="send" name="target" style="
+				<button id="send" style="
 					all_masks: 1 0.5 0.5;
 					hover_mask: green;
 					size: 0 fill;
 				" all_text="send"/>
 			</>
-			
 		</>
 		<button id="alter" style="
 			all_masks: gray;

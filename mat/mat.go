@@ -172,3 +172,30 @@ func Clamp(val, min, max float64) float64 {
 func ff(f float64) string {
 	return strconv.FormatFloat(f, 'f', -1, 64)
 }
+
+// Polynomial calculates a simple quadratic polynomial
+//
+// returns zero value if there is no solution as whether poly equals zero
+// can be derived from parameters (b == c == 0 => k == 0 (i can be wrong))
+//
+// returns h, h where h is solution in case of one
+//
+// returns h, k in case of two solutions
+func Polynomial(a, b, c float64) [2]float64 {
+	/*
+		polynomial calculates it is a classic manner trough
+		discriminant a, b and c are from general quadratic formula
+
+			a*x**2 + b*x + c == 0
+	*/
+	d := b*b - 4*c*a
+	if d < 0 {
+		return [2]float64{}
+	}
+
+	d = math.Sqrt(d)
+	a = -1 / (a * 2) // inverting so we can multiply
+
+	// d == 0 does not matter
+	return [2]float64{(-b - d) * a, (-b + d) * a}
+}

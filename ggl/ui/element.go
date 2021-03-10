@@ -365,8 +365,17 @@ func (e *Element) Show() {
 }
 
 // MarginRealSize returns real size Margin will spam, Fill is considered 0
-func (e *Element) MarginRealSize() (sz mat.Vec) {
-	l, b, r, t := e.Margin.Deco()
+func (e *Element) MarginRealSize() mat.Vec {
+	return sumAABB(e.Margin)
+}
+
+// PaddingSize returns total size element padding spams
+func (e *Element) PaddingSize() mat.Vec {
+	return e.Padding.Max.Add(e.Padding.Min)
+}
+
+func sumAABB(aabb mat.AABB) (sz mat.Vec) {
+	l, b, r, t := aabb.Deco()
 	if l != Fill {
 		sz.X += l
 	}
@@ -551,6 +560,8 @@ func (e *Element) calcMinSize() {
 		e.ChildSize.Y = 0
 	}
 
+	e.ChildSize.AddE(e.MarginRealSize())
+
 	e.ChildSize = e.ChildSize.Max(e.Module.MinSize())
 }
 
@@ -581,6 +592,7 @@ func (e *Element) spaceNeeded() mat.Vec {
 func (e *Element) move(offset mat.Vec, horizontal bool) mat.Vec {
 	off := offset.Add(e.margin.Min).Add(e.Offest)
 	e.Frame = e.size.ToAABB().Moved(off)
+	off.AddE(e.Padding.Min)
 	e.Module.OnFrameChange()
 
 	e.forChild(FCfg{

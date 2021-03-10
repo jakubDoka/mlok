@@ -33,7 +33,7 @@ func TestVec(t *testing.T) {
 
 func TestVecString(t *testing.T) {
 	res := V(0, 0).String()
-	if res != "V(0.000 0.000)" {
+	if res != "V(0 0)" {
 		t.Error(res)
 	}
 }

@@ -27,6 +27,9 @@ type Props struct {
 	RawStyle
 	// Margin defines spacing between elements, it supports Fill mode
 	Margin mat.AABB
+	// Padding defines how match space inside the elements should be free
+	// Fill is not supported
+	Padding mat.AABB
 	// Size defines default size of element
 	Size mat.Vec
 	// Composition defines orientation of children in div, if horizontal
@@ -45,6 +48,7 @@ func (s *Props) Horizontal() bool {
 // Init initializes the style
 func (s *Props) Init() {
 	s.Margin = s.AABB("margin", s.Margin)
+	s.Padding = s.AABB("padding", s.Padding)
 	s.Size = s.Vec("size", s.Size)
 	s.Composition = s.RawStyle.Composition("composition")
 

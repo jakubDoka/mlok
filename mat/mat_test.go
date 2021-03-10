@@ -28,7 +28,7 @@ func BenchmarkMatSetupFast(b *testing.B) {
 
 func TestMatString(t *testing.T) {
 	r := IM.Mv(V(0.28374, 0.3972)).String()
-	if r != "Mat(1.000 0.000 0.284 | 0.000 1.000 0.397)" {
+	if r != "Mat(1 0 0.28374 | 0 1 0.3972)" {
 		t.Error(r)
 	}
 }

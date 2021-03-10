@@ -436,7 +436,6 @@ func (s *Sprite) Draw(t ggl.Target, canvas *dw.Geom) {
 //  rail_color:         color           // bar rail color
 //	intersection_color: color			// if both bars are active, rectangle appears in a corner
 //  bar_x/bar_y/bars:   bool			// makes bars visible and active
-//  outside:            bool            // if there is only one bar, it will be displayed outside
 type Scroll struct {
 	ModuleBase
 	dw.SpriteViewport
@@ -444,10 +443,9 @@ type Scroll struct {
 	BarWidth, Friction, ScrollSensitivity  float64
 	BarColor, RailColor, IntersectionColor mat.RGBA
 	X, Y                                   Bar
-	Outside                                bool
 
 	offset, vel, ratio, corner mat.Vec
-	dirty, useVel, useles      bool
+	dirty, useVel              bool
 }
 
 // New implements ModuleFactory interface
@@ -472,17 +470,12 @@ func (s *Scroll) Init(e *Element) {
 		s.X.Use = c
 		s.Y.Use = c
 	}
-	s.Outside = s.Bool("outside", false)
 	s.X.position = 1 // to prevent snap
 	s.Y.position = 1
 }
 
 // DrawOnTop implements module interface
 func (s *Scroll) DrawOnTop(t ggl.Target, c *dw.Geom) {
-	if s.useles {
-		return
-	}
-
 	if s.X.use {
 		rect := mat.AABB{Min: s.Frame.Min, Max: s.corner}
 		c.Color(s.RailColor).AABB(rect)
@@ -506,10 +499,6 @@ func (s *Scroll) DrawOnTop(t ggl.Target, c *dw.Geom) {
 
 // Update implements module interface
 func (s *Scroll) Update(w *ggl.Window, delta float64) {
-	if s.useles {
-		return
-	}
-
 	if s.dirty {
 		s.dirty = false
 		s.move(s.Frame.Min.Sub(s.margin.Min).Sub(s.Offest), false)
@@ -635,20 +624,6 @@ func (s *Scroll) OnFrameChange() {
 	s.SpriteViewport.Area = s.Frame
 }
 
-// Size implements Module interface
-func (s *Scroll) Size(supposed mat.Vec) mat.Vec {
-	if !s.Outside {
-		return supposed
-	}
-	x, y := supposed.X < s.ChildSize.X, supposed.Y < s.ChildSize.Y
-	if x && !y {
-		supposed.Y += s.BarWidth
-	} else if y && !x {
-		supposed.X += s.BarWidth
-	}
-	return supposed
-}
-
 // move applies velocity to offset
 func (s *Scroll) update() {
 	dif := s.ratio.Inv()
@@ -712,7 +687,7 @@ type Text struct {
 	ModuleBase
 	txt.Paragraph
 	*txt.Markdown
-	dirty, Composed           bool
+	dirty, Composed, selected bool
 	SelectionColor            mat.RGBA
 	Start, End, LineIdx, Line int
 }
@@ -788,12 +763,18 @@ func (t *Text) Update(w *ggl.Window, delta float64) {
 
 	// selection start
 	if w.JustPressed(key.MouseLeft) {
-		t.Start, t.LineIdx, t.Line = t.CursorFor(w.MousePos())
+		if !t.Hovering {
+			t.selected = false
+			t.End = t.Start
+		} else {
+			t.Start, t.LineIdx, t.Line = t.CursorFor(w.MousePos())
+			t.selected = true
+		}
 		t.Scene.Redraw.Notify()
 	}
 
 	// selection dragging
-	if w.Pressed(key.MouseLeft) {
+	if w.Pressed(key.MouseLeft) && t.selected {
 		oldI, oldL, oldE := t.LineIdx, t.Line, t.End
 		t.End, t.LineIdx, t.Line = t.CursorFor(w.MousePos())
 		if oldE != t.End {
@@ -844,7 +825,7 @@ func (t *Text) MinSize() mat.Vec {
 // Width implements Module interface
 func (t *Text) Width(height float64) float64 {
 	if height == -1 {
-		return t.Bounds().W() * t.Scl.X
+		return math.Max(t.Bounds().W()*t.Scl.X, t.Size.X)
 	}
 	return Fill
 }
@@ -861,7 +842,7 @@ func (t *Text) Height(width float64) float64 {
 // OfferWidth implements Module interface
 func (t *Text) OfferWidth(width float64) float64 {
 	t.UpdateParagraph(width)
-	return math.Max(t.Bounds().W()*t.Scl.Y, width)
+	return math.Max(t.Bounds().W()*t.Scl.X, width)
 }
 
 // PrivateWidth implements Module interface
@@ -893,6 +874,7 @@ func (t *Text) UpdateParagraph(width float64) {
 			}
 		}
 		t.Markdown.Parse(&t.Paragraph)
+		t.dirty = false
 	}
 }
 

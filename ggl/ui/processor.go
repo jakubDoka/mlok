@@ -156,7 +156,7 @@ func (p *Processor) calcSize(d *Element) (remain mat.Vec) {
 		fm = &vfm
 	}
 
-	size := fm.space(d.size)
+	size := fm.space(d.size.Sub(d.PaddingSize()))
 	p.filled = p.filled[:0]
 	p.processed = p.processed[:0]
 
@@ -202,7 +202,6 @@ func (p *Processor) calcSize(d *Element) (remain mat.Vec) {
 		c := fm.constantY()
 		m := fm.marginY()
 		if c == Fill {
-
 			val := fm.private(size.Y - m)
 			size.Y = math.Max(val+m, size.Y)
 			p.filled = append(p.filled, ch)

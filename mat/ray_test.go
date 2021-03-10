@@ -7,7 +7,7 @@ import (
 
 func TestRayString(t *testing.T) {
 	res := R(0, 0, 10, 10).String()
-	if res != "R(O(0.000 0.000) V(10.000 10.000))" {
+	if res != "R(O(0 0) V(10 10))" {
 		t.Error(res)
 	}
 }
