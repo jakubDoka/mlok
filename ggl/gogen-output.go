@@ -87,3 +87,27 @@ func (b *Batch) Draw(target Renderer) {
 	target.Render(b.Vertexes, b.Indices, b.Texture, b.Program, b.Buffer)
 }
 
+
+// Resize resizes the Indices
+func (v *Indices) Resize(size int) {
+	if cap(*v) >= size {
+		*v = (*v)[:size]
+	} else {
+		ns := make(Indices, size)
+		copy(ns, *v)
+		*v = ns
+	}
+}
+
+
+// Resize resizes the Vertexes
+func (v *Vertexes) Resize(size int) {
+	if cap(*v) >= size {
+		*v = (*v)[:size]
+	} else {
+		ns := make(Vertexes, size)
+		copy(ns, *v)
+		*v = ns
+	}
+}
+

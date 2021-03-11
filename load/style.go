@@ -70,23 +70,9 @@ func (r RawStyle) Vec(key string, def mat.Vec) (u mat.Vec) {
 	}
 
 	components := [2]float64{}
-	for i := 0; i < len(components) && i < len(val); i++ {
-		switch v := val[i].(type) {
-		case float64:
-			components[i] = v
-		case int:
-			components[i] = float64(v)
-		case string:
-			if v != "fill" {
-				return
-			}
-			components[i] = Fill
-		default:
-			return
-		}
-	}
+	n := CollectFloats(val, components[:])
 
-	switch len(val) {
+	switch n {
 	case 1:
 		return mat.V(components[0], components[0])
 	case 2:
@@ -115,24 +101,9 @@ func (r RawStyle) AABB(key string, def mat.AABB) (m mat.AABB) {
 	}
 
 	sides := [4]float64{}
-	for i := 0; i < len(sides) && i < len(val); i++ {
-		switch v := val[i].(type) {
-		case float64:
-			sides[i] = v
-		case int:
-			sides[i] = float64(v)
-		case string:
-			if v != "fill" {
-				return
-			}
-			sides[i] = Fill
-		default:
-			return
-		}
+	n := CollectFloats(val, sides[:])
 
-	}
-
-	switch len(val) {
+	switch n {
 	case 1:
 		return mat.A(sides[0], sides[0], sides[0], sides[0])
 	case 2:
@@ -154,39 +125,65 @@ func (r RawStyle) RGBA(key string, def mat.RGBA) (c mat.RGBA) {
 		return
 	}
 
-	if v, ok := val[0].(string); ok {
+	res, n := ParseRGBA(val)
+	if n != 0 {
+		return res
+	}
+
+	return
+}
+
+// ParseRGBA parses slice if interfaces into color and returns how big the color was
+//
+// syntax:
+//
+//	name - simple name of color can be enough if its contained in map in gobatch/mat/rgba package
+//  a - specify only one float/int channel and mat.Alpha(alpha) will be returned
+//  r, g, b - specify threes floats/ints and mat.RGB(r, g, b) will be returned
+//  r, g, b, a - specify four floats/ints and mat.RGBA{r, g, b, a} will be returned
+func ParseRGBA(values []interface{}) (c mat.RGBA, ln int) {
+	if v, ok := values[0].(string); ok {
 		if v, ok := rgba.Colors[v]; ok {
-			return v
+			return v, 1
 		}
 		return
 	}
 
 	channels := [4]float64{}
-	for i := 0; i < len(channels) && i < len(val); i++ {
+	ln = CollectFloats(values, channels[:])
 
-		switch vl := val[i].(type) {
-		case float64:
-			channels[i] = vl
-		case int:
-			channels[i] = float64(vl)
-		default:
-			return
-		}
-	}
-
-	switch len(val) {
+	switch ln {
 	case 1:
-		return mat.Alpha(channels[0])
+		return mat.Alpha(channels[0]), 1
 	case 3:
-		return mat.RGB(channels[0], channels[1], channels[2])
+		return mat.RGB(channels[0], channels[1], channels[2]), 3
 	case 4:
 		return mat.RGBA{
 			R: channels[0],
 			G: channels[1],
 			B: channels[2],
 			A: channels[3],
+		}, 4
+	}
+	return
+}
+
+// CollectFloats collects consecutive floating point numbers and returns how match was collected
+func CollectFloats(values []interface{}, buff []float64) int {
+	for i := 0; i < len(values) && i < len(buff); i++ {
+		switch v := values[i].(type) {
+		case float64:
+			buff[i] = v
+		case int:
+			buff[i] = float64(v)
+		case string:
+			if v != "fill" {
+				return i
+			}
+			buff[i] = Fill
+		default:
+			return i
 		}
 	}
-
-	return
+	return mat.Mini(len(buff), len(values))
 }

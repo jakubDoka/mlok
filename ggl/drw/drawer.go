@@ -1,4 +1,4 @@
-package dw
+package drw
 
 import (
 	"gobatch/ggl"
@@ -12,7 +12,7 @@ import (
 // triangles to get modified by target drawer use drawer.Data as target
 //
 //  // use as is or create with NGeom that sets some default values
-//  d := dw.Geom{}
+//  d := drw.Geom{}
 //
 //  // red rectangle
 //  d.Color(mat.Red).Fill(true).AABB(mat.A(0, 0, 100, 100))

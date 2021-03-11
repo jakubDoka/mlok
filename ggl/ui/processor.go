@@ -2,7 +2,7 @@ package ui
 
 import (
 	"gobatch/ggl"
-	"gobatch/ggl/dw"
+	"gobatch/ggl/drw"
 	"gobatch/ggl/pck"
 	"gobatch/ggl/txt"
 	"gobatch/mat"
@@ -16,7 +16,7 @@ import (
 type Processor struct {
 	scene  *Scene
 	frame  mat.AABB
-	canvas dw.Geom
+	canvas drw.Geom
 
 	margins           []*float64
 	filled, processed []*Element

@@ -2,7 +2,7 @@ package ui
 
 import (
 	"gobatch/ggl"
-	"gobatch/ggl/dw"
+	"gobatch/ggl/drw"
 	"gobatch/logic/events"
 	"gobatch/mat"
 	"math"
@@ -70,7 +70,7 @@ type Element struct {
 	Props
 	InputState
 
-	Proc   dw.Preprocessor
+	Proc   drw.Preprocessor
 	Parent *Element
 	Scene  *Scene
 	Module Module
@@ -468,7 +468,7 @@ func (e *Element) update(p *Processor, w *ggl.Window, delta float64) {
 
 // Redraw draws element and all its children to target, if preprocessor is not nil
 // triangles are also preprocessed
-func (e *Element) redraw(t ggl.Target, canvas *dw.Geom) {
+func (e *Element) redraw(t ggl.Target, canvas *drw.Geom) {
 	tar := t
 	if e.Proc != nil {
 		tar = e.Proc
@@ -661,9 +661,9 @@ type Module interface {
 	Init(*Element)
 	// Draw should draw the div, draw your triangles onto given target, you can use Geom as canvas
 	// though you have to draw it to target too, Geom is cleared and restarted before draw call
-	Draw(ggl.Target, *dw.Geom)
+	Draw(ggl.Target, *drw.Geom)
 	// DrawOnTop does the same thing as draw, but on top of children
-	DrawOnTop(ggl.Target, *dw.Geom)
+	DrawOnTop(ggl.Target, *drw.Geom)
 	// Update is stage where your event handling and visual updates should happen
 	Update(*ggl.Window, float64)
 	// OnFrameChange is called by processor when frame of element changes
@@ -706,13 +706,13 @@ func (m *ModuleBase) Init(div *Element) {
 }
 
 // Draw implements Module interface
-func (m *ModuleBase) Draw(t ggl.Target, g *dw.Geom) {
+func (m *ModuleBase) Draw(t ggl.Target, g *drw.Geom) {
 	g.Color(m.Background).AABB(m.Frame)
 	g.Fetch(t)
 }
 
 // DrawOnTop implements Module interface
-func (m *ModuleBase) DrawOnTop(t ggl.Target, g *dw.Geom) {
+func (m *ModuleBase) DrawOnTop(t ggl.Target, g *drw.Geom) {
 }
 
 // Update implements Module interface

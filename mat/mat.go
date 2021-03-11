@@ -125,15 +125,11 @@ func (m Mat) Chained(next Mat) Mat {
 }
 
 // Project applies all transformations added to the Mat to a vector u and returns the result.
-//
-// Time complexity is O(1).
 func (m Mat) Project(u Vec) Vec {
 	return Vec{m.X.X*u.X + m.Y.X*u.Y + m.C.X, m.X.Y*u.X + m.Y.Y*u.Y + m.C.Y}
 }
 
 // Unproject does the inverse operation to Project.
-//
-// Time complexity is O(1).
 func (m Mat) Unproject(u Vec) Vec {
 	det := m.X.X*m.Y.Y - m.Y.X*m.X.Y
 	return Vec{

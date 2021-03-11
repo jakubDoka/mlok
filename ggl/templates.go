@@ -2,10 +2,16 @@ package ggl
 
 const elementsize = 0
 
+/*imp(
+	github.com/jakubDoka/gogen/templates
+)*/
+
 /*gen(
 	vertexSlice<Vertex, 9, Vertexes>
 	data<Vertexes, Data>
 	batch<Data, NBatch, Batch>
+	templates.Resize<Indices, Resize>
+	templates.Resize<Vertexes, Resize>
 )*/
 
 //def(
@@ -77,9 +83,11 @@ func (d *data) Accept(data vertexSlice, indices Indices) {
 	d.Vertexes = append(d.Vertexes, data...)
 	d.Indices = append(d.Indices, indices...)
 
-	l3 := len(d.Indices)
-	for i := l1; i < l3; i++ {
-		d.Indices[i] += l2
+	if l2 != 0 {
+		l3 := len(d.Indices)
+		for i := l1; i < l3; i++ {
+			d.Indices[i] += l2
+		}
 	}
 }
 

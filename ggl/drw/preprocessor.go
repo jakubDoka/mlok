@@ -1,4 +1,4 @@
-package dw
+package drw
 
 import (
 	"gobatch/ggl"

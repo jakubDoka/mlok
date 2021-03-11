@@ -1,5 +1,7 @@
 package lerp
 
+import "math/rand"
+
 // Bezier is cubic Bézier curve used for interpolation. For more info
 // see https://en.wikipedia.org/wiki/B%C3%A9zier_curve,
 // In case you are looking for visualization see https://www.desmos.com/calculator/d1ofwre0fr
@@ -36,22 +38,39 @@ func L(start, end float64) Linear {
 	return Linear{start, end}
 }
 
-// Point implements Interpolator interface
-func (l Linear) Point(t float64) float64 {
+// Float implements Tween interface
+func (l Linear) Float(t float64) float64 {
 	return l.Start + (l.End-l.Start)*t
 }
 
-// Constant does nothing, its a placeholder with no overhead
-type Constant struct {
-	Value float64
-}
+// Const does nothing, its a placeholder with no overhead
+type Const float64
 
-// ZC is Constant zero value
-var ZC Constant
+// ZC is Const zero value
+var ZC Const
 
 // Float implements Tween interface
-func (p Constant) Float(t float64) float64 {
-	return p.Value
+func (p Const) Float(t float64) float64 {
+	return float64(p)
+}
+
+// Random generates random
+// Offset is a biggest offset from original Value
+type Random struct {
+	Val, Offset float64
+}
+
+// ZR is Random zerovalue
+var ZR Random
+
+// R is Random constructor
+func R(value, offset float64) Random {
+	return Random{value, offset}
+}
+
+// Float implements Tween interface
+func (r Random) Float(t float64) float64 {
+	return r.Val + (rand.Float64()*r.Offset*2 - r.Offset)
 }
 
 // Tween is something that projects t into some other value

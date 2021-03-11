@@ -2,7 +2,7 @@ package ui
 
 import (
 	"gobatch/ggl"
-	"gobatch/ggl/dw"
+	"gobatch/ggl/drw"
 	"gobatch/ggl/key"
 	"gobatch/ggl/txt"
 	"gobatch/mat"
@@ -19,7 +19,7 @@ type Area struct {
 	Text
 	HoldMap
 
-	dw CursorDrawer
+	drw CursorDrawer
 
 	selected, dirty, noEffects bool
 
@@ -39,7 +39,7 @@ func (a *Area) Init(e *Element) {
 	a.Composed = true // important for next call
 	a.Text.Init(e)
 
-	a.dw = a.CursorDrawer("cursor_drawer", a.Scene.Assets.Cursors, defaultCursor{})
+	a.drw = a.CursorDrawer("cursor_drawer", a.Scene.Assets.Cursors, defaultCursor{})
 	a.CursorWidth = e.Float("cursor_width", 2)
 	a.CursorMask = e.RGBA("cursor_mask", mat.White)
 	a.SelectionColor = e.RGBA("selection_color", mat.Alpha(.5))
@@ -141,11 +141,11 @@ func (a *Area) Update(w *ggl.Window, delta float64) {
 }
 
 // DrawOnTop implements Module interface
-func (a *Area) DrawOnTop(tg ggl.Target, canvas *dw.Geom) {
+func (a *Area) DrawOnTop(tg ggl.Target, canvas *drw.Geom) {
 	if !a.selected {
 		return
 	}
-	a.dw.Draw(tg, canvas, a.Dot(mat.Maxi(a.Start, a.End)), mat.V(a.CursorWidth, a.Ascent*a.Scl.Y), a.CursorMask)
+	a.drw.Draw(tg, canvas, a.Dot(mat.Maxi(a.Start, a.End)), mat.V(a.CursorWidth, a.Ascent*a.Scl.Y), a.CursorMask)
 	canvas.Clear()
 	a.Text.DrawOnTop(tg, canvas)
 }
@@ -159,12 +159,12 @@ func (a *Area) Dirty() {
 
 // CursorDrawer is something that draws the cursor inside the Area when area is selected
 type CursorDrawer interface {
-	Draw(t ggl.Target, canvas *dw.Geom, base, size mat.Vec, mask mat.RGBA)
+	Draw(t ggl.Target, canvas *drw.Geom, base, size mat.Vec, mask mat.RGBA)
 }
 
 type defaultCursor struct{}
 
-func (d defaultCursor) Draw(t ggl.Target, canvas *dw.Geom, base, size mat.Vec, mask mat.RGBA) {
+func (d defaultCursor) Draw(t ggl.Target, canvas *drw.Geom, base, size mat.Vec, mask mat.RGBA) {
 	size.X *= .5
 	canvas.Color(mask).AABB(mat.A(base.X-size.X, base.Y, base.X+size.X, base.Y+size.Y))
 	canvas.Fetch(t)
@@ -378,7 +378,7 @@ func (p *Patch) Init(e *Element) {
 }
 
 // Draw implements Module interface
-func (p *Patch) Draw(t ggl.Target, canvas *dw.Geom) {
+func (p *Patch) Draw(t ggl.Target, canvas *drw.Geom) {
 	p.Patch.Fetch(t)
 }
 
@@ -440,7 +440,7 @@ func (s *Sprite) OnFrameChange() {
 }
 
 // Draw implements Module interface
-func (s *Sprite) Draw(t ggl.Target, canvas *dw.Geom) {
+func (s *Sprite) Draw(t ggl.Target, canvas *drw.Geom) {
 	s.Sprite.Fetch(t)
 }
 
@@ -456,7 +456,7 @@ func (s *Sprite) Draw(t ggl.Target, canvas *dw.Geom) {
 //  bar_x/bar_y/bars:   bool			// makes bars visible and active
 type Scroll struct {
 	ModuleBase
-	dw.SpriteViewport
+	drw.SpriteViewport
 
 	BarWidth, Friction, ScrollSensitivity  float64
 	BarColor, RailColor, IntersectionColor mat.RGBA
@@ -493,7 +493,7 @@ func (s *Scroll) Init(e *Element) {
 }
 
 // DrawOnTop implements module interface
-func (s *Scroll) DrawOnTop(t ggl.Target, c *dw.Geom) {
+func (s *Scroll) DrawOnTop(t ggl.Target, c *drw.Geom) {
 	if s.X.use {
 		rect := mat.AABB{Min: s.Frame.Min, Max: s.corner}
 		c.Color(s.RailColor).AABB(rect)
@@ -753,7 +753,7 @@ func (t *Text) Init(e *Element) {
 }
 
 // Draw implements Module interface
-func (t *Text) Draw(tr ggl.Target, g *dw.Geom) {
+func (t *Text) Draw(tr ggl.Target, g *drw.Geom) {
 	t.ModuleBase.Draw(tr, g)
 	t.Paragraph.Draw(tr)
 }
@@ -806,7 +806,7 @@ func (t *Text) Update(w *ggl.Window, delta float64) {
 }
 
 // DrawOnTop implements Module interface
-func (t *Text) DrawOnTop(tg ggl.Target, canvas *dw.Geom) {
+func (t *Text) DrawOnTop(tg ggl.Target, canvas *drw.Geom) {
 	start, end := t.Start, t.End
 	if start != end {
 		t.Scene.TextSelected = true
