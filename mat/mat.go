@@ -195,3 +195,13 @@ func Polynomial(a, b, c float64) [2]float64 {
 	// d == 0 does not matter
 	return [2]float64{(-b - d) * a, (-b + d) * a}
 }
+
+// mod is faster version of math.Mod, trade of is that it is accurate only to first 16 significant digits
+func Mod(x, y float64) float64 {
+	if x > y {
+		x -= math.Floor(x/y) * y
+	} else if x < -y {
+		x -= math.Ceil(x/y) * y
+	}
+	return x
+}

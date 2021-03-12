@@ -151,7 +151,7 @@ o:
 		case BlockEnd: // fond text that should be skipped
 			if len(m.stack2) != 0 {
 				p.Compiled.Remove(i)
-				if i < p.Compiled.Len() && p.Compiled[i] == ']' {
+				if i < len(p.Compiled) && p.Compiled[i] == ']' {
 					continue
 				}
 				mv = 0

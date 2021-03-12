@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-	// creates window with default config
 	window, err := ggl.NWindow(&ggl.WindowConfig{
 		Resizable: true,
 		Width:     1000,

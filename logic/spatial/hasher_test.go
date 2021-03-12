@@ -9,7 +9,7 @@ import (
 
 func TestMinHahs(t *testing.T) {
 	coll := []int{}
-	h := NMinHahs(4, 4, mat.V(10, 10))
+	h := NMinHash(4, 4, mat.V(10, 10))
 	h.Insert(&mat.Point{}, mat.V(1, 1), 0, 0)
 	h.Insert(&mat.Point{}, mat.V(40, 40), 1, 0)
 	h.Insert(&mat.Point{}, mat.V(20, 20), 2, 0)
@@ -35,7 +35,7 @@ func TestMinHahs(t *testing.T) {
 }
 
 func BenchmarkHasher(b *testing.B) {
-	h := NMinHahs(4, 4, mat.V(10, 10))
+	h := NMinHash(4, 4, mat.V(10, 10))
 	adr := mat.Point{}
 	for i := 0; i < b.N; i++ {
 		h.Insert(&adr, mat.ZV, 0, 0)
