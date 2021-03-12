@@ -1,11 +1,11 @@
 package main
 
 import (
-	"gobatch/ggl"
-	"gobatch/ggl/ui"
-	"gobatch/logic/events"
-	"gobatch/logic/frame"
-	"gobatch/mat/rgba"
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/ggl/ui"
+	"github.com/jakubDoka/gobatch/logic/events"
+	"github.com/jakubDoka/gobatch/logic/frame"
+	"github.com/jakubDoka/gobatch/mat/rgba"
 )
 
 func main() {

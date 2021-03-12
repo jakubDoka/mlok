@@ -2,8 +2,9 @@ package spatial
 
 import (
 	"fmt"
-	"gobatch/mat"
 	"strings"
+
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 // Tree is a quadtree that prefers updating over reinseting. If you

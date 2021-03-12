@@ -1,13 +1,14 @@
 package txt
 
 import (
-	"gobatch/ggl"
-	"gobatch/mat"
 	"image"
 	"image/draw"
 	"math"
 	"sort"
 	"unicode"
+
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/mat"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"

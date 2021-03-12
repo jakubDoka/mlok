@@ -1,8 +1,9 @@
 package ggl
 
 import (
-	"gobatch/mat"
 	"testing"
+
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 func TestNPSResize(t *testing.T) {

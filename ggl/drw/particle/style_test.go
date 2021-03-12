@@ -1,12 +1,13 @@
 package particle
 
 import (
-	"gobatch/mat"
-	"gobatch/mat/lerp"
-	"gobatch/mat/lerpc"
-	"gobatch/mat/rgba"
 	"reflect"
 	"testing"
+
+	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/gobatch/mat/lerp"
+	"github.com/jakubDoka/gobatch/mat/lerpc"
+	"github.com/jakubDoka/gobatch/mat/rgba"
 
 	"github.com/jakubDoka/goml/goss"
 )

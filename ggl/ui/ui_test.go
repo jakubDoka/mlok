@@ -1,10 +1,11 @@
 package ui
 
 import (
-	"gobatch/mat"
 	"reflect"
 	"strconv"
 	"testing"
+
+	"github.com/jakubDoka/gobatch/mat"
 
 	"github.com/jakubDoka/goml"
 	"github.com/jakubDoka/sterr"

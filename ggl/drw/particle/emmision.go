@@ -1,8 +1,9 @@
 package particle
 
 import (
-	"gobatch/mat"
 	"math/rand"
+
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 // Point is most basic emission shape, all particles will get spawned o a same position

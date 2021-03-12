@@ -1,9 +1,10 @@
 package spatial
 
 import (
-	"gobatch/mat"
 	"reflect"
 	"testing"
+
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 func TestMinHahs(t *testing.T) {

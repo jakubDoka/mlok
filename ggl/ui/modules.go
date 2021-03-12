@@ -1,13 +1,14 @@
 package ui
 
 import (
-	"gobatch/ggl"
-	"gobatch/ggl/drw"
-	"gobatch/ggl/key"
-	"gobatch/ggl/txt"
-	"gobatch/mat"
-	"gobatch/mat/rgba"
 	"math"
+
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/ggl/drw"
+	"github.com/jakubDoka/gobatch/ggl/key"
+	"github.com/jakubDoka/gobatch/ggl/txt"
+	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/gobatch/mat/rgba"
 
 	"github.com/atotto/clipboard"
 	"github.com/jakubDoka/gogen/str"

@@ -1,9 +1,10 @@
 package ui
 
 import (
-	"gobatch/logic/events"
 	"strconv"
 	"strings"
+
+	"github.com/jakubDoka/gobatch/logic/events"
 
 	"github.com/jakubDoka/goml"
 	"github.com/jakubDoka/goml/goss"

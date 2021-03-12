@@ -1,14 +1,15 @@
 package particle
 
 import (
-	"gobatch/ggl"
-	"gobatch/ggl/drw"
-	"gobatch/load"
-	"gobatch/mat"
-	"gobatch/mat/lerp"
-	"gobatch/mat/lerpc"
 	"math"
 	"sync"
+
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/ggl/drw"
+	"github.com/jakubDoka/gobatch/load"
+	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/gobatch/mat/lerp"
+	"github.com/jakubDoka/gobatch/mat/lerpc"
 
 	"github.com/jakubDoka/goml/goss"
 )

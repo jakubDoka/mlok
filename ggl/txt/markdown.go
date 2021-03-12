@@ -1,10 +1,11 @@
 package txt
 
 import (
-	"gobatch/mat"
 	"io/ioutil"
 	"math"
 	"os"
+
+	"github.com/jakubDoka/gobatch/mat"
 
 	"github.com/golang/freetype/truetype"
 	"github.com/jakubDoka/gogen/str"

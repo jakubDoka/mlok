@@ -1,9 +1,10 @@
 package drw
 
 import (
-	"gobatch/ggl"
-	"gobatch/mat"
 	"math"
+
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 // Geom is is small abstraction around Data that allows

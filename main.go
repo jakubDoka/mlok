@@ -1,12 +1,13 @@
 package main
 
 import (
-	"gobatch/ggl"
-	"gobatch/ggl/pck"
-	"gobatch/ggl/ui"
-	"gobatch/logic/frame"
-	"gobatch/mat"
 	_ "image/png"
+
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/ggl/pck"
+	"github.com/jakubDoka/gobatch/ggl/ui"
+	"github.com/jakubDoka/gobatch/logic/frame"
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 func main() {

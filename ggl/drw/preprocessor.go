@@ -1,8 +1,8 @@
 package drw
 
 import (
-	"gobatch/ggl"
-	"gobatch/mat"
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 // SpriteViewport is able to crop sprite triangles that are not rotated

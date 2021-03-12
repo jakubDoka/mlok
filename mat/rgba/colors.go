@@ -1,6 +1,6 @@
 package rgba
 
-import "gobatch/mat"
+import "github.com/jakubDoka/gobatch/mat"
 
 // color "constants"
 var (

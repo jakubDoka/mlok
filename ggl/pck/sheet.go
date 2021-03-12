@@ -1,13 +1,14 @@
 package pck
 
 import (
-	"gobatch/ggl"
-	"gobatch/ggl/txt"
-	"gobatch/mat"
 	"image"
 	"image/draw"
 	"math"
 	"strconv"
+
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/ggl/txt"
+	"github.com/jakubDoka/gobatch/mat"
 
 	"github.com/jakubDoka/gogen/dirs"
 	"github.com/jakubDoka/gogen/str"

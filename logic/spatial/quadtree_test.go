@@ -1,8 +1,9 @@
 package spatial
 
 import (
-	"gobatch/mat"
 	"testing"
+
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 func TestTree(t *testing.T) {

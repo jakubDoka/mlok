@@ -1,8 +1,8 @@
 package txt
 
 import (
-	"gobatch/ggl"
-	"gobatch/mat"
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 // Effect is interface for eny effect applied on text

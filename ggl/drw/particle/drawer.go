@@ -1,9 +1,9 @@
 package particle
 
 import (
-	"gobatch/ggl"
-	"gobatch/ggl/drw"
-	"gobatch/mat"
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/ggl/drw"
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 // Sprite extends ggl.Sprite to implement Drawer

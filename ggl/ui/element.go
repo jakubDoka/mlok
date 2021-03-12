@@ -1,12 +1,13 @@
 package ui
 
 import (
-	"gobatch/ggl"
-	"gobatch/ggl/drw"
-	"gobatch/logic/events"
-	"gobatch/mat"
 	"math"
 	"strings"
+
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/ggl/drw"
+	"github.com/jakubDoka/gobatch/logic/events"
+	"github.com/jakubDoka/gobatch/mat"
 
 	"github.com/jakubDoka/goml"
 	"github.com/jakubDoka/goml/goss"

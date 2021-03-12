@@ -1,7 +1,7 @@
 package ggl
 
 import (
-	"gobatch/mat"
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 // Fetcher is something that only passes triangle data, and does no preprocessing

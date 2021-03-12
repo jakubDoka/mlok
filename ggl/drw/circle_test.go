@@ -1,9 +1,10 @@
 package drw
 
 import (
-	"gobatch/ggl"
 	"reflect"
 	"testing"
+
+	"github.com/jakubDoka/gobatch/ggl"
 )
 
 func TestCircle(t *testing.T) {

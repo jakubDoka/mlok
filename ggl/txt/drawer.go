@@ -1,9 +1,10 @@
 package txt
 
 import (
-	"gobatch/ggl"
-	"gobatch/mat"
 	"unicode"
+
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/mat"
 
 	"github.com/jakubDoka/gogen/str"
 )

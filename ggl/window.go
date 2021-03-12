@@ -1,10 +1,11 @@
 package ggl
 
 import (
-	"gobatch/ggl/key"
-	"gobatch/mat"
 	"log"
 	"runtime"
+
+	"github.com/jakubDoka/gobatch/ggl/key"
+	"github.com/jakubDoka/gobatch/mat"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/go-gl/glfw/v3.3/glfw"

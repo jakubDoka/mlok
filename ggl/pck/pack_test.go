@@ -1,11 +1,12 @@
 package pck
 
 import (
-	"gobatch/ggl"
 	"image"
 	"image/draw"
 	"reflect"
 	"testing"
+
+	"github.com/jakubDoka/gobatch/ggl"
 
 	"github.com/jakubDoka/gogen/dirs"
 )

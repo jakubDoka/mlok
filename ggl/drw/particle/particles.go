@@ -1,8 +1,8 @@
 package particle
 
 import (
-	"gobatch/ggl"
-	"gobatch/mat"
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/mat"
 )
 
 /*imp(
