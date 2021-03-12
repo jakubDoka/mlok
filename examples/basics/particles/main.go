@@ -1,17 +1,18 @@
 package main
 
 import (
-	"gobatch/ggl"
-	"gobatch/ggl/drw"
-	"gobatch/ggl/drw/particle"
-	"gobatch/logic/frame"
-	"gobatch/logic/gate"
-	"gobatch/mat"
-	"gobatch/mat/lerp"
-	"gobatch/mat/lerpc"
-	"gobatch/mat/rgba"
 	"math"
 	"runtime"
+
+	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/gobatch/ggl/drw"
+	"github.com/jakubDoka/gobatch/ggl/drw/particle"
+	"github.com/jakubDoka/gobatch/logic/frame"
+	"github.com/jakubDoka/gobatch/logic/gate"
+	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/gobatch/mat/lerp"
+	"github.com/jakubDoka/gobatch/mat/lerpc"
+	"github.com/jakubDoka/gobatch/mat/rgba"
 )
 
 func main() {
@@ -23,23 +24,24 @@ func main() {
 	// almost all parameters are interfaces, which forces you to specify all value
 	// but gives great deal of customization
 	tp := particle.Type{
-		Scale:             lerp.Const(1),
+		ScaleX:            lerp.Const(1),
+		ScaleY:            lerp.Const(2),
 		ScaleMultiplier:   lerp.Bezier(0, 4, 0, 0), // particle will grow and then shrink
 		TwerkAcceleration: lerp.Const(0),
 		Acceleration:      lerp.Const(0),
-		Twerk:             lerp.Const(0),
+		Twerk:             lerp.Random(-20, 20),
 		Livetime:          lerp.Const(1), // constant one second livetime
 		Rotation:          lerp.Const(0),
 		Velocity:          lerp.Random(800, 1600),
 		Spread:            lerp.Random(0, math.Pi*.7), // random number in range between 0 - math.Pi*.7
 
-		Color: lerpc.Linear(mat.Alpha(1), mat.Alpha(0)), // fading out
+		Color: lerpc.Linear(mat.Alpha(0), mat.Alpha(1)), // fading out
 		//random color in folloving range, each channel is independently randomized
 		Mask: lerpc.Random(mat.Black, mat.White),
 
 		EmissionShape: particle.Point{},
 		Gravity:       mat.V(0, -500),
-		Friction:      3,
+		Friction:      2,
 	}
 
 	// ew need somethong to draw the partiles, circle is good enough
