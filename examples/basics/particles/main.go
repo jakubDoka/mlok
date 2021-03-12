@@ -1,79 +1,74 @@
 package main
 
 import (
-	"flag"
 	"gobatch/ggl"
-	"gobatch/ggl/drw/particles"
+	"gobatch/ggl/drw"
+	"gobatch/ggl/drw/particle"
 	"gobatch/logic/frame"
 	"gobatch/logic/gate"
 	"gobatch/mat"
 	"gobatch/mat/lerp"
+	"gobatch/mat/lerpc"
 	"gobatch/mat/rgba"
-	"log"
 	"math"
-	"os"
-	"runtime/pprof"
+	"runtime"
 )
 
-var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
-var memprofile = flag.String("memprofile", "", "write heap profile to file")
-
 func main() {
-	flag.Parse()
-	if *cpuprofile != "" {
-		f, err := os.Create(*cpuprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
 	win, err := ggl.NWindow(nil)
 	if err != nil {
 		panic(err)
 	}
 
-	tp := particles.Type{
+	// almost all parameters are interfaces, which forces you to specify all value
+	// but gives great deal of customization
+	tp := particle.Type{
 		Scale:             lerp.Const(1),
-		ScaleMultiplier:   lerp.L(1, 0),
+		ScaleMultiplier:   lerp.Bezier(0, 4, 0, 0), // particle will grow and then shrink
 		TwerkAcceleration: lerp.Const(0),
 		Acceleration:      lerp.Const(0),
 		Twerk:             lerp.Const(0),
-		Livetime:          lerp.Const(1),
+		Livetime:          lerp.Const(1), // constant one second livetime
 		Rotation:          lerp.Const(0),
-		Velocity:          lerp.Const(400),
-		Spread:            lerp.R(0, math.Pi),
-		EmissionShape:     particles.Point{},
-		Color:             lerp.ConstColor(mat.White),
+		Velocity:          lerp.Random(800, 1600),
+		Spread:            lerp.Random(0, math.Pi*.7), // random number in range between 0 - math.Pi*.7
+
+		Color: lerpc.Linear(mat.Alpha(1), mat.Alpha(0)), // fading out
+		//random color in folloving range, each channel is independently randomized
+		Mask: lerpc.Random(mat.Black, mat.White),
+
+		EmissionShape: particle.Point{},
+		Gravity:       mat.V(0, -500),
+		Friction:      3,
 	}
 
-	sprite := ggl.NSprite(mat.A(0, 0, 10, 10))
-	sprite.SetIntensity(0)
-	tp.SetDrawer(&particles.Sprite{Sprite: sprite})
+	// ew need somethong to draw the partiles, circle is good enough
+	tp.SetDrawer(&particle.Circle{Circle: drw.NCircle(10, 20)})
 
 	batch := ggl.Batch{}
 
 	ticker := frame.Delta{}
-	limitter := frame.Limitter{}
-
-	//limitter.SetFPS(60)
-
 	var delta float64
 
-	system := particles.System{}
-	system.SetThreads(4)
+	// particle system as many threads as we have cores
+	threadCount := runtime.NumCPU()
+	system := particle.System{}
+	system.SetThreads(threadCount)
 
+	// setting up gate to run the particle system on multiple threads
 	gt := gate.Gate{}
-	for i := 0; i < 4; i++ {
+	for i := 0; i < threadCount; i++ {
 		thr := system.Thread(i)
 		gt.Add(&gate.FazerBase{
 			Fazes: []gate.FazeRunner{
 				func(tIdx, count int) {
 					thr.Update(delta)
-					thr.Request(particles.Request{
-						Amount: 100,
+					thr.Request(particle.Request{
+						Amount: 1,
+						Pos:    mat.V(-100, -300),
 						Mask:   mat.White,
 						Type:   &tp,
+						Dir:    math.Pi / 8,
 					})
 				},
 			},
@@ -82,15 +77,20 @@ func main() {
 
 	for !win.ShouldClose() {
 		delta = ticker.Tick()
-		ticker.Log(2)
-		limitter.Regulate()
+		ticker.Log(2) // logging a frame rate, why not
 
+		// this will run all threads at the same time
+		// under the hud every thread always proceses particles like follows
+		//	for i := threadIndex; i < particleCount; i += threadCount {
 		gt.Run()
 		gt.Wait()
 
+		// spawn requests has to be runned on single thread though you can choose to
+		// run spawning on different thread
 		system.Spawn()
 
-		batch.Data = system.Data
+		// drawing system onto batch
+		system.Fetch(&batch)
 
 		win.Clear(rgba.Black)
 		// batch now draws to window which does the draw call
@@ -99,15 +99,5 @@ func main() {
 		batch.Clear()
 		// also important or you will end up with frozen window
 		win.Update()
-	}
-
-	if *memprofile != "" {
-		f, err := os.Create(*memprofile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		pprof.WriteHeapProfile(f)
-		f.Close()
-		return
 	}
 }

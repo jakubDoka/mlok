@@ -1,5 +1,4 @@
-package particles
-
+package particle
 
 // Resize resizes the particles
 func (v *particles) Resize(size int) {
@@ -11,4 +10,3 @@ func (v *particles) Resize(size int) {
 		*v = ns
 	}
 }
-

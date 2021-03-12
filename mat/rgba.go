@@ -50,7 +50,7 @@ func RGB(r, g, b float64) RGBA {
 
 // Alpha returns a white RGBA color with the given alpha component.
 func Alpha(a float64) RGBA {
-	return RGBA{a, a, a, a}
+	return RGBA{1, 1, 1, a}
 }
 
 // Inverted returns inverted color, except alpha channel

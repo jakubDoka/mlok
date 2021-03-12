@@ -1,4 +1,4 @@
-package particles
+package particle
 
 import (
 	"gobatch/mat"

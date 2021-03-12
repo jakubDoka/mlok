@@ -1,4 +1,4 @@
-package particles
+package particle
 
 import (
 	"gobatch/ggl"
@@ -103,6 +103,7 @@ func (s *System) setupSpawner() {
 	}()
 }
 
+// spawn loops over all collected threads and its requests and adds them to system
 func (s *System) spawn() {
 	for i := range s.threads {
 		t := &s.threads[i]
@@ -110,8 +111,8 @@ func (s *System) spawn() {
 			str := len(s.particles)
 			s.particles.Resize(str + sr.Amount)
 			for i := 0; i < sr.Amount; i++ {
-				r := sr.Rotation.Float(0)
-				vel := mat.Rad(sr.Spread.Float(0)+sr.Dir, sr.Velocity.Float(0))
+				r := sr.Rotation.Gen()
+				vel := mat.Rad(sr.Spread.Gen()+sr.Dir, sr.Velocity.Gen())
 				if sr.RotationRelativeToVelocity {
 					r += vel.Angle()
 				}
@@ -124,11 +125,12 @@ func (s *System) spawn() {
 				p.orig = sr.Pos
 				p.pos = sr.Pos.Add(sr.Gen(sr.Dir))
 
-				p.mask = sr.Mask
+				p.mask = sr.Mask.Mul(sr.Type.Mask.Gen())
 
-				p.scl = sr.Scale.Float(0)
-				p.livetime = sr.Livetime.Float(0)
-				p.twerk = sr.Twerk.Float(0)
+				p.scl.X = sr.ScaleX.Gen()
+				p.scl.Y = sr.ScaleY.Gen()
+				p.livetime = 1 / sr.Livetime.Gen()
+				p.twerk = sr.Twerk.Gen()
 				p.rot = r
 				p.progress = 0
 
@@ -143,6 +145,7 @@ func (s *System) spawn() {
 	}
 }
 
+// clear removes particles that have progress >= 1
 func (s *System) clear() {
 	s.vertex = 0
 	s.indice = 0
@@ -169,12 +172,13 @@ func (s *System) clear() {
 	return
 }
 
+// allocate resizes Vertexes and indices to fit particles
 func (s *System) allocate() {
 	s.Vertexes.Resize(s.vertex)
 	s.Indices.Resize(s.indice)
 }
 
-//  ...
+// particle stores data important for drawning and simulating particle
 type particle struct {
 	*Type
 
@@ -182,27 +186,29 @@ type particle struct {
 
 	mask mat.RGBA
 
-	pos, vel, orig mat.Vec
+	pos, vel, orig, scl mat.Vec
 
-	scl, rot, twerk, progress, livetime float64
+	rot, twerk, progress, livetime float64
 }
 
+// update updates particle state
 func (p *particle) update(delta float64) {
-	p.vel.AddE(p.vel.Scaled(p.Acceleration.Float(p.progress) * delta))
+	p.vel.AddE(p.vel.Scaled(p.Acceleration.Value(p.progress) * delta))
 	p.vel.AddE(p.pos.To(p.orig).Normalized().Scaled(p.OriginGravity * delta))
+	p.vel.AddE(p.Gravity.Scaled(delta))
 	p.vel.SubE(p.vel.Scaled(p.Friction * delta))
 
 	p.pos.AddE(p.vel.Scaled(delta))
 
-	p.twerk += p.TwerkAcceleration.Float(p.progress) * delta
+	p.twerk += p.TwerkAcceleration.Value(p.progress) * delta
 	p.twerk -= p.twerk * p.Friction * delta
 
 	p.rot += p.twerk * delta
 
-	p.progress += delta / p.livetime
+	p.progress += delta * p.livetime
 }
 
-// Thread ...
+// Thread collects requests and updates its fraction of particles
 type Thread struct {
 	idx int
 	*System
@@ -210,6 +216,8 @@ type Thread struct {
 }
 
 // Request requests particle spawn, particles should be spawned within frame of this call
+//
+// method panics if system is spawning
 func (t *Thread) Request(r Request) {
 	if t.spawning {
 		panic("cannot request particles when System is spawning particles, this is sync issue on your side")
@@ -220,7 +228,10 @@ func (t *Thread) Request(r Request) {
 	t.requests = append(t.requests, r)
 }
 
-// Update updates particle state of current thread
+// Update updates particle state of one fraction of particles
+// threads split particle processing equally
+//
+// panics if system is spawning
 func (t *Thread) Update(delta float64) {
 	if t.spawning {
 		panic("cannot update when System is spawning particles, this is sync issue on your side")
@@ -236,12 +247,12 @@ func (t *Thread) Update(delta float64) {
 			Vertexes: t.Vertexes[:p.vertex],
 		}
 
-		scl := p.scl * p.ScaleMultiplier.Float(p.progress)
+		scl := p.scl.Scaled(p.ScaleMultiplier.Value(p.progress))
 
 		p.dws[t.idx].Draw(
 			&data,
-			mat.M(p.pos, mat.V(scl, scl), p.rot),
-			p.Color.Color(p.progress).Mul(p.mask),
+			mat.M(p.pos, scl, p.rot),
+			p.Color.Value(p.progress).Mul(p.mask),
 		)
 	}
 }
@@ -255,4 +266,5 @@ type Request struct {
 	*Type
 }
 
+// particles is for template to implement a resize method
 type particles []particle

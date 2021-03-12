@@ -1,13 +1,21 @@
-package particles
+package particle
 
 import (
 	"gobatch/ggl"
 	"gobatch/ggl/drw"
+	"gobatch/mat"
 )
 
 // Sprite extends ggl.Sprite to implement Drawer
 type Sprite struct {
 	ggl.Sprite
+}
+
+// Square creates a square particle drawer
+func Square(size float64) *Sprite {
+	spr := ggl.NSprite(mat.A(0, 0, size, size))
+	spr.SetIntensity(0)
+	return &Sprite{spr}
 }
 
 // Copy implements Drawer interface
