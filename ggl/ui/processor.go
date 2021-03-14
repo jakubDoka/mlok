@@ -354,7 +354,7 @@ func NScene() *Scene {
 		Parser: NParser(),
 	}
 
-	s.SetSheet(&pck.Sheet{
+	s.SetSheet(pck.Sheet{
 		Pic: txt.Atlas7x13.Pic,
 	})
 
@@ -384,7 +384,7 @@ func (s *Scene) Group(group string) []*Element {
 }
 
 // SetSheet sets the sprite sheet Scene will use
-func (s *Scene) SetSheet(sheet *pck.Sheet) {
+func (s *Scene) SetSheet(sheet pck.Sheet) {
 	s.Assets.Sheet = sheet
 	s.Batch.Texture = ggl.NTexture(sheet.Pic, false)
 }
