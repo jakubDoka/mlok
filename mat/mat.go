@@ -7,6 +7,7 @@ package mat
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"strconv"
 )
 
@@ -204,4 +205,9 @@ func Mod(x, y float64) float64 {
 		x -= math.Ceil(x/y) * y
 	}
 	return x
+}
+
+// Range returns random number from range
+func Range(min, max float64) float64 {
+	return min + (max-min)*rand.Float64()
 }

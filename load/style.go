@@ -15,6 +15,38 @@ type RawStyle struct {
 	goss.Style
 }
 
+// Sub retrieves Substyle under the key, or returns def
+func (r RawStyle) Sub(key string, def RawStyle) (v RawStyle) {
+	v = def
+	val, ok := r.Style[key]
+	if !ok {
+		return
+	}
+
+	if val, ok := val[0].(goss.Style); ok {
+		return RawStyle{val}
+	}
+
+	return
+}
+
+func (r RawStyle) Int(key string, def int) (v int) {
+	v = def
+	val, ok := r.Style[key]
+	if !ok {
+		return
+	}
+
+	switch v := val[0].(type) {
+	case int:
+		return v
+	case float64:
+		return int(v)
+	}
+
+	return
+}
+
 // Bool returns boolean value under the key of def, if retrieval fails
 func (r RawStyle) Bool(key string, def bool) (v bool) {
 	v = def

@@ -166,6 +166,17 @@ func (q *QuickPool) Item() *T {
 	return &q.vec[q.cursor-1]
 }
 
+// Over overwrites by raw value and returns pointer to its new position
+func (q *QuickPool) Over(val T) *T {
+	if q.cursor == len(q.vec) {
+		q.vec = append(q.vec, val)
+	} else {
+		q.vec[q.cursor] = val
+	}
+	q.cursor++
+	return &q.vec[q.cursor-1]
+}
+
 // Restart makes QuickPool reuse old objects, if you cannot call this
 // as pooling structs you taken are constantly referenced, its useles to
 // use QuickPool in first place

@@ -1,5 +1,7 @@
 package timer
 
+import "math/rand"
+
 // Timer measures a elapsed time, its very simple but effective
 type Timer struct {
 	Progress, Period float64
@@ -13,6 +15,10 @@ func Period(period float64) Timer {
 // Progress returns timer with given progress and period
 func Progress(progress float64, period float64) Timer {
 	return Timer{progress, period}
+}
+
+func Random(period float64) Timer {
+	return Timer{period * rand.Float64(), period}
 }
 
 // Tick increases progress by delta

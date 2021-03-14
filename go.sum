@@ -12,6 +12,8 @@ github.com/jakubDoka/goml v0.0.0-20210304135358-265b9ac0b89d h1:cXBNNK6gemMNFRCP
 github.com/jakubDoka/goml v0.0.0-20210304135358-265b9ac0b89d/go.mod h1:ofjsNEiq5DX5sPSHyOJiF2MsAmhhQA5//eVt2BmAXrM=
 github.com/jakubDoka/goml v0.0.1 h1:z2cZ9ikEHgEahpZUWbthla2rCIrZIehZgMPIPyv+SIk=
 github.com/jakubDoka/goml v0.0.1/go.mod h1:ofjsNEiq5DX5sPSHyOJiF2MsAmhhQA5//eVt2BmAXrM=
+github.com/jakubDoka/goml v0.1.0 h1:Y1vVHTFbLWekuLAQkETDSag+0ptKGSGwCuxBpu4tzlE=
+github.com/jakubDoka/goml v0.1.0/go.mod h1:ofjsNEiq5DX5sPSHyOJiF2MsAmhhQA5//eVt2BmAXrM=
 github.com/jakubDoka/sterr v0.0.0-20210225193015-e0ff72488217 h1:+u/opYDRe7lL1qkUubOQSyCBeQaBQ5f6LR0K6pKnITo=
 github.com/jakubDoka/sterr v0.0.0-20210225193015-e0ff72488217/go.mod h1:KwRaF5ZGzdGUQ4bEzH4nNXHZByt5Vww7wNuj/xFjosk=
 golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb h1:fqpd0EBDzlHRCjiphRR5Zo/RSWWQlWv34418dnEixWk=
