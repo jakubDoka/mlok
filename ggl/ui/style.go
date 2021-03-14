@@ -14,7 +14,7 @@ import (
 // Assets contains all data that is important for ui elements
 type Assets struct {
 	// spritesheet that scene will use
-	*pck.Sheet
+	pck.Sheet
 	// Markdown is for text rendering
 	Markdowns map[string]*txt.Markdown
 	// Cursors are avaliable cursor drawers
