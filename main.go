@@ -33,7 +33,7 @@ func main() {
 
 	sheet.Pack()
 
-	s.SetSheet(&sheet)
+	s.SetSheet(sheet)
 
 	s.Parser = ui.NParser()
 

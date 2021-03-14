@@ -8,12 +8,8 @@ github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0 h1:DACJavvAHhabrF0
 github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0/go.mod h1:E/TSTwGwJL78qG/PmXZO1EjYhfJinVAhrmmHX6Z8B9k=
 github.com/jakubDoka/gogen v0.0.0-20210203193544-0b4c09955618 h1:VU2tz3/QUZ6/xDMNrckKdE4HwbGzJC0vh85BNABrd5I=
 github.com/jakubDoka/gogen v0.0.0-20210203193544-0b4c09955618/go.mod h1:vnGAG1/WWh7Ek7jRDyRLKLQSCHxa5TLos6MkLT5B84w=
-github.com/jakubDoka/goml v0.0.0-20210304135358-265b9ac0b89d h1:cXBNNK6gemMNFRCPwUGy9w4B/7bqVEQbV7QSOhZ9efk=
-github.com/jakubDoka/goml v0.0.0-20210304135358-265b9ac0b89d/go.mod h1:ofjsNEiq5DX5sPSHyOJiF2MsAmhhQA5//eVt2BmAXrM=
-github.com/jakubDoka/goml v0.0.1 h1:z2cZ9ikEHgEahpZUWbthla2rCIrZIehZgMPIPyv+SIk=
-github.com/jakubDoka/goml v0.0.1/go.mod h1:ofjsNEiq5DX5sPSHyOJiF2MsAmhhQA5//eVt2BmAXrM=
-github.com/jakubDoka/goml v0.1.0 h1:Y1vVHTFbLWekuLAQkETDSag+0ptKGSGwCuxBpu4tzlE=
-github.com/jakubDoka/goml v0.1.0/go.mod h1:ofjsNEiq5DX5sPSHyOJiF2MsAmhhQA5//eVt2BmAXrM=
+github.com/jakubDoka/goml v0.1.1 h1:jSrx7hebZ2+q1OJXDhwFX28ZxrQ3sYyCNkgde/6hfTg=
+github.com/jakubDoka/goml v0.1.1/go.mod h1:ofjsNEiq5DX5sPSHyOJiF2MsAmhhQA5//eVt2BmAXrM=
 github.com/jakubDoka/sterr v0.0.0-20210225193015-e0ff72488217 h1:+u/opYDRe7lL1qkUubOQSyCBeQaBQ5f6LR0K6pKnITo=
 github.com/jakubDoka/sterr v0.0.0-20210225193015-e0ff72488217/go.mod h1:KwRaF5ZGzdGUQ4bEzH4nNXHZByt5Vww7wNuj/xFjosk=
 golang.org/x/image v0.0.0-20210220032944-ac19c3e999fb h1:fqpd0EBDzlHRCjiphRR5Zo/RSWWQlWv34418dnEixWk=
