@@ -111,3 +111,15 @@ func BenchmarkGate(b *testing.B) {
 		g.Wait()
 	}
 }
+
+func TestWorker(t *testing.T) {
+	w := NWorker()
+	a := 10
+	w.Do(func() {
+		a = 20
+	})
+	w.Wait()
+	if a != 20 {
+		t.Error(a)
+	}
+}

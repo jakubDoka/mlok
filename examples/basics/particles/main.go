@@ -87,9 +87,8 @@ func main() {
 		gt.Run()
 		gt.Wait()
 
-		// spawn requests has to be runned on single thread though you can choose to
-		// run spawning on different thread
-		system.Spawn()
+		// RunSpawner awakens separate thread for spawning new particles
+		system.RunSpawner()
 
 		// drawing system onto batch
 		system.Fetch(&batch)
@@ -101,5 +100,8 @@ func main() {
 		batch.Clear()
 		// also important or you will end up with frozen window
 		win.Update()
+
+		// syncing with spawner
+		system.Wait()
 	}
 }

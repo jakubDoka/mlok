@@ -49,11 +49,15 @@ func (s *System) Wait() {
 		panic("spawner is asleep, call RunSpawner to wake him up")
 	}
 	<-s.spawner.out
+	s.allocate() // so we can draw meanwhile spawning particles
 	s.spawning = false
 }
 
 // Spawn spawns all particles on current thread
 func (s *System) Spawn() {
+	if s.spawning {
+		panic("already spawning")
+	}
 	s.clear()
 	s.spawn()
 	s.allocate()
@@ -97,7 +101,6 @@ func (s *System) setupSpawner() {
 		for <-s.spawner.in {
 			s.clear()
 			s.spawn()
-			s.allocate()
 			s.spawner.out <- struct{}{}
 		}
 	}()
