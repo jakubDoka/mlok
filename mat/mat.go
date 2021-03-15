@@ -74,8 +74,8 @@ func (m Mat) String() string {
 	)
 }
 
-// Mv moves everything by the delta vector.
-func (m Mat) Mv(delta Vec) Mat {
+// Move moves everything by the delta vector.
+func (m Mat) Move(delta Vec) Mat {
 	m.C.AddE(delta)
 	return m
 }

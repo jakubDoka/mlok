@@ -7,7 +7,7 @@ import (
 
 func TestNMat(t *testing.T) {
 	res := M(Vec{10, 10}, Vec{10, 10}, math.Pi/2)
-	res2 := IM.Scaled(Vec{}, 10).Rotated(Vec{}, math.Pi/2).Mv(Vec{10, 10})
+	res2 := IM.Scaled(Vec{}, 10).Rotated(Vec{}, math.Pi/2).Move(Vec{10, 10})
 	sup := Mat{Vec{0, 10}, Vec{-10, 0}, Vec{10, 10}}
 	if !res.Approx(sup, 6) || !res.Approx(res2, 6) {
 		t.Error(res, res2)
@@ -16,7 +16,7 @@ func TestNMat(t *testing.T) {
 
 func BenchmarkMatSetupSlow(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		IM.Scaled(Vec{}, 10).Rotated(Vec{}, math.Pi/2).Mv(Vec{10, 10})
+		IM.Scaled(Vec{}, 10).Rotated(Vec{}, math.Pi/2).Move(Vec{10, 10})
 	}
 }
 
@@ -27,7 +27,7 @@ func BenchmarkMatSetupFast(b *testing.B) {
 }
 
 func TestMatString(t *testing.T) {
-	r := IM.Mv(V(0.28374, 0.3972)).String()
+	r := IM.Move(V(0.28374, 0.3972)).String()
 	if r != "Mat(1 0 0.28374 | 0 1 0.3972)" {
 		t.Error(r)
 	}
