@@ -11,6 +11,10 @@ import (
 	"github.com/jakubDoka/sterr"
 )
 
+func TestEmptyScene(t *testing.T) {
+	NEmptyScene()
+}
+
 func TestParser(t *testing.T) {
 	p := NParser()
 
