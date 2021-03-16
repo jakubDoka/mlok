@@ -328,7 +328,7 @@ func marginPtrY(e *Element) (a, b *float64) {
 type Scene struct {
 	Redraw, Resize Notifier
 	Root           Element
-	Assets         Assets
+	Assets         *Assets
 	Batch          ggl.Batch
 
 	TextSelected bool
@@ -344,7 +344,7 @@ func NScene() *Scene {
 	s := &Scene{
 		ids:    map[string]*Element{},
 		groups: map[string][]*Element{},
-		Assets: Assets{
+		Assets: &Assets{
 			Styles: goss.Styles{},
 			Markdowns: map[string]*txt.Markdown{
 				"default": txt.NMarkdown(),
