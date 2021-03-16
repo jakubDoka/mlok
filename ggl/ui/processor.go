@@ -340,6 +340,8 @@ type Scene struct {
 }
 
 // NScene returns ready-to-use scene, do not use Scene{}
+//
+// method panics if this is called before window creation
 func NScene() *Scene {
 	s := &Scene{
 		ids:    map[string]*Element{},
@@ -357,6 +359,18 @@ func NScene() *Scene {
 	s.SetSheet(pck.Sheet{
 		Pic: txt.Atlas7x13.Pic,
 	})
+
+	s.Root.init(s)
+
+	return s
+}
+
+func NEmptyScene() *Scene {
+	s := &Scene{
+		ids:    map[string]*Element{},
+		groups: map[string][]*Element{},
+		Assets: &Assets{},
+	}
 
 	s.Root.init(s)
 
