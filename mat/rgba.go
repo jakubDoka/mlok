@@ -2,6 +2,7 @@ package mat
 
 import (
 	"errors"
+	"fmt"
 	"image/color"
 )
 
@@ -39,6 +40,10 @@ var (
 	Green       = RGB(0, 1, 0)
 	Blue        = RGB(0, 0, 1)
 )
+
+func (r RGBA) String() string {
+	return fmt.Sprintf("RGBA(%v %v %v %v)", ff(r.R), ff(r.G), ff(r.B), ff(r.A))
+}
 
 // RGB returns a fully opaque RGBA color with the given RGB values.
 //

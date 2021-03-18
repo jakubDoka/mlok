@@ -267,3 +267,35 @@ func (a *AABB) Deco() (left, bottom, right, top float64) {
 func (a AABB) Fits(b AABB) bool {
 	return b.Min.X <= a.Min.X && b.Min.Y <= a.Min.Y && b.Max.X >= a.Max.X && b.Max.Y >= a.Max.Y
 }
+
+// IntersectsAABB returns whether circle intersects AABB
+func (a AABB) IntersectCircle(c Circ) bool {
+	r, l, t, b := c.C.X > a.Min.X, c.C.X < a.Max.X, c.C.Y > a.Min.Y, c.C.Y < a.Max.Y
+
+	if t && b {
+		if r {
+			return l || c.C.X-c.R <= a.Max.X
+		} else {
+			return l && c.C.X+c.R >= a.Min.X
+		}
+	}
+
+	if l && r {
+		return (t && c.C.Y-c.R <= a.Max.Y) || b && c.C.Y+c.R >= a.Min.Y
+	}
+
+	v := a.Vertices()
+	r2 := c.R * c.R
+
+	if b {
+		if (l && c.C.To(v[0]).Len2() <= r2) || c.C.To(v[3]).Len2() <= r2 {
+			return true
+		}
+	} else {
+		if (l && c.C.To(v[1]).Len2() <= r2) || c.C.To(v[2]).Len2() <= r2 {
+			return true
+		}
+	}
+
+	return false
+}

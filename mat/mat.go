@@ -146,6 +146,12 @@ func (m Mat) Approx(b Mat, precision int) bool {
 
 // Approx returns whether two floats are same with certain precision
 func Approx(a, b float64, precision int) bool {
+	if math.IsNaN(a) && math.IsNaN(b) {
+		return true
+	}
+	if math.IsInf(a, -1) && math.IsInf(a, -1) || math.IsInf(a, 1) && math.IsInf(a, 1) {
+		return true
+	}
 	return math.Abs(Round(a, precision)-Round(b, precision)) < math.Pow(10, -float64(precision-1))
 }
 
@@ -153,6 +159,12 @@ func Approx(a, b float64, precision int) bool {
 func Round(v float64, precision int) float64 {
 	scl := math.Pow(10, float64(precision))
 	return math.Trunc(v*scl) / scl
+}
+
+const rounder = 100_000_000
+
+func round(f float64) float64 {
+	return math.Round(f/rounder) * rounder
 }
 
 // Clamp ...
@@ -178,7 +190,7 @@ func ff(f float64) string {
 // returns h, h where h is solution in case of one
 //
 // returns h, k in case of two solutions
-func Polynomial(a, b, c float64) [2]float64 {
+func Polynomial(a, b, c float64) (x1, x2 float64) {
 	/*
 		polynomial calculates it is a classic manner trough
 		discriminant a, b and c are from general quadratic formula
@@ -187,14 +199,14 @@ func Polynomial(a, b, c float64) [2]float64 {
 	*/
 	d := b*b - 4*c*a
 	if d < 0 {
-		return [2]float64{}
+		return
 	}
 
 	d = math.Sqrt(d)
-	a = -1 / (a * 2) // inverting so we can multiply
+	a = 1 / (a * 2) // inverting so we can multiply
 
 	// d == 0 does not matter
-	return [2]float64{(-b - d) * a, (-b + d) * a}
+	return (-b - d) * a, (-b + d) * a
 }
 
 // mod is faster version of math.Mod, trade of is that it is accurate only to first 16 significant digits

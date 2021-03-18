@@ -1,6 +1,9 @@
 package mat
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // Circ is an circle
 type Circ struct {
@@ -11,6 +14,10 @@ type Circ struct {
 // C is circle constructor
 func C(x, y, r float64) Circ {
 	return Circ{Vec{x, y}, r}
+}
+
+func (c Circ) String() string {
+	return fmt.Sprintf("C(%v %v %v)", ff(c.C.X), ff(c.C.Y), ff(c.R))
 }
 
 // Union returns smallest possible circle that encloses both circles
@@ -24,61 +31,54 @@ func (c Circ) Union(o Circ) Circ {
 	return c
 }
 
-// IntersectsAABB returns whether circle intersects AABB
-/*func (c Circ) IntersectsAABB(o AABB) bool {
-	l, b, r, t := c.C.X > o.Min.X, c.C.X < o.Max.X, c.C.Y > o.Min.Y, c.C.X < o.Min.Y
+func (c Circ) Intersect(s Circ) (k, p Vec) {
+	/*
+		a*a = ca*ca + h*h
+		b*b = cb*cb + h*h
+		c = ca + cb
 
-	if l && b && r && t {
-		return true
+		a*a - ca*ca = b*b - cb*cb
+		a*a - ca*ca = b*b - (c - ca)^2
+		a*a - ca*ca = b*b - c*c + 2*c*ca - ca*ca
+		2*c*ca = - b*b + c*c + a*a
+		ca = (c*c - b*b + a*a) / 2*c
+		h = a*a - ca*ca
+	*/
+	d := c.C.To(s.C)
+	l := d.Len2()
+	sl := math.Sqrt(l)
+	if sl > c.R+s.R {
+		return
 	}
+	a := (l - s.R*s.R + c.R*c.R) / (2 * sl)
+	h := math.Sqrt(c.R*c.R - a*a)
 
-	if t && b && l && c.C.X-c.R < o.Max.X {
-		return true
-	}
+	n := d.Divided(sl)
+	f := n.Scaled(a)
+	g := n.Scaled(h).Normal()
+	c.C.AddE(f)
 
-	if t && b && r && c.C.X+c.R > o.Min.X {
-		return true
-	}
-
-	if l && r && t && c.C.Y-c.R < o.Max.Y {
-		return true
-	}
-
-	if l && r && b && c.C.Y+c.R > o.Min.Y {
-		return true
-	}
-
-	v := o.Vertices()
-
-	if b && r && c.Contains(v[0]) {
-		return true
-	}
-
-	if b && l && c.Contains(v[1]) {
-		return true
-	}
-
-	if l && t && c.Contains(v[2]) {
-		return true
-	}
-
-	if r && t && c.Contains(v[3]) {
-		return true
-	}
-
-	return false
-}*/
-
-// PrjX projects x to y using Polynomial
-func (c Circ) PrjX(x float64) [2]float64 {
-	x -= c.C.X
-	return Polynomial(1, 2*c.C.Y, c.C.Y*c.C.Y+x*x-c.R*c.R)
+	return c.C.Add(g), c.C.Sub(g)
 }
 
-// PrjY projects y to x using Polynomial
-func (c Circ) PrjY(y float64) [2]float64 {
+// ProjectX projects x to y using Polynomial
+func (c Circ) ProjectX(x float64) (a, b float64) {
+	/*
+		(X - c.C.X)^2 + (Y - c.C.Y)^2 = c.R^2
+		Y^2 - 2*Y*s.C.Y + s.C.Y^2 + (X - c.C.X)^2 - c.R^2 = 0
+	*/
+	x -= c.C.X
+	return Polynomial(1, -2*c.C.Y, c.C.Y*c.C.Y+x*x-c.R*c.R)
+}
+
+// ProjectY projects y to x using Polynomial
+func (c Circ) ProjectY(y float64) (a, b float64) {
+	/*
+		(X - c.C.X)^2 + (Y - c.C.Y)^2 = c.R^2
+		X^2 - 2*X*c.C.X + c.C.X^2 + (Y - c.C.Y)^2 - c.R^2 = 0
+	*/
 	y -= c.C.Y
-	return Polynomial(1, 2*c.C.X, c.C.X*c.C.X+y*y-c.R*c.R)
+	return Polynomial(1, -2*c.C.X, c.C.X*c.C.X+y*y-c.R*c.R)
 }
 
 // SimplePrjX performs simple projection x into y on circle
@@ -88,10 +88,10 @@ func (c Circ) SimplePrjX(x float64) float64 {
 	/*
 		formula is derivated from circle formula
 
-			(x - c.C-X)**2 + (y - c.C.Y)**2 == c.R**2
+			(x - c.C.X)**2 + (y - c.C.Y)**2 == c.R**2
 
 		though solution is simplified that loses one possible solution
-		(using sqr), this might be usefull as it is 20x faster the PrjX
+		(using sqr), this might be usefull as it is 20x faster the ProjectX
 	*/
 	x -= c.C.X
 	return math.Sqrt(c.R*c.R-x*x) + c.C.Y

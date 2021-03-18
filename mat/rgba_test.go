@@ -28,24 +28,28 @@ func TestRGBA(t *testing.T) {
 	}
 }
 
+func ch(a float64) RGBA {
+	return RGBA{a, a, a, a}
+}
+
 func TestRGBAMath(t *testing.T) {
-	if Alpha(1).Add(Alpha(1)) != Alpha(2) {
+	if ch(1).Add(ch(1)) != ch(2) {
 		t.Error("add")
 	}
-	if Alpha(1).Sub(Alpha(1)) != Alpha(0) {
+	if ch(1).Sub(ch(1)) != ch(0) {
 		t.Error("sub")
 	}
-	if Alpha(2).Mul(Alpha(2)) != Alpha(4) {
+	if ch(2).Mul(ch(2)) != ch(4) {
 		t.Error("mul")
 	}
-	if Alpha(2).Div(Alpha(2)) != Alpha(1) {
+	if ch(2).Div(ch(2)) != ch(1) {
 		t.Error("div")
 	}
-	if Alpha(2).Scaled(3) != Alpha(6) {
+	if ch(2).Scaled(3) != ch(6) {
 		t.Error("scl")
 	}
-	if LerpColor(Alpha(0), Alpha(10), .5) != Alpha(5) {
-		t.Error(LerpColor(Alpha(0), Alpha(10), .5))
+	if LerpColor(ch(0), ch(10), .5) != ch(5) {
+		t.Error(LerpColor(ch(0), ch(10), .5))
 	}
 }
 

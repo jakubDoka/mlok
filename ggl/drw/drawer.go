@@ -36,6 +36,7 @@ type Geom struct {
 	tmp ggl.Data
 	geomCfg
 	convexes []bool
+	circle   Circle
 }
 
 // NGeomDrawer sets some nice default values
@@ -133,6 +134,12 @@ func (g *Geom) Width(width float64) *Geom {
 	return g
 }
 
+// Resolution sets resolution of circle
+func (g *Geom) Resolution(resolution int) *Geom {
+	g.resolution = resolution
+	return g
+}
+
 // AABB draws AABB appliable(Fill, Edge, Width)
 func (g *Geom) AABB(value mat.AABB) {
 	g.Rect(value.Vertices())
@@ -208,6 +215,25 @@ func (g *Geom) Line(points ...mat.Vec) {
 	}
 
 	e.Indices(l, vl, g.loop, &g.Indices, g.convexes)
+}
+
+func (g *Geom) Circle(c mat.Circ) {
+
+	var v ggl.Vertexes
+
+	if g.fill {
+		g.circle.Filled(1, g.resolution)
+		g.Accept(nil, g.circle.Indices)
+		g.circle.Vertexes, v = g.Reserve(len(g.circle.Vertexes)), g.circle.Vertexes
+		g.circle.Update(mat.M(c.C, mat.V(c.R, c.R), 0), g.col)
+	} else {
+		g.circle.Outline(c.R, g.width, g.resolution)
+		g.Accept(nil, g.circle.Indices)
+		g.circle.Vertexes, v = g.Reserve(len(g.circle.Vertexes)), g.circle.Vertexes
+		g.circle.Update(mat.M(c.C, mat.V(1, 1), 0), g.col)
+	}
+
+	g.circle.Vertexes = v
 }
 
 // Edge ...
@@ -315,11 +341,11 @@ func (c EdgeBase) EdgeSize() int {
 }
 
 type geomCfg struct {
-	col        mat.RGBA
-	edge       Edge
-	loop, fill bool
-	width      float64
-	intens     float64
+	col                   mat.RGBA
+	edge                  Edge
+	loop, fill            bool
+	resolution            int
+	width, intens, radius float64
 }
 
 func nGeomCfg() geomCfg {

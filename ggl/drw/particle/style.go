@@ -358,7 +358,7 @@ func (r RawStyle) FloatTween(key string, custom map[string]lerp.Tween, def lerp.
 // Drawer parses drawer under the key, if parsing fails, def is returned
 //
 // syntax:
-// 	circle radius resolution - if you prefix property with 'circle' and provide two numbers
+// 	circle radius outline resolution - if you prefix property with 'circle' and provide two numbers
 // circular drawer will be used
 //  rect width height - if you prefix property with 'rect' and provide 2 values, rectangle drawer
 // will be used
@@ -375,14 +375,14 @@ func (r RawStyle) Drawer(key string, custom map[string]Drawer, def Drawer) (e Dr
 		return
 	}
 
-	props := [2]float64{}
+	props := [3]float64{}
 	n := load.CollectFloats(val, props[:])
 
 	switch n {
 	case 2:
 		switch name {
 		case "circle":
-			return &Circle{drw.NCircle(props[0], int(props[1]))}
+			return &Circle{drw.NCircle(props[0], props[1], int(props[2]))}
 		case "rect":
 			s := ggl.NSprite(mat.A(0, 0, props[0], props[1]))
 			s.SetIntensity(0)

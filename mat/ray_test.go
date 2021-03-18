@@ -7,7 +7,7 @@ import (
 
 func TestRayString(t *testing.T) {
 	res := R(0, 0, 10, 10).String()
-	if res != "R(O(0 0) V(10 10))" {
+	if res != "R(0 0 10 10)" {
 		t.Error(res)
 	}
 }
@@ -35,6 +35,12 @@ func TestRayContains(t *testing.T) {
 			desc:     "horizontal middle",
 			pos:      V(5, 0),
 			ray:      R(0, 0, 10, 0),
+			contains: true,
+		},
+		{
+			desc:     "vertical middle",
+			pos:      V(0, 5),
+			ray:      R(0, 0, 0, 10),
 			contains: true,
 		},
 		{
@@ -95,7 +101,7 @@ func TestRayIntersection(t *testing.T) {
 		},
 		{
 			desc:     "horizontal middle reverse",
-			ray:      R(5, 5, 0, -10),
+			ray:      R(5, -5, 0, 10),
 			ray2:     R(0, 0, 10, 0),
 			pos:      V(5, 0),
 			contains: true,
@@ -103,9 +109,9 @@ func TestRayIntersection(t *testing.T) {
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			res, contains := tC.ray.IntersectionPoint(tC.ray2)
+			res, contains := tC.ray.Intersect(tC.ray2)
 			if tC.contains != contains {
-				t.Fail()
+				t.Error(res, contains)
 				return
 			}
 
@@ -116,9 +122,58 @@ func TestRayIntersection(t *testing.T) {
 	}
 }
 
+func TestIntersectCircle(t *testing.T) {
+	testCases := []struct {
+		desc string
+		r    Ray
+		c    Circ
+		a, b Vec
+	}{
+		{
+			"touch",
+			R(10, 10, 10, 0),
+			C(0, 0, 10),
+			V(0, 10), V(0, 10),
+		},
+		{
+			"touch",
+			R(10, 10, -10, 0),
+			C(0, 0, 10),
+			V(0, 10), V(0, 10),
+		},
+		{
+			"touch",
+			R(10, 10, 0, 10),
+			C(0, 0, 10),
+			V(10, 0), V(10, 0),
+		},
+		{
+			"touch",
+			R(10, 10, 0, -10),
+			C(0, 0, 10),
+			V(10, 0), V(10, 0),
+		},
+		{
+			"intersect",
+			R(0, 0, 0, -10),
+			C(0, 0, 10),
+			V(0, -10), V(0, 10),
+		},
+	}
+	for _, tC := range testCases {
+		t.Run(tC.desc, func(t *testing.T) {
+			a, b := tC.r.LineIntersectCircle(tC.c)
+			if !a.Approx(tC.a, 8) || !b.Approx(tC.b, 8) {
+				t.Error(a, b)
+			}
+		})
+	}
+}
+
 func BenchmarkRayIntersection(b *testing.B) {
+	a, c := R(0, 0, 10, 0), R(5, 5, 0, -10)
 	for i := 0; i < b.N; i++ {
-		R(0, 0, 10, 0).IntersectionPoint(R(5, 5, 0, -10))
+		a.Intersect(c)
 	}
 }
 
@@ -131,85 +186,76 @@ func TestRayCollinear(t *testing.T) {
 	}
 }
 
-func TestRayIntersectY(t *testing.T) {
-	y, ok := R(0, 0, 10, 0).IntersectY(R(5, 5, 0, -10))
-	if !ok {
-		t.Error(0)
-		return
-	}
-	if y != 0 {
-		t.Error(y, 1)
-	}
-
-	y, ok = R(0, 0, 10, 0).IntersectY(R(5, 5, 1, 0))
-	if ok {
-		t.Error(y, 2)
-	}
-}
-
-func TestRayProjectY(t *testing.T) {
-	res, _ := R(0, 0, 10, 10).ProjectY(5)
-	if res != 5 {
-		t.Error(res, 0)
-	}
-
-	res, ok := R(0, 0, 10, 0).ProjectY(5)
-	if ok {
-		t.Error(res, 0)
-	}
-
-}
-
-func TestRaySimmetricPoint(t *testing.T) {
+func TestIntersectX(t *testing.T) {
 	testCases := []struct {
-		desc      string
-		pos       Vec
-		ray, ray2 Ray
-		contains  bool
-		distance  float64
+		desc string
+		a, b Ray
+		x    Vec
 	}{
 		{
-			desc:     "middle cross",
-			pos:      V(5, 5).Add(V(0, -math.Hypot(1, 1))),
-			ray2:     R(0, 10, 10, -10),
-			ray:      R(0, 0, 10, 10),
-			contains: true,
-			distance: 1,
+			"colinear",
+			R(0, 0, 10, 0),
+			R(0, 1, 1, 0),
+			V(math.NaN(), math.NaN()),
+		},
+
+		{
+			"intersecting",
+			R(0, 0, 10, 0),
+			R(0, 10, 1, -1),
+			V(10, 0),
 		},
 		{
-			desc:     "colinear",
-			ray2:     R(0, 0, 10, 10),
-			ray:      R(0, 0, 10, 10),
-			contains: false,
+			"intersecting",
+			R(0, 0, 10, 0),
+			R(0, 10, 1, -2),
+			V(5, 0),
 		},
 		{
-			desc:     "horizontal middle",
-			ray2:     R(5, 5, 0, -10),
-			ray:      R(0, 0, 10, 0),
-			pos:      V(4, -1),
-			contains: true,
-			distance: 1,
+			"intersecting",
+			R(0, 0, 10, 0),
+			R(0, 10, -4, -2),
+			V(-20, 0),
 		},
 		{
-			desc:     "horizontal middle reverse",
-			ray:      R(5, 5, 0, -10),
-			ray2:     R(0, 0, 10, 0),
-			pos:      V(4, -1),
-			contains: true,
-			distance: 1,
+			"intersecting",
+			R(0, 0, 1, 1),
+			R(0, 10, 1, -1),
+			V(5, 5),
+		},
+		{
+			"intersecting",
+			R(1, 0, 1, 1),
+			R(0, 10, 1, -1),
+			V(5.5, 4.5),
+		},
+		{
+			"intersecting",
+			R(10, 0, 1, 1),
+			R(0, 10, 1, -1),
+			V(10, 0),
 		},
 	}
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
-			res, contains := tC.ray.SymmetricPoint(tC.ray2, tC.distance)
-			if tC.contains != contains {
-				t.Fail()
-				return
+			x := tC.a.LineIntersect(tC.b)
+			if !x.Approx(tC.x, 8) {
+				t.Error(x)
 			}
 
-			if !res.Approx(tC.pos, 8) {
-				t.Error(res, tC.pos)
-			}
 		})
 	}
+}
+
+func TestRayProjectY(t *testing.T) {
+	res := R(0, 0, 10, 10).ProjectY(5)
+	if res != 5 {
+		t.Error(res, 0)
+	}
+
+	res = R(0, 0, 10, 0).ProjectY(5)
+	if !math.IsInf(res, 1) && !math.IsInf(res, -1) {
+		t.Error(res, 0)
+	}
+
 }

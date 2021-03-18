@@ -20,35 +20,90 @@ func R(ox, oy, vx, vy float64) Ray {
 }
 
 func (r Ray) String() string {
-	return fmt.Sprintf("R(O(%v %v) V(%v %v))", ff(r.O.X), ff(r.O.Y), ff(r.V.X), ff(r.V.Y))
-}
-
-// IntersectionPoint calculates the intersection point between two rays
-// unless rays are colinear, intersection will be returned, but if false is
-// returned, intersection does not include tha both ray segments
-func (r Ray) IntersectionPoint(s Ray) (Vec, bool) {
-	/*
-		first we calculate x of a point and the we project it by non horizontal
-		ray, last step is to check if point belongs to both rays
-	*/
-	x, ok := r.IntersectX(s)
-	if !ok {
-		return Vec{}, false
-	}
-
-	y, ok := r.ProjectX(x)
-	if !ok { // can happen if r.V.X == 0
-		y, _ = s.ProjectX(x) // other way around works a lines are not colinear at this point
-	}
-
-	res := Vec{x, y}
-
-	return res, r.InReach(res) && s.InReach(res)
+	return fmt.Sprintf("R(%v %v %v %v)", ff(r.O.X), ff(r.O.Y), ff(r.V.X), ff(r.V.Y))
 }
 
 // Contains returns whether ray contains the pos
 func (r Ray) Contains(pos Vec) bool {
-	return r.Formula(pos) == 0 && r.InReach(pos)
+	return r.Formula(pos) == 0 && r.InAABB(pos)
+}
+
+// IntersectCircle returns points of intersection between Ray and circle and whether
+// they are valid
+func (r Ray) IntersectCircle(c Circ, buff []Vec) []Vec {
+	if !r.LineIntersectsCircle(c) {
+		return buff
+	}
+
+	a, b := r.LineIntersectCircle(c)
+
+	if r.InAABB(a) {
+		buff = append(buff, a)
+	}
+	if r.InAABB(b) {
+		buff = append(buff, b)
+	}
+
+	return buff
+}
+
+// LineIntersectCircle calculates intersection points between circle and line
+//
+// this does not make sense for line and circle that does not intersect
+func (r Ray) LineIntersectCircle(c Circ) (g, h Vec) {
+	/*
+		(X - c.C.X)^2 + (Y - c.C.Y)^2 = c.R*c.R
+		r.V.Y*X - r.V.X*Y - r.V.Y*r.O.X + r.V.X*r.O.Y = 0
+
+		X*X - 2*c.C.X*X + c.C.X*c.C.X + Y*Y - 2*c.C.Y*Y + c.C.Y*c.C.Y = c.R*c.R
+		(r.V.X*Y + r.V.Y*r.O.X - r.V.X*r.O.Y) / r.V.Y = X
+
+		a := c.C.X*c.C.X + c.C.Y*c.C.Y - c.R*c.R
+		b := r.V.Y*r.O.X - r.V.X*r.O.Y
+
+		X*X - 2*c.C.X*X + Y*Y - 2*c.C.Y*Y + a = 0
+		(r.V.X*Y + b) / r.V.Y = X
+
+		(r.V.X*Y + b)^2 / r.V.Y*r.V.Y - 2*c.C.X * (r.V.X*Y + b) / r.V.Y + Y*Y - 2*c.C.Y*Y + a = 0
+		// * r.V.Y*r.V.Y
+		(r.V.X*Y + b)^2 - 2*c.C.X*r.V.Y * (r.V.X*Y + b) + Y*Y*r.V.Y*r.V.Y - 2*c.C.Y*Y*r.V.Y*r.V.Y + a*r.V.Y*r.V.Y = 0
+		// brackets
+		r.V.X*r.V.X*Y*Y + 2*b*r.V.X*Y + b*b - 2*c.C.X*r.V.Y*r.V.X*Y - 2*c.C.X*r.V.Y*b + Y*Y*r.V.Y*r.V.Y - 2*c.C.Y*Y*r.V.Y*r.V.Y + a*r.V.Y*r.V.Y = 0
+		// simplify
+		Y*Y * (r.V.X*r.V.X + r.V.Y*r.V.Y) + Y * (2*b*r.V.X - 2*c.C.X*r.V.Y*r.V.X - 2*c.C.Y*r.V.Y*r.V.Y) + b*b - 2*c.C.X*r.V.Y*b  + a*r.V.Y*r.V.Y = 0
+
+		d := r.V.X*r.V.X + r.V.Y*r.V.Y
+		e := 2*b*r.V.X - 2*c.C.X*r.V.Y*r.V.X - 2*c.C.Y*r.V.Y*r.V.Y
+		f := b*b - 2*c.C.X*r.V.Y*b  + a*r.V.Y*r.V.Y
+
+		e := 2 * (b*r.V.X - r.V.Y * (c.C.X*r.V.X + c.C.Y*r.V.Y))
+	*/
+
+	a := c.C.X*c.C.X + c.C.Y*c.C.Y - c.R*c.R
+	b := r.V.Y*r.O.X - r.V.X*r.O.Y
+	d := r.V.X*r.V.X + r.V.Y*r.V.Y
+	e := 2 * (b*r.V.X - r.V.Y*(c.C.X*r.V.X+c.C.Y*r.V.Y))
+	f := b*b - r.V.Y*(2*c.C.X*b-a*r.V.Y)
+
+	g.Y, h.Y = Polynomial(d, e, f)
+	if r.V.Y == 0 {
+		g.X, h.X = c.ProjectY(g.Y)
+	} else {
+		g.X = r.ProjectY(g.Y)
+		h.X = r.ProjectY(h.Y)
+	}
+
+	return
+}
+
+// IntersectsCircle returns whether ray intersects circle
+func (r Ray) IntersectsCircle(c Circ) bool {
+	return r.LineIntersectsCircle(c) && r.InAABB(c.C)
+}
+
+// LineIntersectsCircle returns whether line and circle intersects
+func (r Ray) LineIntersectsCircle(c Circ) bool {
+	return math.Abs(r.Formula(c.C))/r.V.Len() <= c.R
 }
 
 // Formula returns 0 if point belongs to line that ray is on and negative or positive
@@ -69,18 +124,74 @@ func (r Ray) Formula(pos Vec) float64 {
 	return r.V.Y*pos.X - r.V.X*pos.Y - r.V.Y*r.O.X + r.V.X*r.O.Y
 }
 
-// InReach is special method usefull in Contains method, inspect the source code if you want to know
-// when it returns true
-func (r Ray) InReach(pos Vec) bool {
+// Intersect calculates the intersection point between two rays
+// unless rays are colinear, intersection will be returned, but if false is
+// returned, intersection does not include tha both ray segments
+func (r Ray) Intersect(s Ray) (v Vec, ok bool) {
+	if r.Colinear(s) {
+		return
+	}
+
+	v = r.LineIntersect(s)
+
+	return v, r.InAABB(v) && s.InAABB(v)
+}
+
+// LineIntersect returns the point of intersection of two lines expressed by rays
+//
+// function does not make sense for colinear lines
+func (r Ray) LineIntersect(s Ray) (point Vec) {
 	/*
-		its little tough to explane but whe we check if point belongs to a ray
-		and we already know it belongs to a line that ray is on, then if r.V.len()
-		is bigger both distances from ray endpoints to given point, the point belongs
-		to ray
+		equation is derived from system of equations with
+		two unknowns where equations are r.Formula and s.Formula
+		from which we can derive x of intersection point
+
+		starting with:
+			r.V.Y*X - r.V.X*Y - r.V.Y*r.O.X + r.V.X*r.O.Y = 0
+		and:
+			s.V.Y*X - s.V.X*Y - s.V.Y*s.O.X + s.V.X*s.O.Y = 0
+
+		get y from first one:
+			r.V.Y*X - r.V.Y*r.O.X + r.V.X*r.O.Y = r.V.X*Y
+			(r.V.Y*X - r.V.Y*r.O.X + r.V.X*r.O.Y)/r.V.X = Y
+
+		then we substitute and get x:
+			s.V.Y*X - s.V.X * (r.V.Y*X - r.V.Y*r.O.X + r.V.X*r.O.Y) / r.V.X - s.V.Y*s.O.X + s.V.X*s.O.Y = 0 // * r.V.X
+			s.V.Y*X*r.V.X - s.V.X*r.V.Y*X + s.V.X*r.V.Y*r.O.X - s.V.X*r.V.X*r.O.Y - s.V.Y*s.O.X*r.V.X + s.V.X*s.O.Y*r.V.X = 0 // - s.V.Y*X*r.V.X + s.V.X*r.V.Y*X
+			s.V.X*r.V.Y*r.O.X - s.V.X*r.V.X*r.O.Y - s.V.Y*s.O.X*r.V.X + s.V.X*s.O.Y*r.V.X = s.V.X*r.V.Y*X - s.V.Y*X*r.V.X // simplify
+			s.V.X * (r.V.Y*r.O.X + r.V.X * (s.O.Y - r.O.Y)) - s.V.Y*s.O.X*r.V.X = X * (s.V.X*r.V.Y - s.V.Y*r.V.X) // / (s.V.X*r.V.Y - s.V.Y*r.V.X)
+			(s.V.X * (r.V.Y*r.O.X + r.V.X * (s.O.Y - r.O.Y)) - s.V.Y*s.O.X*r.V.X) / (s.V.X*r.V.Y - s.V.Y*r.V.X) = X
 	*/
-	l := r.V.Len2()
-	o := r.O.To(pos)
-	return l >= o.Len2() && l >= o.Sub(r.V).Len2()
+
+	point.X = (s.V.X*(r.V.Y*r.O.X+r.V.X*(s.O.Y-r.O.Y)) - s.V.Y*s.O.X*r.V.X) / (s.V.X*r.V.Y - s.V.Y*r.V.X)
+
+	if r.V.X == 0 {
+		point.Y = s.ProjectX(point.X)
+	} else {
+		point.Y = r.ProjectX(point.X)
+	}
+
+	return
+}
+
+// ProjectX returns y coordinate for x coordinate, resulting point is on line
+//
+// this does not make sense for vertical ray
+func (r Ray) ProjectX(x float64) float64 {
+	/*
+		derived by evaluating y form r.Formula
+	*/
+	return (r.V.Y*x - r.V.Y*r.O.X + r.V.X*r.O.Y) / r.V.X
+}
+
+// ProjectY returns x coordinate for y coordinate, resulting point is on line
+//
+// this does not make sense for horizontal ray
+func (r Ray) ProjectY(y float64) float64 {
+	/*
+		derived by evaluating x form r.Formula
+	*/
+	return (r.V.X*y + r.V.Y*r.O.X - r.V.X*r.O.Y) / r.V.Y
 }
 
 // Colinear returns whether two rays are colinear
@@ -93,98 +204,18 @@ func (r Ray) Colinear(s Ray) bool {
 	return r.V.X*s.V.Y == r.V.Y*s.V.X // division is slower
 }
 
-// IntersectX returns x coordinate of intersection between two rays
-//
-// it false if there is no intersection
-func (r Ray) IntersectX(s Ray) (float64, bool) {
-	/*
-		equation is derived from system of equations with
-		two unknowns where equations are r.Formula and s.Formula
-		from which we can derive x of intersection point
-	*/
-	c := s.V.Y*r.V.X - r.V.Y*s.V.X
-	if c == 0 {
-		return 0, false
-	}
-	a := (r.V.Y*r.O.X - r.V.X*r.O.Y) * s.V.X
-	b := s.V.Y*s.O.X*r.V.X - s.V.X*s.O.Y*r.V.Y
-
-	return (b - a) / c, true
-}
-
-// IntersectY returns y coordinate of intersection between two rays
-//
-// returns false if there is no intersection
-func (r Ray) IntersectY(s Ray) (float64, bool) {
-	/*
-		analogous to r.IntersectX
-	*/
-	c := s.V.X*r.V.Y - r.V.X*s.V.Y
-	if c == 0 {
-		return 0, false
-	}
-	a := (r.V.X*r.O.Y - r.V.Y*r.O.X) * s.V.Y
-	b := s.V.X*s.O.Y*r.V.X - s.V.Y*s.O.X*r.V.Y
-
-	return (b - a) / c, true
-}
-
-// ProjectX returns y coordinate for x coordinate, resulting point is on line
-//
-// returns false if r is vertical
-func (r Ray) ProjectX(x float64) (float64, bool) {
-	/*
-		derived by evaluating y form r.Formula
-	*/
-	if r.V.X == 0 {
-		return 0, false
-	}
-	return (r.V.Y*x - r.V.Y*r.O.X + r.V.X*r.O.Y) / r.V.X, true
-}
-
-// ProjectY returns x coordinate for y coordinate, resulting point is on line
-//
-// return false if r is horizontal
-func (r Ray) ProjectY(y float64) (float64, bool) {
-	/*
-		derived by evaluating x form r.Formula
-	*/
+// InAABB returns whether pos is inside AABB expressed by ray
+func (r Ray) InAABB(pos Vec) bool {
+	p := r.O.To(pos)
 	if r.V.Y == 0 {
-		return 0, false
+		p.Y = 0
+	} else {
+		p.Y /= r.V.Y
 	}
-
-	return (r.V.X*y - r.V.Y*r.O.X + r.V.X*r.O.Y) / r.V.Y, true
-}
-
-// SymmetricPoint finds point of symmetry of two lines that is at a distance form them
-func (r Ray) SymmetricPoint(s Ray, distance float64) (Vec, bool) {
-	/*
-		using the equation for calculation of distance r <-> p
-
-			d = r.Formula(p)/r.V.Len()
-
-		we use equation for s and r to express x of the point that has
-		same distance from both lines
-
-		step two is to project x on one of the rays with r.ProjectX
-		to get y coordinate of point
-	*/
-	c := r.V.Y*-s.V.X - s.V.Y*-r.V.X
-	if c == 0 { // colinear
-		return Vec{}, false
+	if r.V.X == 0 {
+		p.X = 0
+	} else {
+		p.X /= r.V.X
 	}
-
-	cof1, cof2 := r.V.X*r.O.Y-r.V.Y*r.O.X, s.V.X*s.O.Y-s.V.Y*s.O.X
-	len1, len2 := r.V.Len(), s.V.Len()
-
-	a := distance * (len1*-s.V.X - len2*-r.V.X)
-	b := cof2*-r.V.X - cof1*-s.V.X
-
-	x := (a + b) / c
-	y := (distance*len1 - r.V.Y*x - cof1) / -r.V.X
-	if math.IsNaN(y) {
-		y = (distance*len2 - s.V.Y*x - cof2) / -s.V.X
-	}
-
-	return Vec{x, y}, true
+	return p.X <= 1 && p.Y <= 1 && p.X >= 0 && p.Y >= 0
 }

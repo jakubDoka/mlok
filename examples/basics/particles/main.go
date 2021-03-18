@@ -45,7 +45,7 @@ func main() {
 	}
 
 	// ew need somethong to draw the partiles, circle is good enough
-	tp.SetDrawer(&particle.Circle{Circle: drw.NCircle(10, 20)})
+	tp.SetDrawer(&particle.Circle{Circle: drw.NCircle(10, 3, 20)})
 
 	batch := ggl.Batch{}
 
