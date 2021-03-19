@@ -39,6 +39,13 @@ type Props struct {
 	// resize mode sets how element should react to size of children, see
 	// constants documentation, if ResizeMode.None() then it is initialized with Expand
 	Resizing [2]ResizeMode
+	// Relative if true makes element ignore size of neighbors this it will be sized
+	// and positioned merely by its offset
+	Relative bool
+	// Offset is used when moving elements inside scroll but if Relative is true
+	// offset will be applied as offset from position where element would end up
+	// if it were only element in the parent
+	Offest mat.Vec
 }
 
 // Horizontal reports whether style composition is horizontal
@@ -60,6 +67,9 @@ func (s *Props) Init() {
 		s.Resizing[0] = r
 		s.Resizing[1] = r
 	}
+
+	s.Relative = s.Bool("relative", false)
+	s.Offest = s.Vec("offset", mat.ZV)
 }
 
 // Composition ...

@@ -33,7 +33,7 @@ func main() {
 			resize_mode: ignore;
 		"> 
 			<text text="The Chat" style="
-				text_color: 1 0.5 0.5;
+				text_color: 1 .5 .5;
 				text_size: 0;
 				text_scale: 4;
 				text_margin: fill 0;
@@ -43,7 +43,7 @@ func main() {
 				resize_mode: ignore;
 				bar_y: true;
 				padding: 0 0 20 0;
-				background: 0.3;
+				background: .3 .3 .3;
 				margin: 10;
 				text_scale: 2;
 			">
@@ -56,12 +56,12 @@ func main() {
 				background: 1;
 			">
 				<area id="input" style="
-					background: 0.3 0.3 0.3;
+					background: .3 .3 .3;
 					text_scale: 2;
 					size: fill 0;
 				"/>
 				<button id="send" style="
-					all_masks: 1 0.5 0.5;
+					all_masks: 1 .5 .5;
 					hover_mask: green;
 					size: 0 fill;
 				" all_text="send"/>

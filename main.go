@@ -25,7 +25,6 @@ func main() {
 	sheet := pck.Sheet{}
 
 	sheet.AddMarkdown(s.Assets.Markdowns["default"])
-	err = sheet.AddImages("square.png")
 
 	if err != nil {
 		panic(err)
@@ -38,15 +37,16 @@ func main() {
 	s.Parser = ui.NParser()
 
 	err = s.Root.AddGoml([]byte(`
-	<div style="background: 1;size: fill;composition: horizontal;margin: 10;">
-		<div style="background: 0.5;size: fill;margin: 10;"> 
-			<div style="background: 0.5;size: fill;"/>
+	<div style="background: .5; size: fill;composition: horizontal;margin: 10;">
+		<div style="background: .5;size: fill;margin: 10;"> 
+			<div style="background: .5;size: fill;"/>
 			hello
-			<div style="background: 0.5;size: fill;"/>
+			<div style="background: .5;size: fill;"/>
 		</>
 		<div style="background: 0;size: fill;"/>
 	</>
 	<div style="background: 0.5;size: fill;"/>
+	<div style="relative: true; margin: fill; size: 100; background: blue;"/>
 	`))
 
 	if err != nil {

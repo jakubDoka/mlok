@@ -47,7 +47,7 @@ func (r RawStyle) Int(key string, def int) (v int) {
 	return
 }
 
-// Bool returns boolean value under the key of def, if retrieval fails
+// Bool returns boolean value under the key, or def if retrieval fails
 func (r RawStyle) Bool(key string, def bool) (v bool) {
 	v = def
 	val, ok := r.Style[key]

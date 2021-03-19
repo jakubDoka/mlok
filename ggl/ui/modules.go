@@ -265,23 +265,31 @@ func (b *Button) Init(e *Element) {
 		bs.Padding = b.AABB(s+"_padding", bs.Padding)
 	}
 
+}
+
+func (b *Button) PostInit() {
 	if b.ChildCount() == 0 {
 		textElem := NElement()
 		textElem.Module = &b.Text
 		b.AddChild("buttonText", textElem)
 	} else {
-		var found bool
-		b.ForChild(func(ch *Element) {
-			if found {
-				return
-			}
-			_, ok := ch.Module.(*Text)
+		for i := 0; i < b.ChildCount(); i++ {
+			ch := b.ChildAt(i)
+			val, ok := ch.Module.(*Text)
 			if ok {
+				// copy the module to this text and change address
+				// also apply text to states
+				b.Text = *val
+				for i := range b.States {
+					if len(b.States[i].Text) == 0 {
+						b.States[i].Text = b.Text.Content
+					}
+				}
 				ch.Module = &b.Text
 				ch.SetName("buttonText")
-				found = true
+				break
 			}
-		})
+		}
 	}
 
 	b.current = -1
@@ -844,18 +852,14 @@ func (t *Text) MinSize() mat.Vec {
 
 // Width implements Module interface
 func (t *Text) Width(height float64) float64 {
-	if height == -1 {
-		return math.Max(t.Bounds().W()*t.Scl.X, t.Size.X)
-	}
-	return Fill
+	return math.Max(t.Bounds().W()*t.Scl.X, t.Size.X)
 }
 
 // Height implements Module interface
 func (t *Text) Height(width float64) float64 {
-	if width == -1 {
-		return t.Bounds().H() * t.Scl.Y
+	if width != -1 {
+		t.UpdateParagraph(width)
 	}
-	t.UpdateParagraph(width)
 	return t.Bounds().H() * t.Scl.Y
 }
 

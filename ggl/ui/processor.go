@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"math"
 
 	"github.com/jakubDoka/gobatch/ggl"
@@ -8,9 +9,12 @@ import (
 	"github.com/jakubDoka/gobatch/ggl/pck"
 	"github.com/jakubDoka/gobatch/ggl/txt"
 	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/sterr"
 
 	"github.com/jakubDoka/goml/goss"
 )
+
+var ErrNoScene = sterr.New("processor is missing scene to process (use p.SetScene)")
 
 // Processor is wrapper that handles a Element, it stores some data global to all elements
 // that can be reused for reduction of allocations
@@ -21,6 +25,8 @@ type Processor struct {
 
 	margins           []*float64
 	filled, processed []*Element
+	h                 hFormatter
+	v                 vFormatter
 }
 
 // NProcessor create processor with blanc scene, so it can be used right away
@@ -35,17 +41,29 @@ func (p *Processor) SetScene(s *Scene) {
 }
 
 // Fetch implements ggl.Fetcher interface
+//
+// panics if scene is not set
 func (p *Processor) Fetch(t ggl.Target) {
+	p.assertScene()
+
 	p.scene.Batch.Fetch(t)
 }
 
 // Render make Renderer render ui (yes)
+//
+// panics if scene is not set
 func (p *Processor) Render(r ggl.Renderer) {
+	p.assertScene()
+
 	p.scene.Batch.Draw(r)
 }
 
 // SetFrame sets the frame of Processor witch also updates all elements inside
+//
+// panics if scene is not set
 func (p *Processor) SetFrame(value mat.AABB) {
+	p.assertScene()
+
 	if p.frame != value {
 		p.frame = value
 		p.scene.Resize.Notify()
@@ -53,7 +71,11 @@ func (p *Processor) SetFrame(value mat.AABB) {
 }
 
 // Update calls update on all elements, and performs resizing and redrawing if needed
+//
+// panics if scene is not set
 func (p *Processor) Update(w *ggl.Window, delta float64) {
+	p.assertScene()
+
 	p.scene.Root.update(p, w, delta)
 	if p.scene.Resize.Should() {
 		p.Resize()
@@ -64,7 +86,11 @@ func (p *Processor) Update(w *ggl.Window, delta float64) {
 }
 
 // Redraw redraws ewerithing if needed
+//
+// panics if scene is not set
 func (p *Processor) Redraw() {
+	p.assertScene()
+
 	p.scene.TextSelected = false
 	p.scene.Batch.Clear()
 	p.scene.Root.redraw(&p.scene.Batch, &p.canvas)
@@ -74,7 +100,10 @@ func (p *Processor) Redraw() {
 // Resize has to be called upon Frame change, its not recommended
 // to call this manually, instead call Deformed() to notify processor
 // about change
+//
+// panics if scene is not set
 func (p *Processor) Resize() {
+	p.assertScene()
 
 	p.scene.Root.size = p.frame.Size()
 	p.scene.Root.calcMinSize()
@@ -85,18 +114,19 @@ func (p *Processor) Resize() {
 	p.scene.Redraw.Notify()
 }
 
+func (p *Processor) assertScene() {
+	if p.scene == nil {
+		panic(errNoScene)
+	}
+}
+
 func (p *Processor) calcMargin(d *Element, remain mat.Vec) {
-	var (
-		fm formatter
-		// don want to allocate if we don't have to
-		hfm hFormatter
-		vfm vFormatter
-	)
+	var fm formatter
 
 	if d.Horizontal() {
-		fm = &hfm
+		fm = &p.h
 	} else {
-		fm = &vfm
+		fm = &p.v
 	}
 
 	p.margins = p.margins[:0]
@@ -104,7 +134,7 @@ func (p *Processor) calcMargin(d *Element, remain mat.Vec) {
 	s := d.children.Slice()
 	for i := 0; i < len(s); i++ {
 		ch := s[i].Value
-		if ch.hidden {
+		if ch.hidden || ch.Relative {
 			continue
 		}
 
@@ -145,17 +175,11 @@ func (p *Processor) calcMargin(d *Element, remain mat.Vec) {
 }
 
 func (p *Processor) calcSize(d *Element) (remain mat.Vec) {
-	var (
-		fm formatter
-		// don want to allocate if we don't have to
-		hfm hFormatter
-		vfm vFormatter
-	)
-
+	var fm formatter
 	if d.Horizontal() {
-		fm = &hfm
+		fm = &p.h
 	} else {
-		fm = &vfm
+		fm = &p.v
 	}
 
 	size := fm.space(d.size.Sub(d.PaddingSize()))
@@ -165,14 +189,14 @@ func (p *Processor) calcSize(d *Element) (remain mat.Vec) {
 	s := d.children.Slice()
 	for i := 0; i < len(s); i++ {
 		ch := s[i].Value
-		if ch.hidden {
+		if ch.hidden || ch.Relative {
 			continue
 		}
 
 		fm.set(ch)
 		p.processed = append(p.processed, s[i].Value)
 
-		c := fm.constantX(size.Y - fm.marginY())
+		c := fm.constantX(size.Y - fm.marginY()) // passing opposite dimension
 		size.X -= fm.marginX()
 		if c == Fill {
 			p.filled = append(p.filled, ch)
@@ -258,10 +282,12 @@ func (h *hFormatter) set(e *Element)              { h.e = e }
 func (h *hFormatter) space(value mat.Vec) mat.Vec { return value }
 
 func (h *hFormatter) constantX(y float64) float64 {
+
 	return math.Max(h.e.Module.Width(y), h.e.ChildSize.X)
 }
 
 func (h *hFormatter) constantY() float64 {
+	fmt.Println(h.e.Module.Height(-1), h.e.ChildSize.Y)
 	return math.Max(h.e.Module.Height(-1), h.e.ChildSize.Y)
 }
 
@@ -377,6 +403,24 @@ func NEmptyScene() *Scene {
 	return s
 }
 
+func (s *Scene) AddGoss(source []byte) error {
+	if s.Parser == nil {
+		panic("parser is nil, direct adding is not avaliable")
+	}
+
+	if s.Assets == nil {
+		panic("assets are missing, direct adding is not avaliable")
+	}
+
+	stl, err := s.Parser.GS.Parse(source)
+	if err != nil {
+		return err
+	}
+
+	s.Assets.Styles.Add(stl)
+	return nil
+}
+
 func (s *Scene) addElement(e *Element) {
 	if e.id != "" {
 		s.ids[e.id] = e
@@ -432,14 +476,14 @@ func (s *Scene) InitStyle(e *Element) {
 	if e.Style == nil {
 		e.Style = goss.Style{}
 	}
-	if e.Raw.Style != nil {
-		e.Raw.Style.Overwrite(e.Style)
-	}
 	for _, st := range e.Styles {
 		style, ok := s.Assets.Styles[st]
 		if ok {
 			style.Overwrite(e.Style)
 		}
+	}
+	if e.Raw.Style != nil {
+		e.Raw.Style.Overwrite(e.Style)
 	}
 	e.Init()
 	if e.Parent != nil {

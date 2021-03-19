@@ -79,10 +79,10 @@ type Element struct {
 	Events events.String
 
 	Frame     mat.AABB
-	Offest    mat.Vec
 	ChildSize mat.Vec
 
-	Styles []string
+	Styles   []string
+	relative []*Element
 
 	margin mat.AABB
 	size   mat.Vec
@@ -494,14 +494,53 @@ func (e *Element) redraw(t ggl.Target, canvas *drw.Geom) {
 func (e *Element) resize(p *Processor) {
 	remain := p.calcSize(e)
 
+	e.relative = e.relative[:0]
 	e.forChild(IgnoreHidden, func(ch *Element) {
-		ch.resize(p)
+		if ch.Relative {
+			e.relative = append(e.relative, ch)
+		} else {
+			ch.resize(p)
+		}
 	})
 
 	p.calcMargin(e, remain)
 
 	e.calcChildSize()
 	e.evalSize()
+
+	for _, ch := range e.relative {
+		space := e.size
+		ch.size = ch.Size
+		if ch.Size.X == Fill {
+			ch.size.X = space.X
+		}
+		if ch.Size.Y == Fill {
+			ch.size.Y = space.Y
+		}
+		ch.resize(p)
+		space.SubE(ch.size)
+
+		// resolve margin painfully
+		if ch.Margin.Max.X == Fill {
+			space.X *= .5
+		} else {
+			space.X -= ch.Margin.Max.X
+		}
+		if ch.Margin.Max.Y == Fill {
+			space.Y *= .5
+		} else {
+			space.Y -= ch.Margin.Max.Y
+		}
+
+		ch.margin.Min = ch.Margin.Min
+		// we don't really care about the other side
+		if ch.Margin.Min.X == Fill {
+			ch.margin.Min.X = space.X
+		}
+		if ch.Margin.Min.Y == Fill {
+			ch.margin.Min.Y = space.Y
+		}
+	}
 }
 
 // Init initializes element and its children
@@ -522,6 +561,7 @@ func (e *Element) init(s *Scene) {
 	for i := 0; i < len(ch); i++ {
 		ch[i].Value.init(s)
 	}
+	e.Module.PostInit()
 }
 
 // EvalSize evaluates final size for element based of final size of children
@@ -549,6 +589,9 @@ func (e *Element) calcMinSize() {
 		sum = VSum{&e.ChildSize}
 	}
 	e.forChild(IgnoreHidden, func(ch *Element) {
+		if ch.Relative {
+			return
+		}
 		ch.calcMinSize()
 		sum.Add(ch.ChildSize)
 		ch.ChildSize.SubE(ch.MarginRealSize())
@@ -561,7 +604,7 @@ func (e *Element) calcMinSize() {
 		e.ChildSize.Y = 0
 	}
 
-	e.ChildSize.AddE(e.MarginRealSize())
+	e.ChildSize.AddE(e.MarginRealSize().Add(e.Padding.Min).Add(e.Padding.Max))
 
 	e.ChildSize = e.ChildSize.Max(e.Module.MinSize())
 }
@@ -585,6 +628,9 @@ func (e *Element) calcChildSize() {
 
 // SizeNeeded returns how match space the element spams
 func (e *Element) spaceNeeded() mat.Vec {
+	if e.Relative {
+		return mat.ZV
+	}
 	return e.size.Add(e.margin.Min).Add(e.margin.Max)
 }
 
@@ -594,13 +640,18 @@ func (e *Element) move(offset mat.Vec, horizontal bool) mat.Vec {
 	off := offset.Add(e.margin.Min).Add(e.Offest)
 	e.Frame = e.size.ToAABB().Moved(off)
 	off.AddE(e.Padding.Min)
+	oOff := off
 	e.Module.OnFrameChange()
-
 	e.forChild(FCfg{
 		Filter:  IgnoreHidden.Filter,
 		Reverse: !e.Horizontal(),
 	}, func(ch *Element) {
-		off = ch.move(off, e.Horizontal())
+		if ch.Relative {
+			ch.move(oOff, false)
+		} else {
+			off = ch.move(off, e.Horizontal())
+		}
+
 	})
 
 	if horizontal {
@@ -660,6 +711,8 @@ type Module interface {
 	DefaultStyle() goss.Style
 	// Init is called when module is inserted into element that is part of a scene
 	Init(*Element)
+	// PostInit is called after all children of element called Init
+	PostInit()
 	// Draw should draw the div, draw your triangles onto given target, you can use Geom as canvas
 	// though you have to draw it to target too, Geom is cleared and restarted before draw call
 	Draw(ggl.Target, *drw.Geom)
@@ -705,6 +758,8 @@ func (m *ModuleBase) Init(div *Element) {
 	m.Element = div
 	m.Background = m.RGBA("background", mat.Transparent)
 }
+
+func (m *ModuleBase) PostInit() {}
 
 // Draw implements Module interface
 func (m *ModuleBase) Draw(t ggl.Target, g *drw.Geom) {
