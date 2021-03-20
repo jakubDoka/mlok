@@ -113,6 +113,7 @@ func main() {
 			// yes we have markdown and ']]', if used inside of markdown closure, is replaced with ']'
 			chatText.Content = append(chatText.Content, []rune("#ff00ff[[you]]:] ")...)
 			chatText.Content = append(chatText.Content, input.Content...)
+			chatText.Dirty()
 			input.SetText("") // clear the input
 		},
 	})

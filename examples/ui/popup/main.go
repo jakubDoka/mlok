@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jakubDoka/gobatch/ggl"
 	"github.com/jakubDoka/gobatch/ggl/ui"
+	"github.com/jakubDoka/gobatch/logic/events"
 	"github.com/jakubDoka/gobatch/logic/frame"
 	"github.com/jakubDoka/gobatch/mat/rgba"
 )
@@ -33,8 +34,9 @@ func main() {
 	popup_button{
 		all_masks: gray;
 		hover_mask: green;
-		size: 100 100;
 		text_scale: 2;
+		size: 100 0;
+		margin: 100 0;
 		text_margin: fill;
 	}
 	`))
@@ -53,33 +55,63 @@ func main() {
 	">
 		works, just click this 
 		<button id="opener" styles="label" style="
-			padding: 10;
-			margin: 0 fill fill fill; 
+			margin: 10 fill fill fill;
 			size: 0;
+			text_margin: 0;
+			padding: 10;
 			hover_mask: red;
 		">
 			button
 		</>
 	</>
-	<#><div styles="label" style="
+	<div id="poppup" styles="label" hidden style="
+		relative: true; 
+		background: .5 .5 0;
+		size: 0;
 		margin: fill;
-		size: 300;
-		text_margin: fill 0;
-		text_size: 0;
 	">
-		This is so called popup. Do you want to exit?
+		Do you want to exit?
 		<div style="
 			composition: horizontal;
+			margin: fill 10;
 		">
-			<button styles="popup_button">yes</>
-			<button styles="popup_button">no</>
+			<button id="yes" styles="popup_button">yes</>
+			<button id="no" styles="popup_button">no</>
 		</>
-	</><#>
+	</>
 	`))
 
 	if err != nil {
 		panic(err)
 	}
+
+	opened := true
+
+	opener := scene.ID("opener")
+	poppup := scene.ID("poppup")
+	yes := scene.ID("yes")
+	no := scene.ID("no")
+
+	opener.Events.Add(&events.Listener{
+		Name: ui.Click,
+		Runner: func(i interface{}) {
+			poppup.Show()
+		},
+	})
+
+	yes.Events.Add(&events.Listener{
+		Name: ui.Click,
+		Runner: func(i interface{}) {
+			opened = false
+		},
+	})
+
+	no.Events.Add(&events.Listener{
+		Name: ui.Click,
+		Runner: func(i interface{}) {
+			poppup.Hide()
+		},
+	})
 
 	// Processor just performs actions on scene, you can easily switch between scenes
 	processor := ui.Processor{}
@@ -88,7 +120,7 @@ func main() {
 	// delta time (frame time) is needed for processor update
 	ticker := frame.Delta{}
 
-	for !win.ShouldClose() {
+	for !win.ShouldClose() && opened {
 		// we have lot of stupid colors
 		win.Clear(rgba.BabyBlue)
 

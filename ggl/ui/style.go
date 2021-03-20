@@ -53,6 +53,18 @@ func (s *Props) Horizontal() bool {
 	return s.Composition == Horizontal
 }
 
+func (s *Props) Expands(dim Dimension) bool {
+	return s.Resizing[dim] < Shrink
+}
+
+func (s *Props) Shrinks(dim Dimension) bool {
+	return s.Resizing[dim] == Shrink || s.Resizing[dim] == Exact
+}
+
+func (s *Props) Ingors(dim Dimension) bool {
+	return s.Resizing[dim] == Ignore
+}
+
 // Init initializes the style
 func (s *Props) Init() {
 	s.Margin = s.AABB("margin", s.Margin)
@@ -71,6 +83,13 @@ func (s *Props) Init() {
 	s.Relative = s.Bool("relative", false)
 	s.Offest = s.Vec("offset", mat.ZV)
 }
+
+type Dimension uint8
+
+const (
+	X Dimension = iota
+	Y
+)
 
 // Composition ...
 type Composition uint8
@@ -123,6 +142,37 @@ var resizeModes = map[string]ResizeMode{
 // if there are multiple elements with fill margin, space is split between them
 const Fill float64 = load.Fill
 const unknown float64 = math.MaxFloat64
+
+var fill filler
+
+type filler struct{}
+
+func (f filler) hSum(a mat.AABB) float64 {
+	return f.value(a.Min.X) + f.value(a.Max.X)
+}
+
+func (f filler) vSum(a mat.AABB) float64 {
+	return f.value(a.Min.Y) + f.value(a.Max.Y)
+}
+
+func (filler) add(dest *float64, scr float64) {
+	if scr != Fill {
+		*dest += scr
+	}
+}
+
+func (filler) set(dest *float64, scr float64) {
+	if scr != Fill {
+		*dest = scr
+	}
+}
+
+func (filler) value(scr float64) float64 {
+	if scr != Fill {
+		return scr
+	}
+	return 0
+}
 
 // RawStyle extends load.RawStyle by some functionality
 type RawStyle struct {

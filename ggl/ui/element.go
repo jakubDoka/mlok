@@ -81,8 +81,8 @@ type Element struct {
 	Frame     mat.AABB
 	ChildSize mat.Vec
 
-	Styles   []string
-	relative []*Element
+	Styles              []string
+	relative, processed []*Element
 
 	margin mat.AABB
 	size   mat.Vec
@@ -489,60 +489,6 @@ func (e *Element) redraw(t ggl.Target, canvas *drw.Geom) {
 	}
 }
 
-// Resize resizes all children to fit each other, though this
-// does not move them
-func (e *Element) resize(p *Processor) {
-	remain := p.calcSize(e)
-
-	e.relative = e.relative[:0]
-	e.forChild(IgnoreHidden, func(ch *Element) {
-		if ch.Relative {
-			e.relative = append(e.relative, ch)
-		} else {
-			ch.resize(p)
-		}
-	})
-
-	p.calcMargin(e, remain)
-
-	e.calcChildSize()
-	e.evalSize()
-
-	for _, ch := range e.relative {
-		space := e.size
-		ch.size = ch.Size
-		if ch.Size.X == Fill {
-			ch.size.X = space.X
-		}
-		if ch.Size.Y == Fill {
-			ch.size.Y = space.Y
-		}
-		ch.resize(p)
-		space.SubE(ch.size)
-
-		// resolve margin painfully
-		if ch.Margin.Max.X == Fill {
-			space.X *= .5
-		} else {
-			space.X -= ch.Margin.Max.X
-		}
-		if ch.Margin.Max.Y == Fill {
-			space.Y *= .5
-		} else {
-			space.Y -= ch.Margin.Max.Y
-		}
-
-		ch.margin.Min = ch.Margin.Min
-		// we don't really care about the other side
-		if ch.Margin.Min.X == Fill {
-			ch.margin.Min.X = space.X
-		}
-		if ch.Margin.Min.Y == Fill {
-			ch.margin.Min.Y = space.Y
-		}
-	}
-}
-
 // Init initializes element and its children
 func (e *Element) init(s *Scene) {
 	if e.Module == nil {
@@ -562,76 +508,6 @@ func (e *Element) init(s *Scene) {
 		ch[i].Value.init(s)
 	}
 	e.Module.PostInit()
-}
-
-// EvalSize evaluates final size for element based of final size of children
-func (e *Element) evalSize() {
-	ch, sz := e.ChildSize.Flatten(), e.size.Flatten()
-	mut := e.size.Mutator()
-	for i, m := range e.Resizing {
-		switch m {
-		case Shrink:
-			*mut[i] = math.Min(ch[i], sz[i])
-		case Expand:
-			*mut[i] = math.Max(ch[i], sz[i])
-		case Exact:
-			*mut[i] = ch[i]
-		}
-	}
-}
-
-func (e *Element) calcMinSize() {
-	e.ChildSize = mat.ZV
-	var sum summer
-	if e.Horizontal() {
-		sum = HSum{&e.ChildSize}
-	} else {
-		sum = VSum{&e.ChildSize}
-	}
-	e.forChild(IgnoreHidden, func(ch *Element) {
-		if ch.Relative {
-			return
-		}
-		ch.calcMinSize()
-		sum.Add(ch.ChildSize)
-		ch.ChildSize.SubE(ch.MarginRealSize())
-	})
-
-	if e.Resizing[0] >= Shrink {
-		e.ChildSize.X = 0
-	}
-	if e.Resizing[1] >= Shrink {
-		e.ChildSize.Y = 0
-	}
-
-	e.ChildSize.AddE(e.MarginRealSize().Add(e.Padding.Min).Add(e.Padding.Max))
-
-	e.ChildSize = e.ChildSize.Max(e.Module.MinSize())
-}
-
-// CalcChildSize calculates children size according to element orientation
-func (e *Element) calcChildSize() {
-	e.ChildSize = mat.ZV
-	var sum summer
-	if e.Horizontal() {
-		sum = HSum{&e.ChildSize}
-	} else {
-		sum = VSum{&e.ChildSize}
-	}
-
-	e.forChild(IgnoreHidden, func(ch *Element) {
-		sum.Add(ch.spaceNeeded())
-	})
-
-	return
-}
-
-// SizeNeeded returns how match space the element spams
-func (e *Element) spaceNeeded() mat.Vec {
-	if e.Relative {
-		return mat.ZV
-	}
-	return e.size.Add(e.margin.Min).Add(e.margin.Max)
 }
 
 // Move is next step after resize, size of all elements is calculated,
@@ -725,14 +601,8 @@ type Module interface {
 
 	MinSize() mat.Vec
 
-	Width(height float64) float64
-	Height(width float64) float64
-	OfferWidth(offered float64) (taken float64)
-	OfferHeight(offered float64) (taken float64)
-	PrivateWidth(offered float64) (taken float64)
-	PrivateHeight(offered float64) (taken float64)
-	FinalWidth(final float64)
-	FinalHeight(final float64)
+	Width(takable, taken float64) float64
+	Height(takable, taken float64) float64
 }
 
 // ModuleBase is a base of every module, you should embed this struct in your module
@@ -789,40 +659,14 @@ func (m *ModuleBase) MinSize() (sz mat.Vec) {
 }
 
 // Width implements Module interface
-func (m *ModuleBase) Width(height float64) float64 {
-	return m.Props.Size.X
+func (m *ModuleBase) Width(takable, taken float64) float64 {
+	return taken
 }
 
 // Height implements Module interface
-func (m *ModuleBase) Height(width float64) float64 {
-	return m.Props.Size.Y
+func (m *ModuleBase) Height(takable, taken float64) float64 {
+	return taken
 }
-
-// OfferWidth implements Module interface
-func (m *ModuleBase) OfferWidth(offered float64) (taken float64) {
-	return offered
-}
-
-// OfferHeight implements Module interface
-func (m *ModuleBase) OfferHeight(offered float64) (taken float64) {
-	return offered
-}
-
-// PrivateWidth implements Module interface
-func (*ModuleBase) PrivateWidth(offered float64) (taken float64) {
-	return offered
-}
-
-// PrivateHeight implements Module interface
-func (*ModuleBase) PrivateHeight(offered float64) (taken float64) {
-	return offered
-}
-
-// FinalWidth implements Module interface
-func (m *ModuleBase) FinalWidth(final float64) {}
-
-// FinalHeight implements Module interface
-func (*ModuleBase) FinalHeight(final float64) {}
 
 // HSum calculates size of elements in horizontal composition
 type HSum struct {

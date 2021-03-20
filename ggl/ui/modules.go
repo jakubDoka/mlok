@@ -752,7 +752,7 @@ func (t *Text) Init(e *Element) {
 	t.Mask = t.RGBA("text_color", mat.White)
 	t.SelectionColor = t.RGBA("text_selection_color", mat.Alpha(.5))
 	if !t.Composed {
-		t.Props.Size = t.Vec("text_size", mat.V(Fill, Fill))
+		t.Props.Size = t.Vec("text_size", mat.ZV)
 		t.Props.Margin = t.AABB("text_margin", mat.A(4, 4, 4, 4))
 		t.Background = t.RGBA("text_background", t.Background)
 	}
@@ -843,60 +843,21 @@ func (t *Text) OnFrameChange() {
 	t.Paragraph.Update(0)
 }
 
-// MinSize implements Module interface
-func (t *Text) MinSize() mat.Vec {
-	t.Paragraph.Width = 0
-	t.Markdown.Parse(&t.Paragraph)
-	return t.Bounds().Size().Mul(t.Scl).Add(t.MarginRealSize())
-}
-
 // Width implements Module interface
-func (t *Text) Width(height float64) float64 {
-	return math.Max(t.Bounds().W()*t.Scl.X, t.Size.X)
+func (t *Text) Width(takable, taken float64) float64 {
+	t.UpdateParagraph(takable)
+	return t.Bounds().W() * t.Scl.X
 }
 
 // Height implements Module interface
-func (t *Text) Height(width float64) float64 {
-	if width != -1 {
-		t.UpdateParagraph(width)
-	}
+func (t *Text) Height(takable, taken float64) float64 {
 	return t.Bounds().H() * t.Scl.Y
-}
-
-// OfferWidth implements Module interface
-func (t *Text) OfferWidth(width float64) float64 {
-	t.UpdateParagraph(width)
-	return math.Max(t.Bounds().W()*t.Scl.X, width)
-}
-
-// PrivateWidth implements Module interface
-func (t *Text) PrivateWidth(width float64) float64 {
-	return t.OfferWidth(width)
-}
-
-// PrivateHeight implements Module interface
-func (t *Text) PrivateHeight(height float64) float64 {
-	return math.Max(t.Bounds().H()*t.Scl.Y, height)
-}
-
-// FinalWidth implements Module interface
-func (t *Text) FinalWidth(width float64) {
-	t.UpdateParagraph(width)
 }
 
 // UpdateParagraph updates the paragraph to fit given width, though can end up bigger
 func (t *Text) UpdateParagraph(width float64) {
-	unq := width != t.Paragraph.Width*t.Scl.X
-	if unq || t.dirty {
-		if t.Props.Size.X != Fill {
-			if unq {
-				t.Paragraph.Width = t.Props.Size.X / t.Scl.X
-			}
-		} else {
-			if unq {
-				t.Paragraph.Width = width / t.Scl.X
-			}
-		}
+	if t.dirty || width != t.Paragraph.Width*t.Scl.X {
+		t.Paragraph.Width = width / t.Scl.X
 		t.Markdown.Parse(&t.Paragraph)
 		t.dirty = false
 	}
