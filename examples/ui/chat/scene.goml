@@ -9,7 +9,6 @@
 		"> 
 			<text text="The Chat" style="
 				text_color: 1 .5 .5;
-				text_size: 0;
 				text_scale: 4;
 				text_margin: fill 0;
 			"/>
@@ -20,6 +19,7 @@
 				padding: 0 0 20 0;
 				background: .3 .3 .3;
 				margin: 10;
+				text_size: fill 0;
 				text_scale: 2;
 			">
 				<text id="chat-text" name="target"/>
@@ -39,6 +39,8 @@
 					all_masks: 1 .5 .5;
 					hover_mask: green;
 					size: 0 fill;
+					text_margin: 5 fill;
+					text_scale: 1.2;
 				" all_text="send"/>
 			</>
 		</>

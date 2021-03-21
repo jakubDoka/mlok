@@ -245,6 +245,18 @@ func (p *Processor) resize(e *Element, takable float64, formatter Formatter, dim
 			e.processed = append(e.processed, ch)
 		}
 
+		if takable < taken && e.Expands(dim) {
+			for _, ch := range e.processed {
+				if ch.hidden {
+					continue
+				}
+				formatter.Set(ch)
+				if formatter.Size() == Fill && taken > *formatter.Ptr() {
+					taken = math.Max(p.resize(ch, taken, formatter, dim), taken)
+				}
+			}
+		}
+
 		// resolve margins
 		for _, ch := range e.processed {
 			formatter.Set(ch)
@@ -267,7 +279,11 @@ func (p *Processor) resize(e *Element, takable float64, formatter Formatter, dim
 	taken = formatter.Provide(takable, taken)
 
 	if size == Fill {
-		*ptr = math.Max(takable, taken)
+		if e.Resizing[dim] == Ignore {
+			*ptr = takable
+		} else {
+			*ptr = math.Max(takable, taken)
+		}
 	} else {
 		// shrink or expand
 		switch e.Resizing[dim] {
