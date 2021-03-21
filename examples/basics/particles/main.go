@@ -26,29 +26,29 @@ func main() {
 	// almost all parameters are interfaces, which forces you to specify all value
 	// but gives great deal of customization
 	tp := particle.Type{
-		ScaleX:            lerp.Const(1),
+		ScaleX:            lerp.Const(2),
 		ScaleY:            lerp.Const(2),
 		ScaleMultiplier:   lerp.Bezier(0, 4, 0, 0), // particle will grow and then shrink
 		TwerkAcceleration: lerp.Const(0),
 		Acceleration:      lerp.Const(0),
 		Twerk:             lerp.Random(-20, 20),
-		Livetime:          lerp.Const(1), // constant one second livetime
+		Livetime:          lerp.Const(2), // constant one second livetime
 		Rotation:          lerp.Const(0),
-		Velocity:          lerp.Random(800, 1600),
+		Velocity:          lerp.Random(400, 800),
 		Spread:            lerp.Random(0, math.Pi*.7), // random number in range between 0 - math.Pi*.7
 
-		Color: lerpc.Linear(mat.Alpha(0), mat.Alpha(1)), // fading out
+		Color: lerpc.Chained(lerpc.Point(0, mat.Alpha(0)), lerpc.Point(.2, mat.Alpha(.7)), lerpc.Point(1, mat.Alpha(0))), // fading out
 		//random color in folloving range, each channel is independently randomized
-		Mask: lerpc.Random(mat.Black, mat.White),
+		Mask: lerpc.Const(rgba.Almond),
 
 		EmissionShape: particle.Point{},
-		Gravity:       mat.V(0, -500),
-		Friction:      2,
+		Gravity:       mat.V(0, -250),
+		Friction:      1,
 	}
 
 	// ew need something to draw the partiles, circle is good enough
 	// and to make it more exciting it will be 2D sphere
-	tp.SetDrawer(&particle.Circle{Circle: drw.NCircle(10, 3, 20)})
+	tp.SetDrawer(&particle.Circle{Circle: drw.NCircle(10, 0, 20)})
 
 	batch := ggl.Batch{}
 
@@ -99,7 +99,7 @@ func main() {
 		// need it on separate thread
 		system.RunSpawner()
 
-		win.Clear(rgba.Black)
+		win.Clear(rgba.DarkBlue)
 
 		system.Fetch(&batch) // no need to clear system, you actually should never do that
 		batch.Draw(win)
