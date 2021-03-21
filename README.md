@@ -4,7 +4,7 @@ Go powered engine that offers features from low level opengl abstraction to UI f
 
 ## Structure
 
-Engine contains lot of packages and most of them are not even that big. Reason for this is simple. I consider lot more convenient to write `key.A` instead of `ggl.KeyA`, some packages like `rgba` (offers lot of colors) are also generated then there are two package for interpolation `lerp` anc `clerp`, one focuses on floating points other on colors but actual struct names are same. Another example is `particle`, this way you write `particle.System` and not `drw.ParticleSystem`. Whole engine is thus modular. It prefers components over maybe nice slow abstraction and can be more of a backend.
+Engine contains lot of packages and most of them are not even that big. Reason for this is simple. I consider lot more convenient to write `key.A` instead of `ggl.KeyA`, some packages like `rgba` (offers lot of colors) are also generated then there are two package for interpolation `lerp` anc `lerpc`, one focuses on floating points other on colors but actual struct names are same. Another example is `particle`, this way you write `particle.System` and not `drw.ParticleSystem`. Whole engine is thus modular. It prefers components over maybe nice slow abstraction and can be more of a backend.
 
 ## Dependencies
 
@@ -13,6 +13,12 @@ I have to mention that engine depends two "languages", `goml` and `goss`. Yes th
 ## Examples
 
 Nothing is better the learn from code so I wrote couple of examples to show off what engine can do for reference. You can find them all [here](https://github.com/jakubDoka/gobatch/tree/main/examples).
+
+![raycasting](https://user-images.githubusercontent.com/60517552/111913276-ae94fc80-8a6d-11eb-8ac6-738b8b561e45.png)
+
+![particles](https://user-images.githubusercontent.com/60517552/111914104-fe28f780-8a70-11eb-9955-b4e4a4c29a06.png)
+
+![chat ui](https://user-images.githubusercontent.com/60517552/111915195-52ce7180-8a75-11eb-8ccf-54f52c800427.png)
 
 ## Documentation
 
