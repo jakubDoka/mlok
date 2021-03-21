@@ -18,6 +18,7 @@ var (
 	rayCount    = flag.Int("rays", 100, "amount of rays used")
 )
 
+// example demonstrates raycasting capability of mat package
 func main() {
 	flag.Parse()
 
@@ -36,7 +37,7 @@ func main() {
 		}
 	}
 
-	// generating circles
+	// generating random circles
 	circles := make([]mat.Circ, *circleCount)
 	for i := range circles {
 		circles[i] = mat.Circ{
@@ -45,8 +46,8 @@ func main() {
 		}
 	}
 
-	// generating rays, this can take several seconds if there is more then 1000 rays
-	// not that math is slow but allocating memory
+	// generating rays, this can take several seconds if there is more then 1000 rays.
+	// Not that math is slow but allocating memory, *rayCount * 4 * 8 bytes in one swoop
 	rays := make([]mat.Ray, *rayCount)
 	cof := angle.Pi2 / float64(*rayCount)
 	angle := .0
@@ -55,6 +56,9 @@ func main() {
 			O: mat.Rad(angle, 10),
 			V: mat.Rad(angle, 4000),
 		}
+		// too little numbers can create visual artifacts
+		rays[i].V.X = mat.Round(rays[i].V.X, 8)
+		rays[i].V.Y = mat.Round(rays[i].V.Y, 8)
 		angle += cof
 	}
 
@@ -63,11 +67,11 @@ func main() {
 	// Geom draws geometric shapes witch is ideal for us
 	geom := drw.Geom{}
 	geom.Restart()
-	geom.Width(1)
-	geom.Resolution(100)
+	geom.Thickness(1)
 	geom.Fill(false)
 
 	// maybe poor design decision but circle intersections are buffered
+	// as there can be 0 to 2 intersections
 	buff := make([]mat.Vec, 0, 2)
 	delta := frame.Delta{}
 
@@ -114,7 +118,7 @@ func main() {
 			geom.Circle(c)
 		}
 
-		// drag for rays
+		// dragging rays
 		if win.Pressed(key.MouseLeft) {
 			d := win.MousePrevPos().To(win.MousePos())
 			for i := range rays {
@@ -122,16 +126,12 @@ func main() {
 			}
 		}
 
+		// drawing it all
 		win.Clear(rgba.Black)
-
-		// geom can be drawn as sprite, though don't forget to clear
 		geom.Fetch(&batch)
 		geom.Clear()
-
 		batch.Draw(win)
 		batch.Clear()
-
-		// also important or you will end up with frozen window
 		win.Update()
 	}
 }

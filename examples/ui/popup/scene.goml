@@ -1,0 +1,35 @@
+
+<div styles="label">this is here just</>
+<div styles="label">to show how popup</>
+<div styles="label" style="
+    composition: horizontal; 
+    text_margin: fill fill 0 fill;
+">
+    works, just click this 
+    <button id="opener" styles="label" style="
+        margin: 10 fill fill fill;
+        size: 0;
+        text_margin: 0;
+        padding: 10;
+        hover_mask: red;
+    ">
+        button
+    </>
+</>
+
+<#> poppup is relative and hidden, relative means that it ignores neighbour elements <#>
+<div id="poppup" styles="label" hidden style="
+    relative: true; 
+    background: .5 .5 0;
+    size: 0;
+    margin: fill;
+">
+    Do you want to exit?
+    <div style="
+        composition: horizontal;
+        margin: fill 10;
+    ">
+        <button id="yes" styles="popup_button">yes</>
+        <button id="no" styles="popup_button">no</>
+    </>
+</>

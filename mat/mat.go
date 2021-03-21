@@ -161,12 +161,6 @@ func Round(v float64, precision int) float64 {
 	return math.Trunc(v*scl) / scl
 }
 
-const rounder = 100_000_000
-
-func round(f float64) float64 {
-	return math.Round(f/rounder) * rounder
-}
-
 // Clamp ...
 func Clamp(val, min, max float64) float64 {
 	if val > max {

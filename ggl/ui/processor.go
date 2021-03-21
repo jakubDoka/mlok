@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"io/ioutil"
 	"math"
 
 	"github.com/jakubDoka/gobatch/ggl"
@@ -417,6 +418,21 @@ func NEmptyScene() *Scene {
 	s.Root.init(s)
 
 	return s
+}
+
+func (s *Scene) LoadGoss(paths ...string) error {
+	for _, p := range paths {
+		bts, err := ioutil.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		err = s.AddGoss(bts)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (s *Scene) AddGoss(source []byte) error {

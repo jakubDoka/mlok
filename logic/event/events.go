@@ -1,4 +1,4 @@
-package events
+package event
 
 import "reflect"
 
@@ -84,7 +84,7 @@ func (e String) Invoke(name string, ed interface{}) {
 type Listener struct {
 	Name   string
 	Block  bool
-	Runner func(interface{})
+	Runner StringRunner
 	idx    int
 	evs    String
 }
@@ -103,3 +103,5 @@ func (e *Listener) Remove() {
 	evs = append(evs[:e.idx], evs[e.idx+1:]...)
 	e.evs[e.Name] = evs
 }
+
+type StringRunner func(i interface{})

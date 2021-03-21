@@ -15,6 +15,8 @@ import (
 	"github.com/jakubDoka/gobatch/mat/rgba"
 )
 
+// example demonstrates particle drawing and multithreading capability of ggl/drw/particle
+// and logic/gate
 func main() {
 	win, err := ggl.NWindow(nil)
 	if err != nil {
@@ -44,7 +46,8 @@ func main() {
 		Friction:      2,
 	}
 
-	// ew need somethong to draw the partiles, circle is good enough
+	// ew need something to draw the partiles, circle is good enough
+	// and to make it more exciting it will be 2D sphere
 	tp.SetDrawer(&particle.Circle{Circle: drw.NCircle(10, 3, 20)})
 
 	batch := ggl.Batch{}
@@ -52,12 +55,13 @@ func main() {
 	ticker := frame.Delta{}
 	var delta float64
 
-	// particle system as many threads as we have cores
+	// we can run particle system at as many threads as we have cores
 	threadCount := runtime.NumCPU()
 	system := particle.System{}
 	system.SetThreads(threadCount)
 
 	// setting up gate to run the particle system on multiple threads
+	// gate will run one faze on each thread simultaneously
 	gt := gate.Gate{}
 	for i := 0; i < threadCount; i++ {
 		thr := system.Thread(i)
@@ -82,26 +86,30 @@ func main() {
 		ticker.Log(2) // logging a frame rate, why not
 
 		// this will run all threads at the same time
-		// under the hud every thread always proceses particles like follows
+		// under the hud every thread always proceses particles like:
 		//	for i := threadIndex; i < particleCount; i += threadCount {
 		gt.Run()
+		// you can of corse do something in between but all threads are
+		// already used anyway
 		gt.Wait()
 
 		// RunSpawner awakens separate thread for spawning new particles
+		// particle spawning and drawing does not share any state so we can
+		// safely do this, you can optionally use system.Spawn() if you don't
+		// need it on separate thread
 		system.RunSpawner()
 
-		// drawing system onto batch
-		system.Fetch(&batch)
-
 		win.Clear(rgba.Black)
-		// batch now draws to window which does the draw call
+
+		system.Fetch(&batch) // no need to clear system, you actually should never do that
 		batch.Draw(win)
-		// don't forget to clear batch or you will run out of memory
 		batch.Clear()
-		// also important or you will end up with frozen window
 		win.Update()
 
-		// syncing with spawner
+		// waiting for spawner to finish
 		system.Wait()
 	}
+
+	// system has its own worker thread that has to be terminated
+	system.Drop()
 }

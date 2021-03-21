@@ -1,12 +1,13 @@
 package ui
 
 import (
+	"io/ioutil"
 	"math"
 	"strings"
 
 	"github.com/jakubDoka/gobatch/ggl"
 	"github.com/jakubDoka/gobatch/ggl/drw"
-	"github.com/jakubDoka/gobatch/logic/events"
+	"github.com/jakubDoka/gobatch/logic/event"
 	"github.com/jakubDoka/gobatch/mat"
 
 	"github.com/jakubDoka/goml"
@@ -76,7 +77,7 @@ type Element struct {
 	Scene  *Scene
 	Module Module
 	Raw    goml.Element
-	Events events.String
+	Events event.String
 
 	Frame     mat.AABB
 	ChildSize mat.Vec
@@ -97,7 +98,7 @@ type Element struct {
 func NElement() *Element {
 	return &Element{
 		children: NChildren(),
-		Events:   events.String{},
+		Events:   event.String{},
 		Raw:      goml.NDiv(),
 	}
 }
@@ -190,6 +191,22 @@ func (e *Element) FindChild(name string, cap int, cursor *[]*Element) bool {
 	return false
 }
 
+// LoadGoml abstracts loading of file
+func (e *Element) LoadGoml(paths ...string) error {
+	for _, p := range paths {
+		bts, err := ioutil.ReadFile(p)
+		if err != nil {
+			return err
+		}
+		err = e.AddGoml(bts)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // AddGoml parses inputted goml source and adds parsed elements to e
 //
 // panics if e.Scene == nil or e.Scene.Parser == nil
@@ -211,6 +228,13 @@ func (e *Element) AddGoml(source []byte) error {
 	}
 
 	return nil
+}
+
+func (e *Element) Listen(name string, runner event.StringRunner) {
+	e.Events.Add(&event.Listener{
+		Name:   name,
+		Runner: runner,
+	})
 }
 
 // ChildCount returns child count on first layer, useful

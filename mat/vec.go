@@ -208,11 +208,6 @@ func (v Vec) Normal() Vec {
 	return Vec{-v.Y, v.X}
 }
 
-// Norm returns normal vector of line, size can be adjusted
-func (v Vec) Norm(len float64) Vec {
-	return v.Normal().Normalized().Scaled(len)
-}
-
 // Dot returns the dot product of vectors v and u.
 func (v Vec) Dot(u Vec) float64 {
 	return v.X*u.X + v.Y*u.Y

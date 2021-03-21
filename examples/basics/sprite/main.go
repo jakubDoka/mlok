@@ -14,7 +14,8 @@ func main() {
 
 	// IMPORTANT: the thread you create the window in will be considered main thread
 	// where opengl operates. Unless specified othervise, calling methods and functions
-	// from ggl has to be performed on this thread.
+	// from ggl has to be performed on this thread. then there is some functionality that
+	// depends on ggl, in that case documentation should warm you about it.
 	win, err := ggl.NWindow(nil) // nil means default config
 	if err != nil {
 		panic(err)
@@ -35,7 +36,7 @@ func main() {
 	// is very cheap as sprite lives on stack
 	sprite := ggl.NSprite(texture.Frame())
 
-	// little helper, it measures a frame time
+	// little helper that measures a frame time
 	ticker := frame.Delta{}
 
 	var time, rotation float64
@@ -45,7 +46,7 @@ func main() {
 		time += delta * .5               // tracking the time program runs for / 2 because then it looks better
 		rotation += delta * math.Pi * .2 // one rotation per 10 seconds
 
-		// some math magic
+		// some math craziness
 		scale := mat.V(math.Sin(time), math.Cos(time)).Scaled(.3)
 		position := mat.Rad(-rotation, 220)
 		color := mat.RGB(
@@ -56,20 +57,22 @@ func main() {
 
 		// we update the sprite state so its projection changes
 		sprite.Update(mat.M(position, scale, rotation), color)
-
-		// We then draw sprite in its current stats to batch batch is composed of ggl.Data
-		// which accepts the vertex data sprite produces, all it does is appending to slice
-		// sprite cannot draw directly to window or framebuffer as that is highly inefficient.
+		// then draw sprite in its current state to batch. batch is composed of ggl.Data
+		// which accepts the vertex data sprite produces, all it does is appending to slice.
+		// Sprite cannot draw directly to window or framebuffer as that is highly inefficient.
 		// You can always use composition and create your own sprite from Batch and Sprite
 		// to abstract batching.
 		sprite.Fetch(&batch)
 
-		// now we are getting little too fancy
+		// now we are getting little too fancy, hope you don't have epilepsy
 		win.Clear(color.Inverted())
+		// in case you have uncomment this
+		//win.Clear(rgba.White)
 
 		// batch now draws to window which does the draw call
 		batch.Draw(win)
 		// don't forget to clear batch or you will run out of memory
+		// and old sprite states will get drawn
 		batch.Clear()
 		// also important or you will end up with frozen window
 		win.Update()

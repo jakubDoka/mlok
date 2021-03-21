@@ -1,0 +1,18 @@
+label{
+	margin: 10; 
+	size: fill; 
+	background: .5; 
+	text_margin: fill;
+	text_scale: 4;
+	text_color: black;
+	text_size: 0;
+}
+
+popup_button{
+	all_masks: gray;
+	hover_mask: green;
+	text_scale: 2;
+	size: 100 0;
+	margin: 100 0;
+	text_margin: fill;
+}

@@ -4,8 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jakubDoka/gobatch/logic/events"
-
+	"github.com/jakubDoka/gobatch/logic/event"
 	"github.com/jakubDoka/goml"
 	"github.com/jakubDoka/goml/goss"
 	"github.com/jakubDoka/sterr"
@@ -81,7 +80,7 @@ func (p *Parser) translateElement(i int, elem goml.Element) (*Element, error) {
 	if !ok {
 		return nil, ErrMissingFactory.Args(elem.Name)
 	}
-	e := &Element{Module: val.New(), children: NChildren(), Raw: elem, Events: events.String{}}
+	e := &Element{Module: val.New(), children: NChildren(), Raw: elem, Events: event.String{}}
 
 	if val, ok := elem.Attributes["name"]; ok {
 		e.name = val[0]

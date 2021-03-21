@@ -3,11 +3,11 @@ package main
 import (
 	"github.com/jakubDoka/gobatch/ggl"
 	"github.com/jakubDoka/gobatch/ggl/ui"
-	"github.com/jakubDoka/gobatch/logic/events"
 	"github.com/jakubDoka/gobatch/logic/frame"
 	"github.com/jakubDoka/gobatch/mat/rgba"
 )
 
+// example showcases ui capability of ggl/ui
 func main() {
 	win, err := ggl.NWindow(&ggl.WindowConfig{
 		Width:     1000,
@@ -22,57 +22,7 @@ func main() {
 	scene := ui.NScene() // comes with default font and parser
 
 	// this can be called on any element but root is most obvious one
-	err = scene.Root.AddGoml([]byte(`
-	<div style="
-		composition: horizontal;
-		size: fill;
-	">
-		<div id="chat" style="
-			background: almond;
-			size: 500 fill;
-			resize_mode: ignore;
-		"> 
-			<text text="The Chat" style="
-				text_color: 1 .5 .5;
-				text_size: 0;
-				text_scale: 4;
-				text_margin: fill 0;
-			"/>
-			<scroll style="
-				size: fill;
-				resize_mode: ignore;
-				bar_y: true;
-				padding: 0 0 20 0;
-				background: .3 .3 .3;
-				margin: 10;
-				text_scale: 2;
-			">
-				<text id="chat-text" name="target"/>
-			</>
-			<div style="
-				composition: horizontal;
-				margin: 10;
-				size: fill 0;
-				background: 1;
-			">
-				<area id="input" style="
-					background: .3 .3 .3;
-					text_scale: 2;
-					size: fill 0;
-				"/>
-				<button id="send" style="
-					all_masks: 1 .5 .5;
-					hover_mask: green;
-					size: 0 fill;
-				" all_text="send"/>
-			</>
-		</>
-		<button id="alter" style="
-			all_masks: gray;
-			hover_mask: green;
-		" all_text="hide"/>
-	</>
-	`))
+	err = scene.Root.LoadGoml("scene.goml")
 
 	if err != nil {
 		panic(err)
@@ -81,7 +31,7 @@ func main() {
 	// now we can used ids to access elements
 	chat := scene.ID("chat")
 	// as ui.Module embeds ui.Element you don't have to keep two variables in
-	// case you need access to module and element
+	// case you need access to module and the element
 	chatText := scene.ID("chat-text").Module.(*ui.Text)
 	alter := scene.ID("alter").Module.(*ui.Button)
 	input := scene.ID("input").Module.(*ui.Area)
@@ -90,35 +40,29 @@ func main() {
 	// registering event listener for hiding the chat. Why listeners and not just runners?
 	// Well if you store your listener you can remove it by calling its method,
 	// you can also change Anything except Name and it will have an effect
-	alter.Events.Add(&events.Listener{
-		Name: ui.Click,
-		Runner: func(i interface{}) {
-			hidden := chat.Hidden()
-			if hidden {
-				alter.SetText("hide")
-			} else {
-				alter.SetText("show")
-			}
-			chat.SetHidden(!hidden)
-
-		},
+	alter.Listen(ui.Click, func(i interface{}) {
+		hidden := chat.Hidden()
+		if hidden {
+			alter.SetText("hide")
+		} else {
+			alter.SetText("show")
+		}
+		chat.SetHidden(!hidden)
 	})
 
 	// listenner for message send event, its a minimal logic
-	send.Events.Add(&events.Listener{
-		Name: ui.Click,
-		Runner: func(i interface{}) {
-			// text grows from bottom to top so one line above first message is unnoticeable
-			chatText.Content = append(chatText.Content, '\n')
-			// yes we have markdown and ']]', if used inside of markdown closure, is replaced with ']'
-			chatText.Content = append(chatText.Content, []rune("#ff00ff[[you]]:] ")...)
-			chatText.Content = append(chatText.Content, input.Content...)
-			chatText.Dirty()
-			input.SetText("") // clear the input
-		},
+	send.Listen(ui.Click, func(i interface{}) {
+		// text grows from bottom to top so one line above first message is unnoticeable
+		chatText.Content = append(chatText.Content, '\n')
+		// yes we have markdown and ']]', if used inside of markdown closure, is replaced with ']'
+		chatText.Content = append(chatText.Content, []rune("#ff00ff[[you]]:] ")...)
+		chatText.Content = append(chatText.Content, input.Content...)
+		chatText.Dirty()  // text will not update every frame, you have to notify about change
+		input.SetText("") // clear the input
 	})
 
 	// Processor just performs actions on scene, you can easily switch between scenes
+	// and transition should be instant
 	processor := ui.Processor{}
 	processor.SetScene(scene)
 
