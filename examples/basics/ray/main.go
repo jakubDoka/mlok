@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/jakubDoka/gobatch/ggl"
 	"github.com/jakubDoka/gobatch/ggl/drw"
@@ -57,10 +58,14 @@ func main() {
 			V: mat.Rad(angle, 4000),
 		}
 		// too little numbers can create visual artifacts
-		rays[i].V.X = mat.Round(rays[i].V.X, 8)
-		rays[i].V.Y = mat.Round(rays[i].V.Y, 8)
+		rays[i].V.X = mat.Round(rays[i].V.X, 4)
+		rays[i].V.Y = mat.Round(rays[i].V.Y, 4)
+		rays[i].O.X = mat.Round(rays[i].O.X, 4)
+		rays[i].O.Y = mat.Round(rays[i].O.Y, 4)
 		angle += cof
 	}
+
+	fmt.Println(rays)
 
 	batch := ggl.Batch{}
 
