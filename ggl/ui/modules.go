@@ -7,6 +7,7 @@ import (
 	"github.com/jakubDoka/gobatch/ggl/drw"
 	"github.com/jakubDoka/gobatch/ggl/key"
 	"github.com/jakubDoka/gobatch/ggl/txt"
+	"github.com/jakubDoka/gobatch/logic/timer"
 	"github.com/jakubDoka/gobatch/mat"
 	"github.com/jakubDoka/gobatch/mat/rgba"
 
@@ -22,10 +23,11 @@ type Area struct {
 
 	drw CursorDrawer
 
-	selected, dirty, noEffects bool
+	selected, dirty, noEffects, shown bool
 
 	LineIdx, Line int
 
+	Blinker                    timer.Timer
 	CursorWidth                float64
 	CursorMask, SelectionColor mat.RGBA
 }
@@ -47,6 +49,8 @@ func (a *Area) Init(e *Element) {
 	a.AutoFrequency = e.Float("auto_frequency", .03)
 	a.HoldResponceSpeed = e.Float("hold_responce_speed", .5)
 
+	a.Blinker = timer.Period(e.Float("cursor_blinking_frequency", .6))
+
 	a.binds = map[key.Key]float64{}
 }
 
@@ -54,6 +58,14 @@ func (a *Area) Init(e *Element) {
 func (a *Area) Update(w *ggl.Window, delta float64) {
 	// Text.Update sets up lot of things
 	a.Text.Update(w, delta)
+	if w.Pressed(key.MouseLeft) && a.Start != a.End {
+		a.shown = true
+	} else {
+		if a.Blinker.TickDoneReset(delta) {
+			a.shown = !a.shown
+			a.Scene.Redraw.Notify()
+		}
+	}
 
 	if !a.selected && !a.Hovering {
 		return
@@ -96,6 +108,8 @@ func (a *Area) Update(w *ggl.Window, delta float64) {
 		a.LineIdx, a.Line = a.UnprojectLine(a.Start)
 		a.End = a.Start
 		a.dirty = false
+		a.Blinker.Reset()
+		a.shown = true
 		a.Scene.Redraw.Notify()
 	}
 
@@ -122,7 +136,7 @@ func (a *Area) Update(w *ggl.Window, delta float64) {
 			a.Start--
 		}
 	}) && !a.Hold(key.Tab, w, delta, func() {
-		typed = "\a"
+		typed = "\t"
 	}) && typed == "" && !cut {
 		return
 	}
@@ -131,7 +145,13 @@ func (a *Area) Update(w *ggl.Window, delta float64) {
 		typed = ""
 	}
 
+	a.Blinker.Reset()
+	a.shown = true
+
 	nv := str.NString(typed)
+	if a.Start > a.End {
+		a.Start, a.End = a.End, a.Start
+	}
 	a.Content.RemoveSlice(a.Start, a.End)
 	a.Content.InsertSlice(a.Start, nv)
 	a.Events.Invoke(TextChanged, typed)
@@ -143,11 +163,16 @@ func (a *Area) Update(w *ggl.Window, delta float64) {
 
 // DrawOnTop implements Module interface
 func (a *Area) DrawOnTop(tg ggl.Target, canvas *drw.Geom) {
-	if !a.selected {
-		return
+	if a.selected && a.shown {
+		a.drw.Draw(
+			tg,
+			canvas,
+			a.Dot(mat.Maxi(a.Start, a.End)).Sub(mat.V(0, a.Descent*a.Scl.Y)),
+			mat.V(a.CursorWidth, a.LineHeight*a.Scl.Y),
+			a.CursorMask,
+		)
+		canvas.Clear()
 	}
-	a.drw.Draw(tg, canvas, a.Dot(mat.Maxi(a.Start, a.End)), mat.V(a.CursorWidth, a.Ascent*a.Scl.Y), a.CursorMask)
-	canvas.Clear()
 	a.Text.DrawOnTop(tg, canvas)
 }
 

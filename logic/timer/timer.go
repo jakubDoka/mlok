@@ -28,7 +28,7 @@ func (t *Timer) Tick(delta float64) {
 
 // Done returns whether progress exceeded period
 func (t Timer) Done() bool {
-	return t.Progress > t.Period
+	return t.Progress >= t.Period
 }
 
 // Reset sets progres to 0
@@ -36,10 +36,19 @@ func (t *Timer) Reset() {
 	t.Progress = 0
 }
 
+// DoneReset returns true and resets the timer
+func (t *Timer) DoneReset() bool {
+	if t.Progress >= t.Period {
+		t.Progress = 0
+		return true
+	}
+	return false
+}
+
 // TickDone does Tick and Done in one step
 func (t *Timer) TickDone(delta float64) bool {
 	t.Progress += delta
-	return t.Progress > t.Period
+	return t.Progress >= t.Period
 }
 
 // TickDoneReset does tick and if Done that it resets

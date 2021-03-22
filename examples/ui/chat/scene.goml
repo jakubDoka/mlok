@@ -31,7 +31,6 @@
 				background: .3 .3 .3;
 			">
 				<area id="input" style="
-					
 					text_scale: 2;
 					size: fill 0;
 					margin: 5; 
