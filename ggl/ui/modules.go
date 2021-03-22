@@ -58,7 +58,7 @@ func (a *Area) Init(e *Element) {
 func (a *Area) Update(w *ggl.Window, delta float64) {
 	// Text.Update sets up lot of things
 	a.Text.Update(w, delta)
-	if w.Pressed(key.MouseLeft) && a.Start != a.End {
+	if a.Blinker.Period < 0 || w.Pressed(key.MouseLeft) && a.Start != a.End {
 		a.shown = true
 	} else {
 		if a.Blinker.TickDoneReset(delta) {
