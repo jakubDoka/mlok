@@ -1,8 +1,8 @@
 package load
 
 import (
-	"github.com/jakubDoka/gobatch/mat"
-	"github.com/jakubDoka/gobatch/mat/rgba"
+	"github.com/jakubDoka/mlok/mat"
+	"github.com/jakubDoka/mlok/mat/rgba"
 
 	"github.com/jakubDoka/goml/goss"
 )

@@ -3,10 +3,10 @@ package ui
 import (
 	"math"
 
-	"github.com/jakubDoka/gobatch/ggl/pck"
-	"github.com/jakubDoka/gobatch/ggl/txt"
-	"github.com/jakubDoka/gobatch/load"
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/ggl/pck"
+	"github.com/jakubDoka/mlok/ggl/txt"
+	"github.com/jakubDoka/mlok/load"
+	"github.com/jakubDoka/mlok/mat"
 
 	"github.com/jakubDoka/goml/goss"
 )
@@ -72,10 +72,10 @@ func (s *Props) Init() {
 	s.Size = s.Vec("size", s.Size)
 	s.Composition = s.RawStyle.Composition("composition")
 
-	s.Resizing[0] = s.ResizeMode("resize_mode_x")
-	s.Resizing[1] = s.ResizeMode("resize_mode_y")
+	s.Resizing[0] = s.ResizeMode("resizing_x")
+	s.Resizing[1] = s.ResizeMode("resizing_y")
 	if s.Resizing == [2]ResizeMode{} {
-		r := s.ResizeMode("resize_mode")
+		r := s.ResizeMode("resizing")
 		s.Resizing[0] = r
 		s.Resizing[1] = r
 	}
@@ -132,9 +132,9 @@ const (
 )
 
 var resizeModes = map[string]ResizeMode{
-	"Expand": Expand,
+	"expand": Expand,
 	"exact":  Exact,
-	"shring": Shrink,
+	"shrink": Shrink,
 	"ignore": Ignore,
 }
 
@@ -177,6 +177,25 @@ func (filler) value(scr float64) float64 {
 // RawStyle extends load.RawStyle by some functionality
 type RawStyle struct {
 	load.RawStyle
+}
+
+func (r RawStyle) Align(key string, def txt.Align) (v txt.Align) {
+	v = def
+	val, ok := r.Style[key]
+	if !ok {
+		return
+	}
+
+	switch vl := val[0].(type) {
+	case int:
+		return txt.Align(vl)
+	case float64:
+		return txt.Align(vl)
+	case string:
+		return txt.Aligns[vl]
+	}
+
+	return
 }
 
 // CursorDrawer retrieves a cursor drawer from style

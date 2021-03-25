@@ -1,8 +1,11 @@
 package netw
 
 import (
+	"encoding/binary"
+	"net"
 	"reflect"
 	"testing"
+	"time"
 )
 
 func TestBuffer(t *testing.T) {
@@ -53,84 +56,88 @@ func TestBuffer(t *testing.T) {
 	}
 }
 
-func TestSplitter(t *testing.T) {
-	builder := Builder{}
+func TestInconsistent(t *testing.T) {
+	server, client := setup()
 
-	bs := make([]Buffer, 10)
-	for i := range bs {
-		b := &bs[i]
-		b.PutString("oh no")
-		b.PutInt(10)
-		b.ops = [8]byte{}
-		builder.Write(b.Data)
-	}
+	res := Buffer{}
+	res.PutString("hello")
 
-	spl := Splitter{}
-	spl.Recycle(Buffer{})
-	spl.Read(builder.Data)
+	w := Writer{}
+	binary.LittleEndian.PutUint32(w.size[:], uint32(len(res.Data)))
+	client.Write(w.size[:])
 
-	if !reflect.DeepEqual(bs, spl.buff) {
-		for i := range bs {
-			if !reflect.DeepEqual(bs[i], spl.buff[i]) {
-				t.Errorf("\n%#v\n%#v", bs[i], spl.buff[i])
-			}
+	r := Reader{}
+	go func() {
+		buff, err := r.Read(server)
+		if err != nil {
+			panic(err)
 		}
-	}
 
-	spl = Splitter{}
-	spl.Read(builder.Data[:20])
-	spl.Read(builder.Data[20:])
-
-	if !reflect.DeepEqual(bs, spl.buff) {
-		for i := range bs {
-			if !reflect.DeepEqual(bs[i], spl.buff[i]) {
-				t.Errorf("\n%#v\n%#v", bs[i], spl.buff[i])
-			}
+		if !reflect.DeepEqual(buff.Data, res.Data) {
+			t.Error("\n", buff.Data, "\n", res.Data)
 		}
-	}
+	}()
 
-	spl = Splitter{}
-	spl.Read(builder.Data[:2])
-	spl.Read(builder.Data[2:])
+	time.Sleep(time.Millisecond * 100)
 
-	if !reflect.DeepEqual(bs, spl.buff) {
-		for i := range bs {
-			if !reflect.DeepEqual(bs[i], spl.buff[i]) {
-				t.Errorf("\n%#v\n%#v", bs[i], spl.buff[i])
-			}
-		}
-	}
+	client.Write(res.Data)
 
-	spl = Splitter{}
-	spl.Read(builder.Data[:4])
-	spl.Read(builder.Data[4:15])
-	spl.Read(builder.Data[15:])
-
-	if !reflect.DeepEqual(bs, spl.buff) {
-		for i := range bs {
-			if !reflect.DeepEqual(bs[i], spl.buff[i]) {
-				t.Errorf("\n%#v\n%#v", bs[i], spl.buff[i])
-			}
-		}
-	}
-
-	builder.Flush()
+	time.Sleep(time.Millisecond * 100)
 }
 
-func TestFail(t *testing.T) {
-	b := Buffer{}
-	if b.Bool() ||
-		b.Float32() != 0 ||
-		b.Float64() != 0 ||
-		b.Int() != 0 ||
-		b.Int16() != 0 ||
-		b.Int32() != 0 ||
-		b.Int64() != 0 ||
-		b.String() != "" ||
-		b.Uint() != 0 ||
-		b.Uint16() != 0 ||
-		b.Uint32() != 0 ||
-		b.Uint64() != 0 || !b.Failed {
-		t.Fail()
+func TestReadWrite(t *testing.T) {
+	server, client := setup()
+
+	res := Buffer{}
+	res.PutString("hello")
+	go func() {
+		var w Writer
+		for i := 0; i < 10; i++ {
+			_, err := w.Write(client, res.Data)
+			if err != nil {
+				t.Error(err)
+			}
+		}
+	}()
+
+	var r Reader
+	for i := 0; i < 10; i++ {
+		buff, err := r.Read(server)
+		if err != nil {
+			panic(err)
+		}
+
+		if !reflect.DeepEqual(buff.Data, res.Data) {
+			t.Error("\n", buff.Data, "\n", res.Data)
+		}
 	}
+}
+
+func setup() (c, s net.Conn) {
+	adr, err := net.ResolveTCPAddr("tcp", ":8000")
+	if err != nil {
+		panic(err)
+	}
+
+	server, err := net.ListenTCP("tcp", adr)
+	if err != nil {
+		panic(err)
+	}
+
+	adr, err = net.ResolveTCPAddr("tcp", "127.0.0.1:8000")
+	if err != nil {
+		panic(err)
+	}
+
+	client, err := net.DialTCP("tcp", nil, adr)
+	if err != nil {
+		panic(err)
+	}
+
+	conn, err := server.Accept()
+	if err != nil {
+		panic(err)
+	}
+
+	return client, conn
 }

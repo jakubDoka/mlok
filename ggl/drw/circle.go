@@ -3,9 +3,9 @@ package drw
 import (
 	"math"
 
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/mat"
-	"github.com/jakubDoka/gobatch/mat/angle"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/mat"
+	"github.com/jakubDoka/mlok/mat/angle"
 )
 
 // AutoResolutionSpacing is size of fraction of the circle that has Auto resolution

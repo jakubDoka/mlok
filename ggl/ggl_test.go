@@ -3,7 +3,7 @@ package ggl
 import (
 	"testing"
 
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/mat"
 )
 
 func TestNPSResize(t *testing.T) {

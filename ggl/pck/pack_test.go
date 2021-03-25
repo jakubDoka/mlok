@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/mlok/ggl"
 
 	"github.com/jakubDoka/gogen/dirs"
 )
@@ -48,7 +48,7 @@ func TestPathParsing(t *testing.T) {
 }
 
 func TestNSheet(t *testing.T) {
-	names, err := dirs.ListFilePaths("C:/Users/jakub/Documents/programming/golang/src/gobatch/t1", ".png")
+	names, err := dirs.ListFilePaths("C:/Users/jakub/Documents/programming/golang/src/mlok/t1", ".png")
 	if err != nil {
 		panic(err)
 	}
@@ -58,7 +58,7 @@ func TestNSheet(t *testing.T) {
 		panic(err)
 	}
 
-	image1, err := ggl.LoadImage("C:/Users/jakub/Documents/programming/golang/src/gobatch/t1/beckup.png")
+	image1, err := ggl.LoadImage("C:/Users/jakub/Documents/programming/golang/src/mlok/t1/beckup.png")
 	if err != nil {
 		panic(err)
 	}

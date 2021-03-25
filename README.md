@@ -12,7 +12,7 @@ I have to mention that engine depends two "languages", `goml` and `goss`. Yes th
 
 ## Examples
 
-Nothing is better the learn from code so I wrote couple of examples to show off what engine can do for reference. You can find them all [here](https://github.com/jakubDoka/gobatch/tree/main/examples).
+Nothing is better the learn from code so I wrote couple of examples to show off what engine can do for reference. You can find them all [here](https://github.com/jakubDoka/mlok/tree/main/examples).
 
 ![raycasting](https://user-images.githubusercontent.com/60517552/111913276-ae94fc80-8a6d-11eb-8ac6-738b8b561e45.png)
 

@@ -22,8 +22,8 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/jakubDoka/gobatch/mat"
-	"github.com/jakubDoka/gobatch/refl"
+	"github.com/jakubDoka/mlok/mat"
+	"github.com/jakubDoka/mlok/refl"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
 )

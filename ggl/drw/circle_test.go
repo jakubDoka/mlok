@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/jakubDoka/gobatch/ggl"
+	"github.com/jakubDoka/mlok/ggl"
 )
 
 func TestCircle(t *testing.T) {

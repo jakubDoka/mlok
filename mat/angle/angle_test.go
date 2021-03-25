@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/mat"
 )
 
 func TestNorm(t *testing.T) {

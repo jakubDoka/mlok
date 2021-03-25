@@ -1,8 +1,10 @@
 package txt
 
 import (
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/mat"
+	"fmt"
+
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/mat"
 
 	"github.com/jakubDoka/gogen/str"
 )
@@ -47,6 +49,9 @@ type Paragraph struct {
 	// Content is only important to markdown, when you are drawing directly with
 	// drawer, Content is not used
 	Content str.String
+
+	// Align defines how the text is aligned
+	Align
 
 	data, selection ggl.Data
 
@@ -205,4 +210,30 @@ func (p *Paragraph) SetCenter(pos mat.Vec) {
 type line struct {
 	level      float64
 	start, end int
+}
+
+// Allign determinate text align
+type Align float64
+
+func (a Align) String() string {
+	for k, v := range Aligns {
+		if v == a {
+			return k
+		}
+	}
+
+	return fmt.Sprint(float64(a))
+}
+
+// Align constants
+const (
+	Left   Align = 0
+	Middle Align = .5
+	Right  Align = 1
+)
+
+var Aligns = map[string]Align{
+	"left":   Left,
+	"middle": Middle,
+	"right":  Right,
 }

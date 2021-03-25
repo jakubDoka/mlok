@@ -4,15 +4,15 @@ import (
 	"math"
 	"runtime"
 
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/ggl/drw"
-	"github.com/jakubDoka/gobatch/ggl/drw/particle"
-	"github.com/jakubDoka/gobatch/logic/frame"
-	"github.com/jakubDoka/gobatch/logic/gate"
-	"github.com/jakubDoka/gobatch/mat"
-	"github.com/jakubDoka/gobatch/mat/lerp"
-	"github.com/jakubDoka/gobatch/mat/lerpc"
-	"github.com/jakubDoka/gobatch/mat/rgba"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/ggl/drw"
+	"github.com/jakubDoka/mlok/ggl/drw/particle"
+	"github.com/jakubDoka/mlok/logic/frame"
+	"github.com/jakubDoka/mlok/logic/gate"
+	"github.com/jakubDoka/mlok/mat"
+	"github.com/jakubDoka/mlok/mat/lerp"
+	"github.com/jakubDoka/mlok/mat/lerpc"
+	"github.com/jakubDoka/mlok/mat/rgba"
 )
 
 // example demonstrates particle drawing and multithreading capability of ggl/drw/particle

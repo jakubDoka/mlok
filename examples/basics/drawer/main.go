@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/ggl/drw"
-	"github.com/jakubDoka/gobatch/mat"
-	"github.com/jakubDoka/gobatch/mat/rgba"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/ggl/drw"
+	"github.com/jakubDoka/mlok/mat"
+	"github.com/jakubDoka/mlok/mat/rgba"
 )
 
 // this example demonstrates drawing capability of drw.Geom

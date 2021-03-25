@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/mat"
 )
 
 // Tree is a quadtree that prefers updating over reinseting. If you

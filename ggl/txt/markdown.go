@@ -5,7 +5,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/mat"
 
 	"github.com/golang/freetype/truetype"
 	"github.com/jakubDoka/gogen/str"
@@ -242,6 +242,24 @@ func (m *Markdown) MakeTriangles(p *Paragraph) {
 	end := &p.lines[len(p.lines)-1]
 	if end.end == -1 {
 		end.end = len(p.dots)
+	}
+
+	// do aligning
+	if p.Width != 0 && p.Align != Left {
+		if p.lines[0].end == 1 { // no content case
+			p.dots[0].X += p.Width * float64(p.Align)
+		} else {
+			for _, l := range p.lines {
+				end := l.end*4 - 4
+				shift := (p.Width - p.data.Vertexes[end-1].Pos.X) * float64(p.Align)
+				for i := l.start * 4; i < end; i++ {
+					p.data.Vertexes[i].Pos.X += shift
+				}
+				for i := l.start; i < l.end; i++ {
+					p.dots[i].X += shift
+				}
+			}
+		}
 	}
 
 	for _, e := range p.instant { //instant effects are applied to base data

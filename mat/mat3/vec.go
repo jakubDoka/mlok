@@ -3,7 +3,7 @@ package mat3
 import (
 	"math"
 
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/mat"
 )
 
 type Vec struct {
@@ -14,14 +14,54 @@ func V(x, y, z float64) Vec {
 	return Vec{x, y, z}
 }
 
+// Rotated rotates vector around pivot by angle with a right hand rule
+// so tongue is pivot and curved fingers point to the direction of rotation
+func (v Vec) Rotated(angle float64, pivot Vec) Vec {
+	colinear := pivot.Scaled(v.Dot(pivot) / v.Dot(v))
+	orthogonal := v.Sub(colinear)
+	length := orthogonal.Len()
+
+	// x and y are two vectors orthogonal and normalized, we can now use tham as local
+	// coordinate system
+	y := v.Cross(pivot).Normalized()
+	x := orthogonal.Divided(length)
+	sin, cos := math.Sincos(angle)
+
+	// now we use coordinate system to project the angle, then scale it to original
+	// length and finally add the previously subtracted component
+	return x.Scaled(cos).Add(y.Scaled(sin)).Scaled(length).Add(colinear)
+}
+
+func (v Vec) Add(o Vec) Vec {
+	return Vec{v.X + o.X, v.Y + o.Y, v.Z + o.Z}
+}
+
 func (v Vec) Sub(o Vec) Vec {
 	return Vec{v.X - o.X, v.Y - o.Y, v.Z - o.Z}
 }
 
-func (v Vec) Cross2(o Vec) Vec {
-	y := -(v.Z*o.X + o.Z*v.X) / (v.Y*o.X + o.Y*v.X)
-	x := (v.Y*y + v.Z) / v.X
-	return Vec{x, y, 1}
+func (v Vec) Mul(o Vec) Vec {
+	return Vec{v.X * o.X, v.Y * o.Y, v.Z * o.Z}
+}
+
+func (v *Vec) AddE(o Vec) {
+	v.X += o.X
+	v.Y += o.Y
+	v.Z += o.Z
+}
+
+func (v *Vec) MulE(o Vec) {
+	v.X *= o.X
+	v.Y *= o.Y
+	v.Z *= o.Z
+}
+
+func (v Vec) Scaled(scalar float64) Vec {
+	return Vec{v.X * scalar, v.Y * scalar, v.Z * scalar}
+}
+
+func (v Vec) Divided(scalar float64) Vec {
+	return Vec{v.X / scalar, v.Y / scalar, v.Z / scalar}
 }
 
 func (v Vec) Cross(o Vec) Vec {
@@ -30,6 +70,10 @@ func (v Vec) Cross(o Vec) Vec {
 		v.X*o.Z - v.Z*o.X,
 		v.Y*o.X - v.X*o.Y,
 	}
+}
+
+func (v Vec) Dot(o Vec) float64 {
+	return v.X*o.X + v.Y*o.Y + v.Z*o.Z
 }
 
 func (v Vec) Normalized() Vec {

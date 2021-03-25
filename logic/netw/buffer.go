@@ -3,7 +3,15 @@ package netw
 import (
 	"encoding/binary"
 	"math"
+	"net"
+	"reflect"
+
+	"github.com/jakubDoka/mlok/mat"
 )
+
+/*imp(
+	github.com/jakubDoka/gogen/templates
+)*/
 
 // Size stores byte sizes of types
 const (
@@ -21,6 +29,8 @@ const (
 	Float64 = 8
 )
 
+var ByteType = reflect.TypeOf(byte(0))
+
 // Buffer si for marshaling Data into bites
 type Buffer struct {
 	Data []byte
@@ -28,6 +38,15 @@ type Buffer struct {
 
 	cursor int
 	Failed bool
+}
+
+func (b *Buffer) PutVec(input mat.Vec) {
+	b.PutFloat64(input.X)
+	b.PutFloat64(input.Y)
+}
+
+func (b *Buffer) Vec() mat.Vec {
+	return mat.V(b.Float64(), b.Float64())
 }
 
 // PutBool puts bool to Buffer
@@ -76,6 +95,7 @@ func (b *Buffer) Int32() int32 {
 	PutInt32<uint32, uint32, Uint32, Uint32, PutUint32, PutUint32>
 	PutInt32<uint64, uint64, Uint64, Uint64, PutUint64, PutUint64>
 	PutInt32<uint, uint64, Uint, Uint64, PutUint64, PutUint>
+	templates.Resize<buff, Resize>
 )*/
 
 // PutFloat64 writes float64 to Buffer
@@ -159,106 +179,69 @@ func utb(u uint8) bool {
 	return u == 1
 }
 
-// Builder collects data and encodes it with its length.
-// Data in this form can be then send over network and split by Splitter
-type Builder struct {
-	Buffer
+// Writer writes data to connection in a way that Reader can read it on other side
+type Writer struct {
+	buff []byte
+	size [4]byte
 }
 
 // Write writes to builder, this never fails and always writes all data
-func (b *Builder) Write(data []byte) (n int, err error) {
-	b.PutUint32(uint32(len(data)))
-	b.Data = append(b.Data, data...)
-	return len(data), nil
+func (w *Writer) Write(conn net.Conn, data []byte) (n int, err error) {
+	binary.LittleEndian.PutUint32(w.size[:], uint32(len(data)))
+
+	w.buff = w.buff[:0]
+	w.buff = append(w.buff, w.size[:]...)
+	w.buff = append(w.buff, data...)
+
+	return conn.Write(w.buff)
 }
 
-// Flush returns resulting data and clears the Buffer
-func (b *Builder) Flush() []byte {
-	dat := b.Data
-	b.Clear()
-	return dat
-}
-
-// Splitter handles splitting of incoming packets into separate Buffers, assuming that
+// Reader handles splitting of incoming packets into separate Buffers, assuming that
 // Buffers were put together by Builder
-type Splitter struct {
-	Buffer
-	leftover   Buffer
-	supposed   int
-	pool, buff []Buffer
+type Reader struct {
+	buff buff
+	pool []Buffer
+	size [4]byte
 }
 
-func (s *Splitter) Read(data []byte) (n int, err error) {
-	if s.supposed != 0 {
-		supposed := s.supposed - len(s.leftover.Data)
-		if len(data) < supposed {
-			s.leftover.Data = append(s.leftover.Data, data...)
-			return
-		}
-
-		s.leftover.Data = append(s.leftover.Data, data[:supposed]...)
-		s.buff = append(s.buff, s.leftover)
-		data = data[supposed:]
-		s.supposed = 0
-	}
-
-	s.Data = append(s.Data, data...)
-
-	for {
-		length := int(s.Uint32())
-		if s.Failed {
-			s.Data = append(s.Data[:0], s.Data[s.cursor-4:]...)
-			s.reset()
-			return
-		}
-
-		if s.Advance(length) {
-			s.leftover = s.reuse(s.Data[s.cursor-length:])
-			s.supposed = length
-			s.Clear()
-			return
-		}
-
-		s.buff = append(s.buff, s.reuse(s.Data[s.cursor-length:s.cursor]))
-
-		if s.Finished() {
-			s.Clear()
-			return
-		}
-	}
-}
-
-// Recycle gives Buffer back to splitter so it can reuse it in next split
-func (s *Splitter) Recycle(bs ...Buffer) {
-	s.pool = append(s.pool, bs...)
-}
-
-// Flush returns collected buffers and clears the Splitter
-//
-// IMPORTANT: Splitter will reuse the slice next time you call Read on him
-// so if you want to preserv buffers for later, copy them to slice you
-// own. Buffers are cheap to copy.
-func (s *Splitter) Flush() []Buffer {
-	data := s.buff
-	s.buff = s.buff[:0]
-	return data
-}
-
-func (s *Splitter) reset() {
-	s.Failed = false
-	s.cursor = 0
-}
-
-func (s *Splitter) reuse(data []byte) (buff Buffer) {
-	l := len(s.pool) - 1
-	if l == -1 {
-		buff.Data = append(buff.Data, data...)
+// Read reads one buffer from connection
+func (r *Reader) Read(conn net.Conn) (b Buffer, err error) {
+	_, err = conn.Read(r.size[:])
+	if err != nil {
 		return
 	}
 
-	buff, s.pool[l] = s.pool[l], buff
-	s.pool = s.pool[:l]
-	buff.Data = append(buff.Data, data...)
+	ln := int(binary.LittleEndian.Uint32(r.size[:]))
+	r.buff.Resize(ln)
+	for i := 0; i < ln; {
+		n, err := conn.Read(r.buff[i:])
+		if err != nil {
+			return b, err
+		}
+		i += n
+	}
+
+	b = r.reuse(r.buff)
+
+	return
+}
+
+// Recycle gives Buffer back to Reader so it can reuse it in next read
+func (r *Reader) Recycle(bs ...Buffer) {
+	r.pool = append(r.pool, bs...)
+}
+
+// reuse takes an buffer from pool or creates new one if there is none
+func (r *Reader) reuse(data []byte) (buff Buffer) {
+	l := len(r.pool) - 1
+	if l != -1 {
+		buff, r.pool[l] = r.pool[l], buff
+		r.pool = r.pool[:l]
+	}
+
+	buff.Data = append(buff.Data[:0], data...)
 
 	return buff
 }
+
+type buff []byte

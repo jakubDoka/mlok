@@ -3,11 +3,11 @@ package main
 import (
 	_ "image/png"
 
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/ggl/pck"
-	"github.com/jakubDoka/gobatch/ggl/ui"
-	"github.com/jakubDoka/gobatch/logic/frame"
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/ggl/pck"
+	"github.com/jakubDoka/mlok/ggl/ui"
+	"github.com/jakubDoka/mlok/logic/frame"
+	"github.com/jakubDoka/mlok/mat"
 )
 
 func main() {

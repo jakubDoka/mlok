@@ -1,4 +1,4 @@
-module github.com/jakubDoka/gobatch
+module github.com/jakubDoka/mlok
 
 go 1.16
 

@@ -4,11 +4,11 @@ import (
 	"io/ioutil"
 	"math"
 
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/ggl/drw"
-	"github.com/jakubDoka/gobatch/ggl/pck"
-	"github.com/jakubDoka/gobatch/ggl/txt"
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/ggl/drw"
+	"github.com/jakubDoka/mlok/ggl/pck"
+	"github.com/jakubDoka/mlok/ggl/txt"
+	"github.com/jakubDoka/mlok/mat"
 	"github.com/jakubDoka/sterr"
 
 	"github.com/jakubDoka/goml/goss"
@@ -159,7 +159,7 @@ func (p *Processor) resize(e *Element, takable float64, formatter Formatter, dim
 	filler := func(e *Element) float64 {
 		formatter.Set(e)
 		sz := formatter.Size()
-		if sz == Fill {
+		if sz == Fill || e.Expands(dim) {
 			sz = takable
 		} else {
 			sz += formatter.Sum(e.Margin)
@@ -255,6 +255,7 @@ func (p *Processor) resize(e *Element, takable float64, formatter Formatter, dim
 					taken = math.Max(p.resize(ch, taken, formatter, dim), taken)
 				}
 			}
+			takable = taken
 		}
 
 		// resolve margins
@@ -267,7 +268,7 @@ func (p *Processor) resize(e *Element, takable float64, formatter Formatter, dim
 				}
 			}
 
-			split := splitter(math.Max(takable, taken)-*formatter.Ptr(), len(p.margins))
+			split := splitter(takable-*formatter.Ptr(), len(p.margins))
 			for _, v := range p.margins {
 				*v = split
 			}

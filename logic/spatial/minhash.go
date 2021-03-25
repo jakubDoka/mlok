@@ -1,7 +1,7 @@
 package spatial
 
 import (
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/mat"
 )
 
 // MinHash is for efficient spatial hasher, tuned to perfection

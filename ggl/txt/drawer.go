@@ -3,8 +3,8 @@ package txt
 import (
 	"unicode"
 
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/mat"
 
 	"github.com/jakubDoka/gogen/str"
 )

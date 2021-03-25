@@ -4,13 +4,13 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/ggl/drw"
-	"github.com/jakubDoka/gobatch/ggl/key"
-	"github.com/jakubDoka/gobatch/logic/frame"
-	"github.com/jakubDoka/gobatch/mat"
-	"github.com/jakubDoka/gobatch/mat/angle"
-	"github.com/jakubDoka/gobatch/mat/rgba"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/ggl/drw"
+	"github.com/jakubDoka/mlok/ggl/key"
+	"github.com/jakubDoka/mlok/logic/frame"
+	"github.com/jakubDoka/mlok/mat"
+	"github.com/jakubDoka/mlok/mat/angle"
+	"github.com/jakubDoka/mlok/mat/rgba"
 )
 
 var (

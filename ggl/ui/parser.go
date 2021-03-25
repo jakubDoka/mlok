@@ -4,9 +4,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jakubDoka/gobatch/logic/event"
 	"github.com/jakubDoka/goml"
 	"github.com/jakubDoka/goml/goss"
+	"github.com/jakubDoka/mlok/logic/event"
 	"github.com/jakubDoka/sterr"
 )
 

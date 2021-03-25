@@ -1,6 +1,8 @@
 package gate
 
-import "sync"
+import (
+	"sync"
+)
 
 // Queue can be used to push tasks between threads.
 // mind that even though this can simplify things greatly
@@ -84,4 +86,33 @@ func (w *Worker) Wait() {
 	}
 	<-w.out
 	w.working = false
+}
+
+// Func is set on one thread
+// and ran and discarded on another
+type Func struct {
+	r Runner
+	sync.Mutex
+}
+
+// set stets the runner safely
+func (f *Func) Set(r Runner) {
+	f.Lock()
+	f.r = r
+	f.Unlock()
+}
+
+// Run runs and discards the Runner
+func (f *Func) Run() {
+	f.Lock()
+	r := f.r
+	f.r = nil
+	f.Unlock()
+	if r != nil {
+		r.Run()
+	}
+}
+
+type Runner interface {
+	Run()
 }

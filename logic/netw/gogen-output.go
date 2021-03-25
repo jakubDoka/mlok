@@ -115,3 +115,15 @@ func (b *Buffer) Uint() uint {
 	return uint(binary.LittleEndian.Uint64(b.Data[b.cursor-Uint : b.cursor]))
 }
 
+
+// Resize resizes the buff
+func (v *buff) Resize(size int) {
+	if cap(*v) >= size {
+		*v = (*v)[:size]
+	} else {
+		ns := make(buff, size)
+		copy(ns, *v)
+		*v = ns
+	}
+}
+

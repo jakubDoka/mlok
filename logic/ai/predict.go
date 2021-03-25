@@ -3,7 +3,7 @@ package ai
 import (
 	"math"
 
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/mat"
 )
 
 // Predict calculates optimal trajectory for shooter to hit moving target

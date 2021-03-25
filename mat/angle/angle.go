@@ -58,9 +58,9 @@ func To(a, b float64) float64 {
 // Norm normalizes angle between <-math.Pi, math.Pi>
 func Norm(a float64) float64 {
 	if a > math.Pi {
-		a -= math.Floor(a*IPi2) * Pi2
+		a -= math.Floor(a*IPi2)*Pi2 + Pi2
 	} else if a < -math.Pi {
-		a -= math.Ceil(a*IPi2) * Pi2
+		a -= math.Ceil(a*IPi2)*Pi2 - Pi2
 	}
 	return a
 }

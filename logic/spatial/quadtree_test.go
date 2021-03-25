@@ -3,7 +3,7 @@ package spatial
 import (
 	"testing"
 
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/mat"
 )
 
 func TestTree(t *testing.T) {

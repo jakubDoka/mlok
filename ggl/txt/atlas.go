@@ -7,8 +7,8 @@ import (
 	"sort"
 	"unicode"
 
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/mat"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/font/basicfont"

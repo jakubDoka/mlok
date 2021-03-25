@@ -3,7 +3,7 @@ package lerpc
 import (
 	"math/rand"
 
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/mat"
 )
 
 // ConstantTween is wrapper around mat.RGBA that implements Gradient,

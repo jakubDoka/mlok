@@ -1,10 +1,10 @@
 package main
 
 import (
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/ggl/ui"
-	"github.com/jakubDoka/gobatch/logic/frame"
-	"github.com/jakubDoka/gobatch/mat/rgba"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/ggl/ui"
+	"github.com/jakubDoka/mlok/logic/frame"
+	"github.com/jakubDoka/mlok/mat/rgba"
 )
 
 // example showcases ui capability of ggl/ui

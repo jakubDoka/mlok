@@ -5,7 +5,7 @@ dist = open("colors.go", "w")
 
 dist.write("""package rgba
 
-import "github.com/jakubDoka/gobatch/mat"
+import "github.com/jakubDoka/mlok/mat"
 
 // color "constants"
 var (

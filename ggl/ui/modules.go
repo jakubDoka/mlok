@@ -3,13 +3,13 @@ package ui
 import (
 	"math"
 
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/ggl/drw"
-	"github.com/jakubDoka/gobatch/ggl/key"
-	"github.com/jakubDoka/gobatch/ggl/txt"
-	"github.com/jakubDoka/gobatch/logic/timer"
-	"github.com/jakubDoka/gobatch/mat"
-	"github.com/jakubDoka/gobatch/mat/rgba"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/ggl/drw"
+	"github.com/jakubDoka/mlok/ggl/key"
+	"github.com/jakubDoka/mlok/ggl/txt"
+	"github.com/jakubDoka/mlok/logic/timer"
+	"github.com/jakubDoka/mlok/mat"
+	"github.com/jakubDoka/mlok/mat/rgba"
 
 	"github.com/atotto/clipboard"
 	"github.com/jakubDoka/gogen/str"
@@ -46,6 +46,7 @@ func (a *Area) Init(e *Element) {
 	a.CursorWidth = e.Float("cursor_width", 2)
 	a.CursorMask = e.RGBA("cursor_mask", mat.White)
 	a.SelectionColor = e.RGBA("selection_color", mat.Alpha(.5))
+
 	a.AutoFrequency = e.Float("auto_frequency", .03)
 	a.HoldResponceSpeed = e.Float("hold_responce_speed", .5)
 
@@ -759,6 +760,7 @@ func (t *Text) DefaultStyle() goss.Style {
 		"text_margin":          {"inherit"},
 		"text_background":      {"inherit"},
 		"text_selection_color": {"inherit"},
+		"text_align":           {"inherit"},
 	}
 }
 
@@ -773,6 +775,7 @@ func (t *Text) Init(e *Element) {
 	}
 
 	t.Markdown = mkd
+	t.Align = t.Props.Align("text_align", txt.Left)
 	t.Scl = t.Vec("text_scale", mat.V(1, 1))
 	t.Mask = t.RGBA("text_color", mat.White)
 	t.SelectionColor = t.RGBA("text_selection_color", mat.Alpha(.5))
@@ -864,13 +867,16 @@ func (t *Text) DrawOnTop(tg ggl.Target, canvas *drw.Geom) {
 
 // OnFrameChange implements Module interface
 func (t *Text) OnFrameChange() {
-	t.Pos = mat.V(t.Frame.Min.X, t.Frame.Max.Y)
+	t.Pos = mat.V(t.Frame.Min.X+t.Padding.Min.X, t.Frame.Max.Y-t.Padding.Max.Y)
 	t.Paragraph.Update(0)
 }
 
 // Width implements Module interface
 func (t *Text) Width(takable, taken float64) float64 {
 	t.UpdateParagraph(takable)
+	if t.Align != txt.Left {
+		return t.Paragraph.Width * t.Scl.X
+	}
 	return t.Bounds().W() * t.Scl.X
 }
 

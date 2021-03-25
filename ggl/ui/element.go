@@ -5,10 +5,10 @@ import (
 	"math"
 	"strings"
 
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/ggl/drw"
-	"github.com/jakubDoka/gobatch/logic/event"
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/ggl/drw"
+	"github.com/jakubDoka/mlok/logic/event"
+	"github.com/jakubDoka/mlok/mat"
 
 	"github.com/jakubDoka/goml"
 	"github.com/jakubDoka/goml/goss"
