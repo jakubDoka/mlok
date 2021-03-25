@@ -20,6 +20,8 @@ Nothing is better the learn from code so I wrote couple of examples to show off 
 
 ![chat ui](https://user-images.githubusercontent.com/60517552/111915195-52ce7180-8a75-11eb-8ccf-54f52c800427.png)
 
+How to [create a window](https://github.com/jakubDoka/mlok/wiki/First-window) or [draw a sprite](https://github.com/jakubDoka/mlok/wiki/First-sprite) is also documented.
+
 ## Documentation
 
 I am going to be absolutely honest, some comments can be outdated. When i was developing ui package (ant its still in progress), i tried multiple different approaches and commented things too early. There is a lot of documentation and i have to clean it up, document new features and so on. Please open an issue if doc is unclear or is missing so i can prioritize things.
