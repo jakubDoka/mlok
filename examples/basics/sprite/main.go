@@ -1,12 +1,69 @@
 package main
 
 import (
+	"math"
+
+	_ "image/png"
+
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/logic/frame"
+	"github.com/jakubDoka/mlok/mat"
+	"github.com/jakubDoka/mlok/mat/rgba"
+)
+
+func main() {
+	win, err := ggl.NWindow(nil)
+	if err != nil {
+		panic(err)
+	}
+
+	texture, err := ggl.LoadTexture("square.png")
+	if err != nil {
+		panic(err)
+	}
+
+	// batch uses texture tu render
+	batch := ggl.Batch{
+		Texture: texture,
+	}
+
+	sprite := ggl.NSprite(texture.Frame()) // sprite uses texture metrics to calculate vertexes
+
+	ticker := frame.Delta{}
+
+	var time float64
+	for !win.ShouldClose() {
+		time += ticker.Tick()
+		ticker.Log(1)
+
+		// i love math
+		sprite.Draw(
+			&batch,
+			mat.M( // transformation encoded in matrix
+				mat.V(100, 100),
+				mat.V(math.Sin(time), math.Cos(time)),
+				time/2,
+			),
+			mat.Alpha(math.Abs(math.Cos(time))),
+		)
+
+		win.Clear(rgba.AirForceBlueRaf)
+
+		batch.Draw(win)
+		batch.Clear() // ype clear goes here
+
+		win.Update()
+	}
+}
+
+/*
+import (
 	_ "image/jpeg"
 	"math"
 
-	"github.com/jakubDoka/gobatch/ggl"
-	"github.com/jakubDoka/gobatch/logic/frame"
-	"github.com/jakubDoka/gobatch/mat"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/logic/frame"
+	"github.com/jakubDoka/mlok/mat"
 )
 
 func main() {
@@ -78,3 +135,4 @@ func main() {
 		win.Update()
 	}
 }
+*/
