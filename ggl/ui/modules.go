@@ -223,15 +223,17 @@ func (h HoldMap) Hold(b key.Key, win *ggl.Window, delta float64, do func()) bool
 	return false
 }
 
-const buttonStateLen = 3
+type ButtonStateEnum uint8
 
 const (
-	idle = iota
-	hover
-	pressed
+	Idle ButtonStateEnum = iota
+	Hover
+	Pressed
+	Disabled
+	None
 )
 
-var buttonStates = [buttonStateLen]string{"idle", "hover", "pressed"}
+var buttonStates = [...]string{"idle", "hover", "pressed", "disabled"}
 
 // Button is a button, has lot of space for customization, it can be in three states:
 // idle, hover and pressed, each mode can have different message, texture, padding and mask
@@ -251,10 +253,10 @@ type Button struct {
 	Patch
 
 	Text   Text
-	States [buttonStateLen]ButtonState
+	States [len(buttonStates)]ButtonState
 
-	current  int
-	selected bool
+	Current            ButtonStateEnum
+	selected, Disabled bool
 }
 
 // New implements ModuleFactory interface
@@ -318,14 +320,19 @@ func (b *Button) PostInit() {
 		}
 	}
 
-	b.current = -1
-	b.ApplyState(idle)
+	b.Current = None
+	b.ApplyState(Idle)
 }
 
 // Update implements Module interface
 func (b *Button) Update(w *ggl.Window, delta float64) {
+	if b.Disabled {
+		b.ApplyState(Disabled)
+		return
+	}
+
 	if !b.Hovering {
-		b.ApplyState(idle)
+		b.ApplyState(Idle)
 		b.selected = false
 		return
 	}
@@ -342,18 +349,18 @@ func (b *Button) Update(w *ggl.Window, delta float64) {
 	}
 
 	if b.selected {
-		b.ApplyState(pressed)
+		b.ApplyState(Pressed)
 	} else {
-		b.ApplyState(hover)
+		b.ApplyState(Hover)
 	}
 }
 
 // ApplyState applies the button state by index
-func (b *Button) ApplyState(state int) {
-	if b.current == state {
+func (b *Button) ApplyState(state ButtonStateEnum) {
+	if b.Current == state {
 		return
 	}
-	b.current = state
+	b.Current = state
 	bs := &b.States[state]
 	b.Patch.Padding = bs.Padding
 	b.Patch.SetRegion(bs.Region)

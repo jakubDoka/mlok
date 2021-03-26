@@ -1,0 +1,45 @@
+<#> 
+    this is a prefab, you define it by pitting ! before name and slash, 
+    you can then also add template arguments between {} that can be then 
+    substituted by prefab atributes
+<#>
+<!field>
+    <div style="
+        composition: horizontal;
+        size: fill 0;
+        margin: 0 0 0 20;
+        text_scale: inherit;
+        text_margin: fill;
+    "> 
+        {name}: <area id={id} text={text} style="
+            background: .5;
+            text_color: black;
+            size: fill 0;
+            padding: 5;
+        "/>
+    </>
+<!/>
+
+<div style="
+    text_scale: 2;
+    margin: fill;
+    size: 500 0;
+    resizing_x: shrink;
+    padding: 20;
+    background: 0.3 0.3 0.3;
+    text_align: middle;
+"> 
+    Choose your name and ip adress you want to connect to.
+
+    <#> we can now use new type of element <#>
+    <field name="name" id="name" text="noname"/>
+    <field name="IP" id="ip" text="127.0.0.1:8000"/>
+    
+    <button id="connect" style="
+        all_masks: 0 0 .5;
+        hover_mask: green;
+        text_scale: inherit;
+        margin: fill 0 fill 20;
+        padding: 20;
+    ">connect</>
+</>
