@@ -180,7 +180,7 @@ func ParseRGBA(values []interface{}) (c mat.RGBA, ln int) {
 			return v, 1
 		}
 		col, err := mat.HexToRGBA(v)
-		if err != nil {
+		if err == nil {
 			return col, 1
 		}
 		return
