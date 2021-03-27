@@ -16,7 +16,17 @@ import (
 	"github.com/jakubDoka/goml/goss"
 )
 
-// Area is a text input element, you can get its content by turning Area.Text.Text into string
+// Area is a text input element, you can get its content by turning Area.Content into string.
+// It is composed from Text module.
+//
+// style:
+//	cursor_drawer:   		custom_type // something that draws the cursor, it is taken by name from assets
+//  cursor_thickness:		float   	// how thick the cursor is
+//  cursor_mask:			rgba        // mask of cursor
+//  cursor_blink_frequency:	float		// how often cursor blinks
+//  auto_frequency:         float       // when you hold some button that controls the input, action starts
+//										// repeating and this sets how often it repeats
+// 	hold_responce_speed:    float		// how long you have to hold on to button until it starts repeating
 type Area struct {
 	Text
 	HoldMap
@@ -27,9 +37,9 @@ type Area struct {
 
 	LineIdx, Line int
 
-	Blinker                    timer.Timer
-	CursorWidth                float64
-	CursorMask, SelectionColor mat.RGBA
+	Blinker         timer.Timer
+	CursorThickness float64
+	CursorMask      mat.RGBA
 }
 
 // New implements ModuleFactory interface
@@ -43,14 +53,12 @@ func (a *Area) Init(e *Element) {
 	a.Text.Init(e)
 
 	a.drw = a.CursorDrawer("cursor_drawer", a.Scene.Assets.Cursors, defaultCursor{})
-	a.CursorWidth = e.Float("cursor_width", 2)
+	a.CursorThickness = e.Float("cursor_thickness", 2)
 	a.CursorMask = e.RGBA("cursor_mask", mat.White)
-	a.SelectionColor = e.RGBA("selection_color", mat.Alpha(.5))
+	a.Blinker = timer.Period(e.Float("cursor_blinking_frequency", .6))
 
 	a.AutoFrequency = e.Float("auto_frequency", .03)
 	a.HoldResponceSpeed = e.Float("hold_responce_speed", .5)
-
-	a.Blinker = timer.Period(e.Float("cursor_blinking_frequency", .6))
 
 	a.binds = map[key.Key]float64{}
 }
@@ -169,7 +177,7 @@ func (a *Area) DrawOnTop(tg ggl.Target, canvas *drw.Geom) {
 			tg,
 			canvas,
 			a.Dot(mat.Maxi(a.Start, a.End)).Sub(mat.V(0, a.Descent*a.Scl.Y)),
-			mat.V(a.CursorWidth, a.LineHeight*a.Scl.Y),
+			mat.V(a.CursorThickness, a.LineHeight*a.Scl.Y),
 			a.CursorMask,
 		)
 		canvas.Clear()

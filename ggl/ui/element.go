@@ -2,7 +2,6 @@ package ui
 
 import (
 	"io/ioutil"
-	"math"
 	"strings"
 
 	"github.com/jakubDoka/mlok/ggl"
@@ -31,41 +30,50 @@ var (
 	errNoParser         = sterr.New("parser is not avaliable in current scene, set Scene.Parser to enable this method")
 )
 
-// Element is bas and only building piece of ui. It has a lot of components. Most significant is Module
+// Element is only building piece of ui. It has a lot of components. Most significant is Module
 // witch defines appearance and behavior. Then there are Events witch serves a role of comunication with
-// game by connecting listeners. Then there are attributes and style, witch is provided by goml and goss.
+// game by connecting listeners. Next are attributes and style, witch is provided by goml and goss.
 // Also if it is not obvious, elements create recursive tree that is encapsulated in scene, and scene is
-// handled by processor, this allows switching between scenes every element queries for folloving style
+// handled by processor, this allows switching between scenes. Every element queries for folloving style
 // propertyes:
 //
-// style:
-// 	margin: 			aabb						// space that element should have around it self, can be fill*
-//  size: 				vec							// size element should spam, can be fill*
-//	composition: 		vertical/horizontal			// composition of children (on top of each other or next to each other)
-//  resize_mode/_x/_y: 	expand/shrink/exact/ignore	// how element will react to size of its children
-// attributes:
-//	- name - every element has to have unique identifier among other children, think of it as a name in file system
-//  you can access any child Element.Child method, if there is child named "car" and it has child "wheel" you can access
-//  it from cars parent by "car.wheel", if you don't specify name, string index is assigned
-//  - id - id has to be unique for all elements, if there are two or more elements with same id, last one loaded
-// 	keep the id, you can then quickly access the node by using Scene.ID method which is only reason why ids exist
-//  - group - similar to id but multiple elements can be in one group, if you use Scene.Group slice of elements gets
-//  returned
-//  - style - in style you can specify styling of element with goss syntax. For example "margin: fill;size: 100;" will
-// 	is equivalent to setting properties of element manually like:
-//		e.Margin = mat.A(Fill, Fill, Fill, FIll)
-//		e.Size = mat.V(100, 100)
-//  - styles - there you can specify scene loaded styles that you want to include in element, this way you can write jus
-//  style name on multiple places and not hardcode attribute for each element with same styling. List or space separated
-//  string is accepted as multiple styles can be used ("style1 style2" or  ["stile1" "style2"])
-//  - hidden - hidden make element hidden from the start, you can write just hidden with no value, and it will be
-//  considered true
+//	margin: 			aabb						// space that element must have around it self, can be fill*
+//	padding:            aabb                        // space inside element that must be empty
+//	size: 				vec							// size element must spam, can be fill*
+//	composition: 		vertical|horizontal			// composition of children (on top of each other or next to each other)
+//	resize_mode/_x/_y: 	expand|shrink|exact|ignore	// how element will react to size of its children and parent
+//	relative:           bool                        // if property is true, element will ignore size of neighboring children
+//	offset:             vec                         // offset adds offset to element from its supposed position
+//
+// Element also accepts some attributes:
+//
+// name: every element has to have unique identifier among other children, think of it as a name in file system
+// you can access any child with Element.Child method, if there is child named "car" and it has child "wheel" you can access
+// it from cars parent by "car.wheel". If you don't specify name, string index is assigned
+//
+// id: id has to be unique for all elements, if there are two or more elements with same id, last one loaded
+// keep the id, you can then quickly access the node by using Scene.ID method which is only reason why ids exist
+//
+// group: similar to id but multiple elements can be in one group, if you use Scene.Group slice of elements gets
+// returned
+//
+// style: in style you can specify styling of element with goss syntax. For example "margin: fill;size: 100;" will
+// is equivalent to setting properties of element manually like:
+//	e.Margin = mat.A(Fill, Fill, Fill, FIll)
+//	e.Size = mat.V(100, 100)
+//
+// styles: there you can specify scene loaded styles that you want to include in element, this way you can write just
+// style name on multiple places and not hardcode attribute for each element with same styling. List or space separated
+// string is accepted as multiple styles can be used ("style1 style2" or  ["stile1" "style2"])
+//
+// hidden: hidden make element hidden from the start, you can write just hidden with no value, and it will be
+// considered true
 //
 // *fill = reminding space inside parent will be taken, if there is more children with fill prop, space is split equally
 //
-// style behavior works very match css, if you specify list of stiles they will be merged together, each overriding previous
-// in list. The hierarchy is default_style < style_attribute < styles_attribute < inheritance. Yes there is also inheritance.
-// if you provide something like "margin: inherit;" margin will be copied from parents style if he has a margin. As order of
+// Style behavior works very match like css, if you specify list of stiles they will be merged together, each overriding previous
+// in list. The hierarchy is default_style < styles_attribute < style_attribute < inheritance. Yes there is also inheritance.
+// If you provide something like "margin: inherit;" margin will be copied from parents style if he has a margin. As order of
 // children matters, ordered map is used for storing the children. You can index by Element.ChildAt and negative python
 // indexing is supported.
 type Element struct {
@@ -94,7 +102,7 @@ type Element struct {
 	index           int
 }
 
-// NElement constructor initialides internal maps
+// NElement constructor initialides internal maps.
 func NElement() *Element {
 	return &Element{
 		children: NChildren(),
@@ -103,13 +111,13 @@ func NElement() *Element {
 	}
 }
 
-// AddChild adds child to Element, child is initialized if root of e is scene root
+// AddChild adds child to Element, child is initialized if root of e is scene root.
 func (e *Element) AddChild(name string, o *Element) {
 	o.onAdd(name, e.ChildCount(), e)
 	e.children.Put(name, o)
 }
 
-// Path returns elements path, path rebuilding is slow and mainly mant for debbuging purposes
+// Path returns elements path. Path rebuilding is slow and mainly mant for debbuging purposes.
 func (e *Element) Path() string {
 	if e.Parent == nil {
 		return "root"
@@ -117,10 +125,10 @@ func (e *Element) Path() string {
 	return e.Parent.Path() + "." + e.name
 }
 
-// InsertChild allows specifying destination index were child should be inserted
+// InsertChild allows specifying destination index were child should be inserted.
 //
-// index can differ if you insert with name that some element already have as
-// old element will get removed
+// Index can differ if you insert with name that some element already have as
+// old element will get removed.
 func (e *Element) InsertChild(name string, index int, o *Element) {
 	if index == e.ChildCount() {
 		e.AddChild(name, o)
@@ -133,7 +141,7 @@ func (e *Element) InsertChild(name string, index int, o *Element) {
 	e.updateIndexes(index, e.ChildCount()-1)
 }
 
-// RemoveChild removes child by name and returns it of nil if there is no
+// RemoveChild removes child by name and returns nil if there is no
 // child with that name on this level
 func (e *Element) RemoveChild(name string) *Element {
 	div, _, _ := e.children.Remove(name)
@@ -150,8 +158,8 @@ func (e *Element) PopChild(index int) *Element {
 }
 
 // Child takes dot separated path, by which you can get any
-// child ony any level so if you have element with child "a" and that
-// child has child "b" you ll get that child by "b" by "a.b"
+// child ony any level. If you have element with child "a" and that
+// child has child "b" you ll get the child by "a.b"
 func (e *Element) Child(path string) (*Element, bool) {
 	comps := strings.Split(path, ".")
 	for _, c := range comps {
@@ -166,9 +174,9 @@ func (e *Element) Child(path string) (*Element, bool) {
 }
 
 // FindChild performs recursive search for child, cap specifies how match
-// children is enough
+// children is enough.
 //
-// passing negative value makes cursor unlimited
+// Passing negative value makes cursor unlimited.
 func (e *Element) FindChild(name string, cap int, cursor *[]*Element) bool {
 	if cap == 0 {
 		return false
@@ -191,7 +199,7 @@ func (e *Element) FindChild(name string, cap int, cursor *[]*Element) bool {
 	return false
 }
 
-// LoadGoml abstracts loading of file
+// LoadGoml abstracts loading of file and calls Element.AddGoml on bites
 func (e *Element) LoadGoml(paths ...string) error {
 	for _, p := range paths {
 		bts, err := ioutil.ReadFile(p)
@@ -207,9 +215,9 @@ func (e *Element) LoadGoml(paths ...string) error {
 	return nil
 }
 
-// AddGoml parses inputted goml source and adds parsed elements to e
+// AddGoml parses inputted goml source and adds parsed elements to e.
 //
-// panics if e.Scene == nil or e.Scene.Parser == nil
+// Panics if e.Scene == nil or e.Scene.Parser == nil.
 func (e *Element) AddGoml(source []byte) error {
 	if e.Scene == nil {
 		panic(errNoScene)
@@ -230,31 +238,35 @@ func (e *Element) AddGoml(source []byte) error {
 	return nil
 }
 
-func (e *Element) Listen(name string, runner event.StringRunner) {
-	e.Events.Add(&event.Listener{
+// Listen registers event listener on element, and returns the listener.
+func (e *Element) Listen(name string, runner event.StringRunner) *event.Listener {
+	el := &event.Listener{
 		Name:   name,
 		Runner: runner,
-	})
+	}
+	e.Events.Add(el)
+
+	return el
 }
 
-// ChildCount returns child count on first layer, useful
-// with ChildAt to loop over all children
+// ChildCount returns child count on first layer. Useful
+// with ChildAt to loop over all children.
 func (e *Element) ChildCount() int {
 	return len(e.children.Slice())
 }
 
-// ChildAt gets child by index, usefull with ChildCount
-// to loop over all children
+// ChildAt gets child by index.
 func (e *Element) ChildAt(index int) *Element {
 	e.projectIndex(&index)
 	return e.children.Slice()[index].Value
 }
 
-// ForChild loops over children
+// ForChild performs con for each child.
 func (e *Element) ForChild(con func(ch *Element)) {
 	e.forChild(FCfg{}, con)
 }
 
+// forChild loops over children with Configuration
 func (e *Element) forChild(cfg FCfg, con func(ch *Element)) {
 	if cfg.Filter == nil {
 		cfg.Filter = func(ch *Element) bool { return true }
@@ -277,15 +289,15 @@ func (e *Element) forChild(cfg FCfg, con func(ch *Element)) {
 
 }
 
-// Index getter
+// Index getter.
 func (e *Element) Index() int {
 	return e.index
 }
 
-// SetIndex sets index of element amongst other children
+// SetIndex sets index of element amongst other children.
 //
-// it does not make sense to set index if element has no parent
-// and nothin will happen
+// It does not make sense to set index if element has no parent
+// and nothin will happen.
 func (e *Element) SetIndex(value int) {
 	if e.Scene != nil {
 		e.Scene.Resize.Notify()
@@ -298,19 +310,19 @@ func (e *Element) SetIndex(value int) {
 	}
 }
 
-// ReIndex moves child from old to new index
+// ReIndex moves child from old to new index.
 func (e *Element) ReIndex(old, new int) {
 	div := e.children.Slice()[old]
 	div.Value.SetIndex(new)
 }
 
-// Name getter
+// Name getter.
 func (e *Element) Name() string {
 	return e.name
 }
 
-// SetName will replace element with name equal to value if there is such
-// div, of corse if value == e.Name() nothing happens
+// SetName will change name of element, if you rename it to a name of some other element,
+// that element will be removed.
 func (e *Element) SetName(value string) {
 	if e.Parent != nil {
 		e.Parent.children.Rename(e.name, value)
@@ -318,8 +330,8 @@ func (e *Element) SetName(value string) {
 	e.name = value
 }
 
-// Rename changes name of element with original name, returns false
-// if no element with that name wos found, the element index is preserved
+// Rename old to new if there is element which name equals old. If there is already element
+// with name equal to new, it will get removed.
 func (e *Element) Rename(old, new string) bool {
 	div, _, ok := e.children.Value(old)
 	if !ok {
@@ -329,7 +341,7 @@ func (e *Element) Rename(old, new string) bool {
 	return true
 }
 
-// ID is id getter
+// ID getter.
 func (e *Element) ID() string {
 	return e.id
 }
@@ -377,18 +389,6 @@ func (e *Element) SetHidden(value bool) {
 	e.onHiddenChange()
 }
 
-// Hide hides the div, when element is hidden its size is ignored
-func (e *Element) Hide() {
-	e.hidden = true
-	e.onHiddenChange()
-}
-
-// Show does reverse of Hide
-func (e *Element) Show() {
-	e.hidden = false
-	e.onHiddenChange()
-}
-
 // MarginRealSize returns real size Margin will spam, Fill is considered 0
 func (e *Element) MarginRealSize() mat.Vec {
 	return sumAABB(e.Margin)
@@ -423,6 +423,8 @@ func (e *Element) onHiddenChange() {
 	}
 }
 
+// update indexes performs re-indexing of elements in case the
+// index changed
 func (e *Element) updateIndexes(old, new int) {
 	if old > new {
 		old, new = new, old
@@ -435,6 +437,7 @@ func (e *Element) updateIndexes(old, new int) {
 	}
 }
 
+// onAdd is called when adding element to scene
 func (e *Element) onAdd(name string, index int, parent *Element) {
 	if e.Parent != nil { // just in case
 		e.Parent.RemoveChild(e.name)
@@ -453,7 +456,8 @@ func (e *Element) onRemove() {
 	e.Scene = nil
 }
 
-// projectIndex is used when manipulating with child indexes
+// projectIndex is used when manipulating with child indexes, it simply
+// simulates python indexing
 func (e *Element) projectIndex(i *int) {
 	v := *i
 	l := len(e.children.Slice())
@@ -472,7 +476,7 @@ func (e *Element) projectIndex(i *int) {
 	}
 }
 
-// update propagates update call on modules
+// update propagates update call on modules, it also invokes mouse event
 func (e *Element) update(p *Processor, w *ggl.Window, delta float64) {
 	// handle mouse exit, enter
 	contains := e.Frame.Contains(w.MousePos())
@@ -534,8 +538,7 @@ func (e *Element) init(s *Scene) {
 	e.Module.PostInit()
 }
 
-// Move is next step after resize, size of all elements is calculated,
-// now we can move them all to correct place
+// move moves element accordingly, assuming margin and size are resolved
 func (e *Element) move(offset mat.Vec, horizontal bool) mat.Vec {
 	off := offset.Add(e.margin.Min).Add(e.Offest)
 	e.Frame = e.size.ToAABB().Moved(off)
@@ -623,8 +626,9 @@ type Module interface {
 	// OnFrameChange is called by processor when frame of element changes
 	OnFrameChange()
 
-	MinSize() mat.Vec
-
+	// Width and Height offers module what it has in disposition and module should return
+	// how match it will take, its not recommended to take more then is takable, taken is
+	// amount of space element would take with no modification
 	Width(takable, taken float64) float64
 	Height(takable, taken float64) float64
 }
@@ -671,17 +675,6 @@ func (*ModuleBase) Update(*ggl.Window, float64) {}
 // OnFrameChange implements Module interface
 func (*ModuleBase) OnFrameChange() {}
 
-// MinSize implements Module interface
-func (m *ModuleBase) MinSize() (sz mat.Vec) {
-	if m.Size.X != Fill {
-		sz.X += m.Size.X
-	}
-	if m.Size.Y != Fill {
-		sz.Y += m.Size.Y
-	}
-	return sz.Add(m.MarginRealSize())
-}
-
 // Width implements Module interface
 func (m *ModuleBase) Width(takable, taken float64) float64 {
 	return taken
@@ -690,30 +683,4 @@ func (m *ModuleBase) Width(takable, taken float64) float64 {
 // Height implements Module interface
 func (m *ModuleBase) Height(takable, taken float64) float64 {
 	return taken
-}
-
-// HSum calculates size of elements in horizontal composition
-type HSum struct {
-	*mat.Vec
-}
-
-// Add performs calculation
-func (h HSum) Add(size mat.Vec) {
-	h.X += size.X
-	h.Y = math.Max(h.Y, size.Y)
-}
-
-// VSum is analogous to HSum just for horizontal composition
-type VSum struct {
-	*mat.Vec
-}
-
-// Add performs calculation
-func (h VSum) Add(size mat.Vec) {
-	h.Y += size.Y
-	h.X = math.Max(h.X, size.X)
-}
-
-type summer interface {
-	Add(mat.Vec)
 }

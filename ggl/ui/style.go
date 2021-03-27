@@ -106,7 +106,8 @@ const (
 	Horizontal
 )
 
-var compositions = map[string]Composition{
+// Compositions maps each composition to its string representation
+var Compositions = map[string]Composition{
 	"vertical":   Vertical,
 	"horizontal": Horizontal,
 }
@@ -131,7 +132,8 @@ const (
 	Ignore
 )
 
-var resizeModes = map[string]ResizeMode{
+// ResizeModes maps each resize mode to its string reperesentation
+var ResizeModes = map[string]ResizeMode{
 	"expand": Expand,
 	"exact":  Exact,
 	"shrink": Shrink,
@@ -228,7 +230,7 @@ func (r RawStyle) Composition(key string) (c Composition) {
 	case int:
 		return Composition(v)
 	case string:
-		return compositions[v]
+		return Compositions[v]
 	}
 	return
 }
@@ -244,7 +246,7 @@ func (r RawStyle) ResizeMode(key string) (e ResizeMode) {
 	case int:
 		return ResizeMode(v)
 	case string:
-		return resizeModes[v]
+		return ResizeModes[v]
 	}
 	return
 }
