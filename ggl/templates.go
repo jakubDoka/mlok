@@ -98,8 +98,7 @@ func (d *data) Accept(data vertexSlice, indices Indices) {
 
 // batch is main drawer, it performs direct draw to canvas and is used as target for Sprite.
 // batch acts like canvas i some ways but performance difference of drawing batch to canvas and
-// drawing canvas to canvas is significant. If you need image to ber redrawn ewer frame draw batch
-// to canvas and use canvas for drawing.
+// drawing canvas to canvas is proportional to amount of vertexes batch contains.
 type batch struct {
 	data
 
