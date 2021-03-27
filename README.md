@@ -8,7 +8,7 @@ Engine contains lot of packages and most of them are not even that big. Reason f
 
 ## Dependencies
 
-I have to mention that engine depends two "languages", `goml` and `goss`. Yes they are named after html and css as they resemble them. You don't have to use them, but they make ui lot easier to develop. See this [repo](github.com/jakubDoka/goml) for documentation of the "languages". I also made vscode extensions for syntax highlighting, link to them can be found in readme of mentioned repository. Errors are handles by [sterr](github.com/jakubDoka/sterr), using it directly might be useful when testing things that depend on gobatch.
+I have to mention that engine depends two "languages", `goml` and `goss`. Yes they are named after html and css as they resemble them. You don't have to use them, but they make ui lot easier to develop. See this [repo](github.com/jakubDoka/goml) for documentation of the "languages". I also made vscode extensions for syntax highlighting, link to them can be found in readme of mentioned repository. Errors are handles by [sterr](github.com/jakubDoka/sterr), using it directly might be useful when testing things that depend on mlok.
 
 ## Examples
 

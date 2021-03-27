@@ -17,16 +17,15 @@ import (
 )
 
 // Area is a text input element, you can get its content by turning Area.Content into string.
-// It is composed from Text module.
 //
 // style:
-//	cursor_drawer:   		custom_type // something that draws the cursor, it is taken by name from assets
-//  cursor_thickness:		float   	// how thick the cursor is
-//  cursor_mask:			rgba        // mask of cursor
-//  cursor_blink_frequency:	float		// how often cursor blinks
-//  auto_frequency:         float       // when you hold some button that controls the input, action starts
+//	cursor_drawer:			custom_type // something that draws the cursor, it is taken by name from assets
+//	cursor_thickness:		float		// how thick the cursor is
+//	cursor_mask:			rgba		// mask of cursor
+//	cursor_blink_frequency:	float		// how often cursor blinks
+//	auto_frequency:			float		// when you hold some button that controls the input, action starts
 //										// repeating and this sets how often it repeats
-// 	hold_responce_speed:    float		// how long you have to hold on to button until it starts repeating
+//	hold_responce_speed:	float		// how long you have to hold on to button until it starts repeating
 type Area struct {
 	Text
 	HoldMap
@@ -185,14 +184,14 @@ func (a *Area) DrawOnTop(tg ggl.Target, canvas *drw.Geom) {
 	a.Text.DrawOnTop(tg, canvas)
 }
 
-// Dirty is similar to Text.Dirty but it preserves the Start and End
+// Dirty is similar to Text.Dirty but it preserves the Start and End.
 func (a *Area) Dirty() {
 	start, end := a.Start, a.End
 	a.Text.Dirty()
 	a.Start, a.End = start, end
 }
 
-// CursorDrawer is something that draws the cursor inside the Area when area is selected
+// CursorDrawer is something that draws the cursor inside the Area when area is selected.
 type CursorDrawer interface {
 	Draw(t ggl.Target, canvas *drw.Geom, base, size mat.Vec, mask mat.RGBA)
 }
@@ -205,14 +204,14 @@ func (d defaultCursor) Draw(t ggl.Target, canvas *drw.Geom, base, size mat.Vec, 
 	canvas.Fetch(t)
 }
 
-// HoldMap is extracted behavior of text edit, see HoldFunction
+// HoldMap is extracted behavior of text edit, see HoldMat.Hold
 type HoldMap struct {
 	HoldResponceSpeed, AutoFrequency float64
 
 	binds map[key.Key]float64
 }
 
-// Hold supports Hold and repeat effect, if you hold button for long enough, action starts repeating
+// Hold supports Hold and repeat effect, if you hold button for long enough, action starts repeating.
 func (h HoldMap) Hold(b key.Key, win *ggl.Window, delta float64, do func()) bool {
 	if win.JustPressed(b) {
 		do()
@@ -231,32 +230,20 @@ func (h HoldMap) Hold(b key.Key, win *ggl.Window, delta float64, do func()) bool
 	return false
 }
 
-type ButtonStateEnum uint8
-
-const (
-	Idle ButtonStateEnum = iota
-	Hover
-	Pressed
-	Disabled
-	None
-)
-
-var buttonStates = [...]string{"idle", "hover", "pressed", "disabled"}
-
 // Button is a button, has lot of space for customization, it can be in three states:
 // idle, hover and pressed, each mode can have different message, texture, padding and mask
 // use of texture is optional and button uses Patch for more flexibility, whe button is
 // initialized, it creates its own Text element witch visible text
 //
 // style:
-// 	all_text: 						string		// sets text on all state
-//  idle/hover/pressed+_text: 		string		// sets text for each state
-//	all_masks: 						color/name	// sets mask on all states
-//  idle/hover/pressed+_mask: 		color/name	// sets mask for each state
-//  all_regions:                	aabb/name   // sets region on all states
-// 	idle/hover/pressed+_region:		aabb/name	// sets region for each state
-//  all_padding:                	aabb	   	// sets padding on all states
-// 	idle/hover/pressed+_padding:	aabb		// sets padding for each state
+// 	all_text: 								string		// sets text on all state
+//  idle/hover/pressed/disabled+_text: 		string		// sets text for each state
+//	all_masks: 								rgba		// sets mask on all states
+//  idle/hover/pressed/disabled+_mask: 		rgba		// sets mask for each state
+//  all_regions:                			aabb|name   // sets region on all states
+// 	idle/hover/pressed/disabled+_region:	aabb|name	// sets region for each state
+//  all_padding:                			aabb	   	// sets padding on all states
+// 	idle/hover/pressed/disabled+_padding:	aabb		// sets padding for each state
 type Button struct {
 	Patch
 
@@ -275,24 +262,20 @@ func (b *Button) New() Module {
 // Init implements Module interface
 func (b *Button) Init(e *Element) {
 	b.Patch.Init(e)
+
 	text := b.Raw.Attributes.Ident("all_text", "")
 	parsed := str.NString(text)
-	for i := range b.States {
-		b.States[i].Text = parsed
-	}
 	mask := b.RGBA("all_masks", mat.White)
-
-	for i := range b.States {
-		b.States[i].Mask = mask
-	}
 	region := e.Region("all_regions", e.Scene.Assets.Regions, mat.ZA)
-	for i := range b.States {
-		b.States[i].Region = region
-	}
 	padding := b.AABB("all_padding", mat.ZA)
 	for i := range b.States {
-		b.States[i].Padding = padding
+		bs := &b.States[i]
+		bs.Mask = mask
+		bs.Region = region
+		bs.Padding = padding
+		bs.Text = parsed
 	}
+
 	for i, s := range buttonStates {
 		bs := &b.States[i]
 		bs.Text = str.NString(b.Raw.Attributes.Ident(s+"_text", text))
@@ -392,13 +375,25 @@ type ButtonState struct {
 	Text            str.String
 }
 
+type ButtonStateEnum uint8
+
+const (
+	Idle ButtonStateEnum = iota
+	Hover
+	Pressed
+	Disabled
+	None
+)
+
+var buttonStates = [...]string{"idle", "hover", "pressed", "disabled"}
+
 // Patch is similar tor Sprite but uses ggl.Patch instead thus has more styling options
 //
 // style:
-//	region: 		aabb/name 	// rendert texture region
-//  padding: 		aabb     	// patch padding
-//	patch_mask: 	color/name 	// path mask, if there is no region it acts as background color
-//  patch_scale: 	vec 		// because Patch is more flexible, specifying scale can create more variations
+//	region:			aabb|name	// rendert texture region
+//  padding:		aabb	 	// patch padding
+//	patch_mask:		rgba		// path mask, if there is no region it acts as background color
+//  patch_scale:	vec			// because Patch is more flexible, specifying scale can create more variations
 type Patch struct {
 	ModuleBase
 
@@ -456,8 +451,8 @@ func (p *Patch) SetPadding(value mat.AABB) {
 
 // Sprite is sprite for ui elements
 // style:
-// 	mask: 	color 		// texture modulation
-//  region: aabb/name 	// from where texture should be sampled from
+//	mask:	rgba		// texture modulation
+//	region:	aabb|name	// from where texture should be sampled from
 type Sprite struct {
 	ModuleBase
 	Sprite ggl.Sprite
@@ -497,13 +492,13 @@ func (s *Sprite) Draw(t ggl.Target, canvas *drw.Geom) {
 // Scroll can make element visible trough scrollable viewport
 //
 // style:
-// 	bar_width: 			float/int 		// sets bar thickness
-//	friction: 			float/int  		// higher the value, less sliding, negative == no sliding
-// 	scroll_sensitivity: float/int 		// how match will scroll slide
-//	bar_color:          color			// bar handle color
-//  rail_color:         color           // bar rail color
-//	intersection_color: color			// if both bars are active, rectangle appears in a corner
-//  bar_x/bar_y/bars:   bool			// makes bars visible and active
+//	bar_width:			float	// sets bar thickness
+//	friction:			float	// higher the value, less sliding, negative == no sliding
+//	scroll_sensitivity:	float	// how match will scroll slide
+//	bar_color:			rgba	// bar handle color
+//	rail_color:			rgba	// bar rail color
+//	intersection_color:	rgba	// if both bars are active, rectangle appears in a corner
+//	bar_x/bar_y/bars:	bool	// makes bars visible and active
 type Scroll struct {
 	ModuleBase
 	drw.SpriteViewport
@@ -719,7 +714,7 @@ func (s *Scroll) update() {
 	}
 }
 
-// move moves all elements by delta
+// move moves all elements by scroll offset
 func (s *Scroll) updateOffset() {
 	ch := s.children.Slice()
 	off := s.offset
@@ -731,7 +726,7 @@ func (s *Scroll) updateOffset() {
 	}
 }
 
-// Bar ...
+// Bar holds information about scroll bar
 type Bar struct {
 	Use      bool
 	position float64
@@ -752,6 +747,18 @@ func (b *Bar) Move(vel float64) {
 }
 
 // Text handles text rendering
+//
+// style:
+//	text_scale:				vec						// size of font
+//	text_color:				rgba					// color by with text is pre-multiplied
+//	text_size:				vec						// works as element size
+//	text_margin:			aabb					// works as element margin
+//  text_padding:			aabb					// works as element padding
+//	text_background:		rgba					// works as moduleBase background
+//	text_selection_color:	rgba					// color if text selection
+//	text_align:				float|left|middle|right	// text align
+//	text_effects:			bool					// makes text effects like color and differrent fonts active
+//	text_markdown:			name					// sets a markdown that text will use to render
 type Text struct {
 	ModuleBase
 	txt.Paragraph
@@ -773,9 +780,12 @@ func (t *Text) DefaultStyle() goss.Style {
 		"text_color":           {"inherit"},
 		"text_size":            {"inherit"},
 		"text_margin":          {"inherit"},
+		"text_padding":         {"inherit"},
 		"text_background":      {"inherit"},
 		"text_selection_color": {"inherit"},
 		"text_align":           {"inherit"},
+		"text_effects":         {"inherit"},
+		"text_markdown":        {"inherit"},
 	}
 }
 
@@ -783,7 +793,7 @@ func (t *Text) DefaultStyle() goss.Style {
 func (t *Text) Init(e *Element) {
 	t.ModuleBase.Init(e)
 
-	ident := t.Ident("markdown", "default")
+	ident := t.Ident("text_markdown", "default")
 	mkd, ok := t.Scene.Assets.Markdowns[ident]
 	if !ok {
 		panic(t.Path() + ": markdown with name '" + ident + "' is not present in assets")
@@ -798,9 +808,11 @@ func (t *Text) Init(e *Element) {
 		t.Props.Size = t.Vec("text_size", mat.ZV)
 		t.Props.Margin = t.AABB("text_margin", mat.A(4, 4, 4, 4))
 		t.Background = t.RGBA("text_background", t.Background)
+		t.Props.Padding = t.AABB("text_padding", mat.ZA)
 	}
-	t.NoEffects = t.Bool("no_effects", false)
+	t.NoEffects = t.Bool("text_effects", false)
 	t.Content = str.NString(t.Raw.Attributes.Ident("text", string(t.Content)))
+
 	t.Dirty()
 }
 

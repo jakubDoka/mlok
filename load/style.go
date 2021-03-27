@@ -148,7 +148,7 @@ func (r RawStyle) AABB(key string, def mat.AABB) (m mat.AABB) {
 }
 
 // RGBA returns a color under the key, if color parsing fails or color is not present, def is returned
-// this also accepts names mapped in gobatch/mat/rgba.Colors
+// this also accepts names mapped in mlok/mat/rgba.Colors
 func (r RawStyle) RGBA(key string, def mat.RGBA) (c mat.RGBA) {
 	c = def
 
@@ -169,14 +169,19 @@ func (r RawStyle) RGBA(key string, def mat.RGBA) (c mat.RGBA) {
 //
 // syntax:
 //
-//	name - simple name of color can be enough if its contained in map in gobatch/mat/rgba package
+//	name - simple name of color can be enough if its contained in map in mlok/mat/rgba package
 //  a - specify only one float/int channel and mat.Alpha(alpha) will be returned
 //  r, g, b - specify threes floats/ints and mat.RGB(r, g, b) will be returned
 //  r, g, b, a - specify four floats/ints and mat.RGBA{r, g, b, a} will be returned
+//  hex - hex color notation
 func ParseRGBA(values []interface{}) (c mat.RGBA, ln int) {
 	if v, ok := values[0].(string); ok {
 		if v, ok := rgba.Colors[v]; ok {
 			return v, 1
+		}
+		col, err := mat.HexToRGBA(v)
+		if err != nil {
+			return col, 1
 		}
 		return
 	}

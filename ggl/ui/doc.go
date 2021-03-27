@@ -11,4 +11,30 @@
 //
 // Style Docs
 //
+// When going trough docs you may come across style documentation. Its in following form:
+// 	field_name: type //comment
+// This notation describes that if field with given type is added to style of element, something will be altered.
+// For example:
+//	background: rgba // defines the background color of element
+// If you provide `background: blue;` in goml, background will be blue. Now lets explane the type.
+//
+// rgba - color that can be defined as:
+//	name 					// comes from rgba package color map
+//	float					// white color with altered Alpha channel
+//	float float float		// eed green and blue channels (0 - 1)
+//	float float float float	// all channels specified
+//	hex (ffffff=white)		// hex notation
+//
+// vec - vector type
+//	float		// results into vector with equal dimensions
+//	float float	// each dimension can be differrent
+//
+// aabb - defines collection of four floats coresponding to left bottom right top respectively
+//	float float float float	// most verbose declaration
+//	float float				// left and right coresponds to first float, top and bottom to second
+//	float					// all four floats coresponds to given value
+//
+// bool - can be 'true' of 'false'
+//
+//
 package ui
