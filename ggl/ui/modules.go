@@ -794,6 +794,9 @@ func (t *Text) Init(e *Element) {
 	t.ModuleBase.Init(e)
 
 	ident := t.Ident("text_markdown", "default")
+	if ident == "inherit" {
+		ident = "default"
+	}
 	mkd, ok := t.Scene.Assets.Markdowns[ident]
 	if !ok {
 		panic(t.Path() + ": markdown with name '" + ident + "' is not present in assets")

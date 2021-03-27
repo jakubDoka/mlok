@@ -54,8 +54,7 @@ func (v vertexSlice) VertexSize() int {
 //def(
 //rules data<vertexSlice>
 
-// data is Vertex and indice collector, mainly utility that handles vertex offsets
-// it also stores one aditionall slice as space for preporsessing
+// data is Vertex and indice collector, mainly utility that handles vertex offsets.
 type data struct {
 	Vertexes vertexSlice
 	Indices  Indices
