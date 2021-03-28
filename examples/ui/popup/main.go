@@ -39,13 +39,13 @@ func main() {
 	no := scene.ID("no")
 
 	opener.Listen(ui.Click, func(i interface{}) {
-		poppup.Show()
+		poppup.SetHidden(false)
 	})
 	yes.Listen(ui.Click, func(i interface{}) {
 		opened = false
 	})
 	no.Listen(ui.Click, func(i interface{}) {
-		poppup.Hide()
+		poppup.SetHidden(true)
 	})
 
 	processor := ui.Processor{}

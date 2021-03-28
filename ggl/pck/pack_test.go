@@ -1,14 +1,16 @@
 package pck
 
 import (
+	"fmt"
 	"image"
 	"image/draw"
 	"reflect"
 	"testing"
 
-	"github.com/jakubDoka/mlok/ggl"
+	_ "image/png"
 
-	"github.com/jakubDoka/gogen/dirs"
+	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/ggl/txt"
 )
 
 func TestPathParsing(t *testing.T) {
@@ -48,28 +50,48 @@ func TestPathParsing(t *testing.T) {
 }
 
 func TestNSheet(t *testing.T) {
-	names, err := dirs.ListFilePaths("C:/Users/jakub/Documents/programming/golang/src/mlok/t1", ".png")
+	ttf, err := txt.LoadTTF("C:/Users/jakub/Documents/programming/golang/src/github.com/jakubDoka/mlok/ggl/pck/test_data/else.ttf", 100)
 	if err != nil {
 		panic(err)
 	}
+	atlas := txt.NewAtlas("else", ttf, 0, txt.ASCII)
 
-	sheet, err := NSheet("t1", names...)
+	fmt.Println(atlas.Pic.Bounds())
+
+	sheet := Sheet{Root: "test_data"}
+
+	sheet.Data = append(sheet.Data, PicData{
+		Name: "else",
+		Img:  atlas.Pic,
+	})
+	sheet.AddImages("C:/Users/jakub/Documents/programming/golang/src/github.com/jakubDoka/mlok/ggl/pck/test_data/nest.png")
+	sheet.Pack()
+
+	image1, err := ggl.LoadImage("C:/Users/jakub/Documents/programming/golang/src/github.com/jakubDoka/mlok/ggl/pck/test_data/nest.png")
 	if err != nil {
 		panic(err)
 	}
-
-	image1, err := ggl.LoadImage("C:/Users/jakub/Documents/programming/golang/src/mlok/t1/beckup.png")
-	if err != nil {
-		panic(err)
-	}
-
-	r := sheet.Regions["beckup"].ToImage()
+	r := sheet.Regions["nest"].ToImage()
 
 	image2 := image.NewNRGBA(r)
 	draw.Draw(image2, image2.Bounds(), sheet.Pic, r.Min, 0)
-	ggl.FlipNRGBA(image2)
+	ggl.FlipNRGBA(image1)
+	LogImage(image2)
 
 	if !reflect.DeepEqual(image1.Pix, image2.Pix) {
 		t.Errorf("\n%v\n%v", image1.Pix, image2.Pix)
+	}
+}
+
+func LogImage(img *image.NRGBA) {
+	for i := 0; i < len(img.Pix); i += 4 {
+		if img.Pix[i+3] != 0 {
+			fmt.Print("#")
+		} else {
+			fmt.Print(" ")
+		}
+		if i%(img.Stride) == 0 {
+			fmt.Println()
+		}
 	}
 }

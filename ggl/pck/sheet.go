@@ -5,6 +5,7 @@ import (
 	"image/draw"
 	"math"
 	"strconv"
+	"strings"
 
 	"github.com/jakubDoka/mlok/ggl"
 	"github.com/jakubDoka/mlok/ggl/txt"
@@ -106,7 +107,7 @@ func (s *Sheet) Pack() {
 	}
 	for i := range s.Data {
 		d := &s.Data[i]
-		d.bounds = mat.FromRect(d.Img.Bounds())
+		d.bounds = mat.FromRect(d.Img.Bounds()).ToVec().ToAABB()
 	}
 
 	w, h := Pack(s.Data)
@@ -263,7 +264,10 @@ func calcOptimalSide(data Data) int {
 //
 // where width hight are parameters of one sheet cell
 func DetectSpritesheet(path, root string) (name string, w, h int, ok bool) {
-	path, _ = str.SplitToTwo(path, '.') // remove extencion
+	idx := strings.LastIndex(path, ".")
+	if idx != -1 {
+		path = path[:idx] // remove extencion
+	}
 
 	path = dirs.NormPath(path) // fix slashes
 
