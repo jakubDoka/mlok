@@ -415,7 +415,7 @@ func (p *Patch) Init(e *Element) {
 	p.Region = e.Region("region", e.Scene.Assets.Regions, mat.ZA)
 
 	w, h := p.Region.W()*.5, p.Region.H()*.5
-	p.Padding = e.AABB("padding", mat.A(w, h, w, h))
+	p.Padding = e.AABB("patch_padding", mat.A(w, h, w, h))
 
 	p.Scale = e.Vec("patch_scale", mat.V(1, 1))
 
