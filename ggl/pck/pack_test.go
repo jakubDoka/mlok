@@ -77,7 +77,6 @@ func TestNSheet(t *testing.T) {
 	draw.Draw(image2, image2.Bounds(), sheet.Pic, r.Min, 0)
 	ggl.FlipNRGBA(image1)
 	LogImage(image2)
-
 	if !reflect.DeepEqual(image1.Pix, image2.Pix) {
 		t.Errorf("\n%v\n%v", image1.Pix, image2.Pix)
 	}
@@ -86,9 +85,9 @@ func TestNSheet(t *testing.T) {
 func LogImage(img *image.NRGBA) {
 	for i := 0; i < len(img.Pix); i += 4 {
 		if img.Pix[i+3] != 0 {
-			fmt.Print("#")
+			fmt.Print("# ")
 		} else {
-			fmt.Print(" ")
+			fmt.Print("  ")
 		}
 		if i%(img.Stride) == 0 {
 			fmt.Println()

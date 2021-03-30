@@ -25,7 +25,7 @@ func TestMinHahs(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			coll = coll[:0]
-			h.Query(tC.area, &coll, 0, true)
+			h.Query(tC.area, coll, 0, true)
 			if !reflect.DeepEqual(tC.res, coll) {
 				t.Error(coll, tC.res)
 				return
@@ -34,11 +34,30 @@ func TestMinHahs(t *testing.T) {
 	}
 }
 
-func BenchmarkHasher(b *testing.B) {
+func BenchmarkHasherReinsert(b *testing.B) {
 	h := NMinHash(4, 4, mat.V(10, 10))
 	adr := mat.Point{}
 	for i := 0; i < b.N; i++ {
 		h.Insert(&adr, mat.ZV, 0, 0)
-		h.Remove(&adr, 0, 0)
+		h.Remove(adr, 0, 0)
+	}
+}
+
+func BenchmarkHasherUpdate(b *testing.B) {
+	h := NMinHash(4, 4, mat.V(10, 10))
+	adr := mat.Point{}
+	h.Insert(&adr, mat.ZV, 0, 0)
+	for i := 0; i < b.N; i++ {
+		h.Update(&adr, mat.ZV, 0, 0)
+	}
+}
+
+func BenchmarkHasherQuery(b *testing.B) {
+	h := NMinHash(4, 4, mat.V(10, 10))
+	adr := mat.Point{}
+	h.Insert(&adr, mat.ZV, 0, 0)
+	var buff []int
+	for i := 0; i < b.N; i++ {
+		buff = h.Query(mat.ZA, buff[:0], 0, true)
 	}
 }

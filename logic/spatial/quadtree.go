@@ -44,13 +44,14 @@ func NTree(cap int, bounds mat.AABB) *Tree {
 // different group are returned, othervise entities with sam group are returned, using QueryAll if
 // you don't need all groups and filtering them your self is slower as Quadterr si structured to
 // optimize the process
-func (t *Tree) Query(group int, include bool, coll *[]TreeEntity, area mat.AABB) {
+func (t *Tree) Query(group int, include bool, coll []TreeEntity, area mat.AABB) []TreeEntity {
 	t.Collect(group, include, coll)
 	for i := range t.Ch {
 		if t.Bounds.Intersects(area) {
-			t.Ch[i].Query(group, include, coll, area)
+			coll = t.Ch[i].Query(group, include, coll, area)
 		}
 	}
+	return coll
 }
 
 // QueryAll returns all Entities that area can intersect with

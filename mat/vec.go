@@ -250,5 +250,5 @@ func (v Vec) Approx(b Vec, precision int) bool {
 // If t is 0, then a will be returned, if t is 1, b will be returned. Anything between 0 and 1 will
 // return the appropriate point between a and b and so on.
 func (v Vec) Lerp(b Vec, t float64) Vec {
-	return v.Scaled(1 - t).Add(b.Scaled(t))
+	return v.To(b).Scaled(t).Add(v)
 }

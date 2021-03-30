@@ -29,10 +29,19 @@ func (d *Delta) Tick() float64 {
 
 // Log logs fps to console every interval (in seconds)
 func (d *Delta) Log(interval float64) {
+	d.CustomLog(interval, nil)
+}
+
+// Log logs fps to console every interval (in seconds), you can optionally log more
+// information with runner
+func (d *Delta) CustomLog(interval float64, runner func()) {
 	if d.time > interval {
 		fmt.Println("fps:", float64(d.fps)/interval)
 		d.time = 0
 		d.fps = 0
+		if runner != nil {
+			runner()
+		}
 	}
 }
 

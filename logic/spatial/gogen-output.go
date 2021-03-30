@@ -72,21 +72,22 @@ func (n *TNode) Remove(id TreeEntity, group int) bool {
 
 // Collect retrieve ids from a node to coll, if include is true only ids of given group
 // will get collected, otherwise ewerithing but specified group is returned
-func (n *TNode) Collect(group int, include bool, coll *[]TreeEntity) {
+func (n *TNode) Collect(group int, include bool, coll []TreeEntity) []TreeEntity {
 	if include {
 		for _, s := range n.Sets {
 			if s.Group == group {
-				*coll = append(*coll, s.IDs...)
-				return
+				coll = append(coll, s.IDs...)
+				return coll
 			}
 		}
 	} else {
 		for _, s := range n.Sets {
 			if s.Group != group {
-				*coll = append(*coll, s.IDs...)
+				coll = append(coll, s.IDs...)
 			}
 		}
 	}
+	return coll
 }
 
 // CollectAll colects all objects withoud differentiating a group

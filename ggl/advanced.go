@@ -73,8 +73,8 @@ func NCanvas(texture Texture, program Program, buffer Buffer) *Canvas {
 func (c *Canvas) Rect() mat.AABB {
 	f := c.Frame()
 	return mat.AABB{
-		Min: c.mat.Project(f.Min),
-		Max: c.mat.Project(f.Max),
+		Min: c.mat.Unproject(f.Min),
+		Max: c.mat.Unproject(f.Max),
 	}
 }
 
