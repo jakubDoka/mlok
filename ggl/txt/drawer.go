@@ -72,7 +72,7 @@ func (d *Drawer) Draw(t Target, text string) {
 }
 
 // Draw draws a slice of p.Compiled to p.data, text continused where last draw stopped
-func (d *Drawer) drawParagraph(p *Paragraph, start, end int) {
+func (d *Drawer) DrawParagraph(p *Paragraph, start, end int) {
 	var (
 		prev rune = -1
 		// last stores data about last seen space
@@ -98,7 +98,7 @@ func (d *Drawer) drawParagraph(p *Paragraph, start, end int) {
 			last.bounds = p.bounds
 			control = false
 		} else {
-			control = d.paragraphControlRune(r, p)
+			control = d.ParagraphControlRune(r, p)
 		}
 
 		if control {
@@ -114,7 +114,7 @@ func (d *Drawer) drawParagraph(p *Paragraph, start, end int) {
 				p.dot = last.dot
 				p.bounds = last.bounds
 
-				d.paragraphControlRune('\n', p)
+				d.ParagraphControlRune('\n', p)
 				d.glyph.Clear()
 
 				// truncating data to previous state
@@ -143,7 +143,7 @@ func (d *Drawer) drawParagraph(p *Paragraph, start, end int) {
 
 // ControlRune changes dot accordingly if inputted rune is control rune, also returns whether
 // change happened, it also appends a new dot to slice
-func (d *Drawer) paragraphControlRune(r rune, p *Paragraph) bool {
+func (d *Drawer) ParagraphControlRune(r rune, p *Paragraph) bool {
 	switch r {
 	case '\n':
 		p.lines[len(p.lines)-1].end = len(p.dots)

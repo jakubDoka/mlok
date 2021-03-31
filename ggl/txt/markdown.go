@@ -236,7 +236,7 @@ func (m *Markdown) MakeTriangles(p *Paragraph) {
 	p.lines = append(p.lines[:0], line{p.dot.Y, 0, -1})
 
 	for _, c := range p.chunks {
-		m.Fonts[c.Font].drawParagraph(p, c.start, c.End)
+		m.Fonts[c.Font].DrawParagraph(p, c.start, c.End)
 	}
 
 	end := &p.lines[len(p.lines)-1]
