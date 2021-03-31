@@ -193,23 +193,31 @@ type Sprite struct {
 }
 
 // NSprite creates new sprite out of frame. Frame should be the region where the texture,
-// you want to draw, is located on spritesheet
+// you want to draw, is located on spritesheet, Pivot point is at center by default.
 //
 //	ggl.NSprite(yourTexture.Frame()) // draws whole texture
 //
 func NSprite(frame mat.AABB) Sprite {
 	s := Sprite{}
-	vert := frame.Vertices()
 	c := frame.Center()
 
-	for i, v := range vert {
+	for i, v := range frame.Vertices() {
 		s.data[i].Tex = v
 		s.data[i].Color = mat.Alpha(1)
 		s.data[i].Intensity = 1
-		s.tex[i] = v.Sub(c)
+		s.tex[i] = c.To(v)
 	}
 
 	return s
+}
+
+func (s *Sprite) SetPivot(pos mat.Vec) {
+	frame := s.Frame()
+	c := frame.Center().Add(pos)
+
+	for i, v := range frame.Vertices() {
+		s.tex[i] = c.To(v)
+	}
 }
 
 // SetColor sets the color of sprite
@@ -274,4 +282,9 @@ func (s *Sprite) Update(mat mat.Mat, mask mat.RGBA) {
 // Size returns sprite size when its drawn with mat.IM transforation
 func (s *Sprite) Size() mat.Vec {
 	return s.data[0].Tex.To(s.data[2].Tex)
+}
+
+// Frame returns original sprite-frame
+func (s *Sprite) Frame() mat.AABB {
+	return mat.AABB{Min: s.data[0].Tex, Max: s.data[2].Tex}
 }
