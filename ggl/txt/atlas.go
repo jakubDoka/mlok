@@ -26,7 +26,7 @@ func init() {
 	for i := range ASCII {
 		ASCII[i] = rune(32 + i)
 	}
-	Atlas7x13 = NewAtlas("default", basicfont.Face7x13, 0, ASCII)
+	Atlas7x13 = NAtlas("default", basicfont.Face7x13, 0, ASCII)
 }
 
 // Glyph describes one glyph in an Atlas.
@@ -48,7 +48,7 @@ type Atlas struct {
 	Name       string
 }
 
-// NewAtlas creates a new Atlas containing glyphs of the union of the given sets of runes (plus
+// NAtlas creates a new Atlas containing glyphs of the union of the given sets of runes (plus
 // unicode.ReplacementChar) from the given font face. Spacing is space in pixels that is added around
 // each glyph. This is very usefull when applying shaders to your text, mind that bigger sprites burdens
 // gpu more.
@@ -56,7 +56,7 @@ type Atlas struct {
 // Creating an Atlas is rather expensive, do not create a new Atlas each frame.
 //
 // Do not destroy or close the font.Face after creating the Atlas. Atlas still uses it.
-func NewAtlas(name string, face font.Face, spacing int, runeSets ...[]rune) *Atlas {
+func NAtlas(name string, face font.Face, spacing int, runeSets ...[]rune) *Atlas {
 	seen := make(map[rune]bool)
 	runes := []rune{unicode.ReplacementChar}
 	for _, set := range runeSets {
@@ -267,7 +267,11 @@ func makeMapping(face font.Face, runes []rune, padding, width fixed.Int26_6, spa
 		bounds.Max.Y += fixed.I(spacing)
 	}
 
+	// in case font is retarded and has bigger ascent then height of all glyphs
+	bounds.Min = fixed.P(0, 0)
+
 	*buffer = buff
+
 	return bounds
 }
 

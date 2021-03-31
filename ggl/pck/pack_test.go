@@ -54,7 +54,7 @@ func TestNSheet(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	atlas := txt.NewAtlas("else", ttf, 0, txt.ASCII)
+	atlas := txt.NAtlas("else", ttf, 0, txt.ASCII)
 
 	fmt.Println(atlas.Pic.Bounds())
 

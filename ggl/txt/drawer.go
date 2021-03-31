@@ -2,11 +2,10 @@ package txt
 
 import (
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/jakubDoka/mlok/ggl"
 	"github.com/jakubDoka/mlok/mat"
-
-	"github.com/jakubDoka/gogen/str"
 )
 
 // Drawer draws text for ContentBox
@@ -31,16 +30,49 @@ func NDrawer(atlas *Atlas) *Drawer {
 	return t
 }
 
-// Write writes string to paragraph
-func (d *Drawer) Write(p *Paragraph, text string) {
-	s := str.NString(text)
-	start := len(p.Compiled)
-	p.Compiled = append(p.Content, s...)
-	d.Draw(p, start, len(p.Compiled))
+// Draw draws a text to Target, string is decoded by utf8
+func (d *Drawer) Draw(t Target, text string) {
+	var (
+		dot, bounds           = t.Metrics()
+		raw                   = []byte(text)
+		prev                  = rune(-1)
+		rBounds, region, rect mat.AABB
+	)
+
+	control := func(r rune) bool {
+		switch r {
+		case '\n':
+			dot.X = 0
+			dot.Y += d.LineHeight()
+		case '\r':
+			dot.X = 0
+		case '\t':
+			dot.X += d.tab
+		default:
+			return false
+		}
+		return true
+	}
+
+	for r, size := utf8.DecodeRune(raw); r != utf8.RuneError; r, size = utf8.DecodeRune(raw) {
+		raw = raw[size:]
+
+		if control(r) {
+			continue
+		}
+
+		rect, region, rBounds, dot = d.DrawRune(prev, r, dot)
+		bounds = bounds.Union(rBounds)
+
+		d.glyph.Set(rect, region.Moved(d.Region))
+		d.glyph.Fetch(t)
+	}
+
+	t.SetMetrics(dot, bounds)
 }
 
 // Draw draws a slice of p.Compiled to p.data, text continused where last draw stopped
-func (d *Drawer) Draw(p *Paragraph, start, end int) {
+func (d *Drawer) drawParagraph(p *Paragraph, start, end int) {
 	var (
 		prev rune = -1
 		// last stores data about last seen space
@@ -66,7 +98,7 @@ func (d *Drawer) Draw(p *Paragraph, start, end int) {
 			last.bounds = p.bounds
 			control = false
 		} else {
-			control = d.ControlRune(r, p)
+			control = d.paragraphControlRune(r, p)
 		}
 
 		if control {
@@ -82,7 +114,7 @@ func (d *Drawer) Draw(p *Paragraph, start, end int) {
 				p.dot = last.dot
 				p.bounds = last.bounds
 
-				d.ControlRune('\n', p)
+				d.paragraphControlRune('\n', p)
 				d.glyph.Clear()
 
 				// truncating data to previous state
@@ -97,7 +129,7 @@ func (d *Drawer) Draw(p *Paragraph, start, end int) {
 				p.Compiled[i] = r
 			} else {
 				p.dots = append(p.dots, p.dot)
-				d.glyph.Set(frame.Moved(d.Region), rect)
+				d.glyph.Set(rect, frame.Moved(d.Region))
 				p.bounds = p.bounds.Union(bounds)
 			}
 		}
@@ -111,7 +143,7 @@ func (d *Drawer) Draw(p *Paragraph, start, end int) {
 
 // ControlRune changes dot accordingly if inputted rune is control rune, also returns whether
 // change happened, it also appends a new dot to slice
-func (d *Drawer) ControlRune(r rune, p *Paragraph) bool {
+func (d *Drawer) paragraphControlRune(r rune, p *Paragraph) bool {
 	switch r {
 	case '\n':
 		p.lines[len(p.lines)-1].end = len(p.dots)
@@ -147,4 +179,60 @@ func (d *Drawer) Advance(prev, r rune) (l float64) {
 	}
 
 	return l + d.Glyph(r).Advance
+}
+
+// Text is a builtin Drawer target, it can act as sprite
+type Text struct {
+	ggl.Data
+	projected ggl.Data
+	Dot       mat.Vec
+	Bounds    mat.AABB
+}
+
+// Draws the text centered on matrix center
+func (t *Text) DrawCentered(tg ggl.Target, mat mat.Mat, color mat.RGBA) {
+	tr := mat.Move(mat.C.Inv())
+	t.Draw(tg, mat.Move(tr.Project(t.Bounds.Center().Inv())), color)
+}
+
+// Draw implements ggl.Drawer interface
+func (t *Text) Draw(tg ggl.Target, mat mat.Mat, color mat.RGBA) {
+	t.Update(mat, color)
+	t.Fetch(tg)
+}
+
+// Update updates the text color and transforation
+func (t *Text) Update(mat mat.Mat, color mat.RGBA) {
+	t.projected.Clear()
+	t.projected.Indices = t.Indices
+	t.projected.Vertexes = append(t.projected.Vertexes, t.Vertexes...)
+	for i := range t.projected.Vertexes {
+		v := &t.projected.Vertexes[i]
+		v.Color = color
+		v.Pos = mat.Project(v.Pos)
+	}
+}
+
+// Fetch implements ggl.Fetcher interface
+func (t *Text) Fetch(tg ggl.Target) {
+	t.projected.Fetch(tg)
+}
+
+// Metrics implements Target interface
+func (t *Text) Metrics() (mat.Vec, mat.AABB) {
+	return t.Dot, t.Bounds
+}
+
+// SetMetrics implements Target interface
+func (t *Text) SetMetrics(dot mat.Vec, bounds mat.AABB) {
+	t.Dot, t.Bounds = dot, bounds
+}
+
+// Target is something that Drawer can draw to
+type Target interface {
+	ggl.Target
+	// Metrics returns current dot and bounds of Target
+	Metrics() (mat.Vec, mat.AABB)
+	// SetMetrics sets the metrics of Target to new ones
+	SetMetrics(mat.Vec, mat.AABB)
 }

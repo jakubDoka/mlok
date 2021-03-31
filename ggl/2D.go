@@ -237,7 +237,7 @@ func (s *Sprite) Clear() {
 
 // Set sets sprites source texture region and destination rectangle, this is mainly used when drawing text
 func (s *Sprite) Set(dst, src mat.AABB) {
-	tex, pos := dst.Vertices(), src.Vertices()
+	tex, pos := src.Vertices(), dst.Vertices()
 	for i := range s.data {
 		s.data[i].Tex = tex[i]
 		s.data[i].Pos = pos[i]
