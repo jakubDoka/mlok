@@ -143,6 +143,19 @@ func (s *Sheet) Pack() {
 	return
 }
 
+// Sprite returns sprite for region of given name
+func (s *Sheet) Sprite(name string) (ggl.Sprite, bool) {
+	reg, ok := s.Regions[name]
+	return ggl.NSprite(reg), ok
+}
+
+// Batch returns batch for this sheet that can be used with sprites
+func (s *Sheet) Batch() ggl.Batch {
+	return ggl.Batch{
+		Texture: ggl.NTexture(s.Pic, false),
+	}
+}
+
 // Pack packs rectangles in reasonable way, it tries to achieve
 // size efficiency not speed
 func Pack(data Data) (width, height int) {
@@ -157,9 +170,9 @@ func Pack(data Data) (width, height int) {
 	}
 
 	var (
-		point       = calcOptimalSide(data)
-		lowestRatio = math.MaxFloat64
-		best        []int
+		point             = calcOptimalSide(data)
+		lowestRatio       = math.MaxFloat64
+		best, breakpoints []int
 	)
 o:
 	for point < count {
@@ -177,10 +190,8 @@ o:
 			}
 		}
 
-		var (
-			current     int
-			breakpoints []int
-		)
+		var current int
+		breakpoints = breakpoints[:0]
 
 		// finding breakpoints
 		for current < count {
