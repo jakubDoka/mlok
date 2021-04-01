@@ -3,31 +3,23 @@
 // it gets rid of pointers, or lowers the allocations
 package memory
 
-// T is template parameter
-type T struct{}
+import "github.com/cheekybits/genny/generic"
 
-//def(
-//rules Capsule<T>
+type Something generic.Type
 
 // Capsule is something like an optional type, it holds boolean about whether
 // it contains value though it does not hold pointer
-type Capsule struct {
+type SomethingCapsule struct {
 	occupied bool
-	value    T
+	value    Something
 }
 
-//)
-
-// Storage ...
-//def(
-//rules Storage<T, int32>
-//dep Capsule<T, Capsule>
-// Storage generates IDs witch makes no need to use hashing,
+// SomethingStorage generates IDs witch makes no need to use hashing,
 // only drawback is that you cannot choose the id, it will be assigned
-// like a pointer, but without putting presure no gc, brilliant storage for
+// like a pointer, but without putting presure no gc, brilliant SomethingStorage for
 // components. Its highly unlikely you will run out of ids as they are reused
-type Storage struct {
-	vec      []Capsule
+type SomethingStorage struct {
+	vec      []SomethingCapsule
 	freeIDs  []int32
 	occupied []int32
 	count    int
@@ -38,7 +30,7 @@ type Storage struct {
 // allocate does not always allocate at all and just reuses freed space,
 // returned pointer also does not point to zero value and you have to overwrite all
 // properties to get expected behavior
-func (s *Storage) Allocate() (*T, int32) {
+func (s *SomethingStorage) Allocate() (*Something, int32) {
 	s.count++
 	s.outdated = true
 
@@ -50,7 +42,7 @@ func (s *Storage) Allocate() (*T, int32) {
 		return &s.vec[id].value, id
 	}
 
-	s.vec = append(s.vec, Capsule{})
+	s.vec = append(s.vec, SomethingCapsule{})
 	id := int32(len(s.vec)) - 1
 	s.vec[id].occupied = true
 	return &s.vec[id].value, id
@@ -59,7 +51,7 @@ func (s *Storage) Allocate() (*T, int32) {
 // Remove removes a value and frees memory for something else
 //
 // panic if there is nothing to free
-func (s *Storage) Remove(id int32) {
+func (s *SomethingStorage) Remove(id int32) {
 	if !s.vec[id].occupied {
 		panic("removeing already removed value")
 	}
@@ -75,7 +67,7 @@ func (s *Storage) Remove(id int32) {
 // random value that can be considered unoccupied
 //
 // method panics if id is not occupied
-func (s *Storage) Item(id int32) *T {
+func (s *SomethingStorage) Item(id int32) *Something {
 	if !s.vec[id].occupied {
 		panic("accessing non occupied id")
 	}
@@ -84,23 +76,23 @@ func (s *Storage) Item(id int32) *T {
 }
 
 // Used returns whether id is used
-func (s *Storage) Used(id int32) bool {
+func (s *SomethingStorage) Used(id int32) bool {
 	return s.vec[id].occupied
 }
 
-// Len returns size of storage
-func (s *Storage) Len() int {
+// Len returns size of SomethingStorage
+func (s *SomethingStorage) Len() int {
 	return len(s.vec)
 }
 
 // Count returns amount of values stored
-func (s *Storage) Count() int {
+func (s *SomethingStorage) Count() int {
 	return s.count
 }
 
 // update updates state of occupied slice, every time you remove or add
-// element, storage gets outdated, this makes it up to date
-func (s *Storage) update() {
+// element, SomethingStorage gets outdated, this makes it up to date
+func (s *SomethingStorage) update() {
 	s.outdated = false
 	s.occupied = s.occupied[:0]
 	l := int32(len(s.vec))
@@ -111,9 +103,9 @@ func (s *Storage) update() {
 	}
 }
 
-// Occupied return all occupied ids in storage, this method panics if Storage is outdated
+// Occupied return all occupied ids in SomethingStorage, this method panics if SomethingStorage is outdated
 // See Update method.
-func (s *Storage) Occupied() []int32 {
+func (s *SomethingStorage) Occupied() []int32 {
 	if s.outdated {
 		s.update()
 	}
@@ -121,16 +113,16 @@ func (s *Storage) Occupied() []int32 {
 	return s.occupied
 }
 
-// Clear clears storage, but keeps allocated space
-func (s *Storage) Clear() {
+// Clear clears SomethingStorage, but keeps allocated space
+func (s *SomethingStorage) Clear() {
 	s.vec = s.vec[:0]
 	s.occupied = s.occupied[:0]
 	s.freeIDs = s.freeIDs[:0]
 	s.count = 0
 }
 
-// SlowClear clears the the Storage slowly with is tradeoff for having faster allocating speed
-func (s *Storage) SlowClear() {
+// SlowClear clears the the SomethingStorage slowly with is tradeoff for having faster allocating speed
+func (s *SomethingStorage) SlowClear() {
 	for i := range s.vec {
 		if s.vec[i].occupied {
 			s.freeIDs = append(s.freeIDs, int32(i))
@@ -141,47 +133,3 @@ func (s *Storage) SlowClear() {
 	s.occupied = s.occupied[:0]
 	s.count = 0
 }
-
-//)
-
-// QuickPool ...
-//def(
-//rules QuickPool<T>
-// QuickPool is template that can store interface referenced
-// objects on one place reducing allocation, if you are creating
-// lot of date stored behind interface that has very short livetime
-// QuickPool can be nice optimization
-type QuickPool struct {
-	vec    []T
-	cursor int
-}
-
-// Item returns pointer to pooling struct that is free, if no free struct is present
-// new one is allocated
-func (q *QuickPool) Item() *T {
-	if q.cursor == len(q.vec) {
-		q.vec = append(q.vec, T{})
-	}
-	q.cursor++
-	return &q.vec[q.cursor-1]
-}
-
-// Over overwrites by raw value and returns pointer to its new position
-func (q *QuickPool) Over(val T) *T {
-	if q.cursor == len(q.vec) {
-		q.vec = append(q.vec, val)
-	} else {
-		q.vec[q.cursor] = val
-	}
-	q.cursor++
-	return &q.vec[q.cursor-1]
-}
-
-// Restart makes QuickPool reuse old objects, if you cannot call this
-// as pooling structs you taken are constantly referenced, its useles to
-// use QuickPool in first place
-func (q *QuickPool) Restart() {
-	q.cursor = 0
-}
-
-//)

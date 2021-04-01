@@ -38,7 +38,7 @@ func main() {
 
 	err = s.Root.AddGoml([]byte(`
 	<div style="background: .5; size: fill;composition: horizontal;margin: 10;">
-		<div style="background: .5;size: fill;margin: 10;text_size: 0;"> 
+		<div style="background: .5;size: fill;margin: 10;text_size: 0;">
 			<div style="background: .5 .5 .5 .5;size: fill;"/>
 			hello
 			<div style="background: .5 0 .5 .5;size: fill;"/>
@@ -71,7 +71,6 @@ func main() {
 		p.SetFrame(window.Frame())
 		// making background white
 		window.Clear(mat.Green)
-
 		// drawing ui to window
 		p.Render(window)
 		window.Update()
