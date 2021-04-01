@@ -2,7 +2,7 @@ package memory
 
 import "github.com/cheekybits/genny/generic"
 
-//go:generate genny -in=$GOFILE -out=gen-$GOFILE gen "Item=int"
+//go:generate genny -in=$GOFILE -out=gen-$GOFILE gen "Item=int,int32"
 
 type Item generic.Type
 
