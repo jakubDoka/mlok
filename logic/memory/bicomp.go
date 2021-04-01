@@ -2,7 +2,7 @@ package memory
 
 import "github.com/cheekybits/genny/generic"
 
-//go:generate genny -in=$GOFILE -out=gen-$GOFILE gen "Number=NUMBERS"
+//go:generate genny -pkg=gen -in=$GOFILE -out=gen/$GOFILE gen "Number=NUMBERS"
 
 type Number generic.Number
 

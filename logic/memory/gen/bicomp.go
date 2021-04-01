@@ -2,7 +2,7 @@
 // Any changes will be lost if this file is regenerated.
 // see https://github.com/cheekybits/genny
 
-package memory
+package gen
 
 func Float32BiComp(a, b float32) uint8 {
 	if a > b {

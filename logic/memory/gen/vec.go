@@ -2,7 +2,7 @@
 // Any changes will be lost if this file is regenerated.
 // see https://github.com/cheekybits/genny
 
-package memory
+package gen
 
 // IntVec is a standard Vector type with utility methods
 type IntVec []int
@@ -119,12 +119,14 @@ func (v IntVec) Sort(comp func(a, b int) bool) {
 	if len(v) < 2 {
 		return
 	}
-	// Template is part  of its self, how amazing
-	ps := make(IntVec, 2, len(v))
+
+	var ps = make([]int, len(v)/5)
 	ps[0], ps[1] = -1, len(v)
 
 	var (
 		p int
+
+		m = 0
 
 		l, e, s, j int
 	)
@@ -146,10 +148,15 @@ func (v IntVec) Sort(comp func(a, b int) bool) {
 					v.Swap(s, j)
 					s++
 				}
+
 			}
 
-			v.Swap(s, e)
-			ps.Insert(l-1, s)
+			v.Swap(e, s)
+			ps = append(ps, ps[l-1])
+			if len(ps) > m {
+				m = len(ps)
+			}
+			ps[l-1] = s
 		} else {
 			ps = ps[:l-1]
 		}
@@ -372,12 +379,14 @@ func (v Int32Vec) Sort(comp func(a, b int32) bool) {
 	if len(v) < 2 {
 		return
 	}
-	// Template is part  of its self, how amazing
-	ps := make(IntVec, 2, len(v))
+
+	var ps = make([]int, len(v)/5)
 	ps[0], ps[1] = -1, len(v)
 
 	var (
 		p int32
+
+		m = 0
 
 		l, e, s, j int
 	)
@@ -399,10 +408,15 @@ func (v Int32Vec) Sort(comp func(a, b int32) bool) {
 					v.Swap(s, j)
 					s++
 				}
+
 			}
 
-			v.Swap(s, e)
-			ps.Insert(l-1, s)
+			v.Swap(e, s)
+			ps = append(ps, ps[l-1])
+			if len(ps) > m {
+				m = len(ps)
+			}
+			ps[l-1] = s
 		} else {
 			ps = ps[:l-1]
 		}

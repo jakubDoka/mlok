@@ -1,8 +1,10 @@
 package memory
 
-import "github.com/cheekybits/genny/generic"
+import (
+	"github.com/cheekybits/genny/generic"
+)
 
-//go:generate genny -in=$GOFILE -out=gen-$GOFILE gen "Item=int,int32"
+//go:generate genny -pkg=gen -in=$GOFILE -out=gen/$GOFILE gen "Item=int,int32"
 
 type Item generic.Type
 
@@ -121,12 +123,14 @@ func (v ItemVec) Sort(comp func(a, b Item) bool) {
 	if len(v) < 2 {
 		return
 	}
-	// Template is part  of its self, how amazing
-	ps := make(IntVec, 2, len(v))
+
+	var ps = make([]int, len(v)/5)
 	ps[0], ps[1] = -1, len(v)
 
 	var (
 		p Item
+
+		m = 0
 
 		l, e, s, j int
 	)
@@ -148,10 +152,15 @@ func (v ItemVec) Sort(comp func(a, b Item) bool) {
 					v.Swap(s, j)
 					s++
 				}
+
 			}
 
-			v.Swap(s, e)
-			ps.Insert(l-1, s)
+			v.Swap(e, s)
+			ps = append(ps, ps[l-1])
+			if len(ps) > m {
+				m = len(ps)
+			}
+			ps[l-1] = s
 		} else {
 			ps = ps[:l-1]
 		}

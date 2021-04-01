@@ -1,6 +1,9 @@
 package memory
 
-import "github.com/cheekybits/genny/generic"
+import (
+	"github.com/cheekybits/genny/generic"
+	"github.com/jakubDoka/mlok/logic/memory/gen"
+)
 
 type Element generic.Type
 
@@ -17,7 +20,7 @@ type ElementCapsule struct {
 // components. Its highly unlikely you will run out of ids as they are reused
 type ElementStorage struct {
 	vec      []ElementCapsule
-	freeIDs  Int32Vec
+	freeIDs  gen.Int32Vec
 	occupied []int32
 	count    int
 	outdated bool
@@ -25,7 +28,7 @@ type ElementStorage struct {
 
 // Blanc allocates blanc space adds
 func (s *ElementStorage) Blanc() {
-	s.freeIDs.BiInsert(int32(len(s.vec)), Int32BiComp)
+	s.freeIDs = append(s.freeIDs, int32(len(s.vec)))
 	s.vec = append(s.vec, ElementCapsule{})
 }
 
@@ -35,7 +38,7 @@ func (s *ElementStorage) AllocateID(id int32) *Element {
 		return nil
 	}
 
-	idx, _ := s.freeIDs.BiSearch(id, Int32BiComp)
+	idx, _ := s.freeIDs.BiSearch(id, gen.Int32BiComp)
 	s.freeIDs.Remove(idx)
 
 	return &s.vec[id].value
@@ -74,7 +77,7 @@ func (s *ElementStorage) Remove(id int32) {
 	s.count--
 	s.outdated = true
 
-	s.freeIDs.BiInsert(id, Int32BiComp)
+	s.freeIDs.BiInsert(id, gen.Int32BiComp)
 	s.vec[id].occupied = false
 }
 
