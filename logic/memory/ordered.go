@@ -30,12 +30,12 @@ func (o *KeyValueOrdered) IsNil() bool {
 }
 
 // Value returns value under key
-func (o *KeyValueOrdered) Value(key Key) (val Value, idx int, ok bool) {
+func (o *KeyValueOrdered) Value(key Key) (val *Value, idx int, ok bool) {
 	idx, k := o.m[key]
 	if !k {
 		return
 	}
-	return o.s[idx].Value, idx, true
+	return &o.s[idx].Value, idx, true
 }
 
 // Put puts a value under key
