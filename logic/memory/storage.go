@@ -86,7 +86,7 @@ func (s *ElementStorage) Remove(id int) {
 // random value that can be considered unoccupied
 //
 // method panics if id is not occupied
-func (s *ElementStorage) Item(id int32) *Element {
+func (s *ElementStorage) Item(id int) *Element {
 	if !s.vec[id].occupied {
 		panic("accessing non occupied id")
 	}
@@ -95,7 +95,7 @@ func (s *ElementStorage) Item(id int32) *Element {
 }
 
 // Used returns whether id is used
-func (s *ElementStorage) Used(id int32) bool {
+func (s *ElementStorage) Used(id int) bool {
 	return s.vec[id].occupied
 }
 
