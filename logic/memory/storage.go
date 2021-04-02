@@ -20,25 +20,25 @@ type ElementCapsule struct {
 // components. Its highly unlikely you will run out of ids as they are reused
 type ElementStorage struct {
 	vec      []ElementCapsule
-	freeIDs  gen.Int32Vec
-	occupied []int32
+	freeIDs  gen.IntVec
+	occupied []int
 	count    int
 	outdated bool
 }
 
 // Blanc allocates blanc space adds
 func (s *ElementStorage) Blanc() {
-	s.freeIDs = append(s.freeIDs, int32(len(s.vec)))
+	s.freeIDs = append(s.freeIDs, len(s.vec))
 	s.vec = append(s.vec, ElementCapsule{})
 }
 
 // Allocate id allocates if it is free, else it returns nil
-func (s *ElementStorage) AllocateID(id int32) *Element {
+func (s *ElementStorage) AllocateID(id int) *Element {
 	if int(id) >= len(s.vec) || s.vec[id].occupied {
 		return nil
 	}
 
-	idx, _ := s.freeIDs.BiSearch(id, gen.Int32BiComp)
+	idx, _ := s.freeIDs.BiSearch(id, gen.IntBiComp)
 	s.freeIDs.Remove(idx)
 
 	return &s.vec[id].value
@@ -48,7 +48,7 @@ func (s *ElementStorage) AllocateID(id int32) *Element {
 // allocate does not always allocate at all and just reuses freed space,
 // returned pointer also does not point to zero value and you have to overwrite all
 // properties to get expected behavior
-func (s *ElementStorage) Allocate() (*Element, int32) {
+func (s *ElementStorage) Allocate() (*Element, int) {
 	s.count++
 	s.outdated = true
 
@@ -60,8 +60,9 @@ func (s *ElementStorage) Allocate() (*Element, int32) {
 		return &s.vec[id].value, id
 	}
 
+	id := len(s.vec)
 	s.vec = append(s.vec, ElementCapsule{})
-	id := int32(len(s.vec)) - 1
+
 	s.vec[id].occupied = true
 	return &s.vec[id].value, id
 }
@@ -69,7 +70,7 @@ func (s *ElementStorage) Allocate() (*Element, int32) {
 // Remove removes a value and frees memory for something else
 //
 // panic if there is nothing to free
-func (s *ElementStorage) Remove(id int32) {
+func (s *ElementStorage) Remove(id int) {
 	if !s.vec[id].occupied {
 		panic("removeing already removed value")
 	}
@@ -77,7 +78,7 @@ func (s *ElementStorage) Remove(id int32) {
 	s.count--
 	s.outdated = true
 
-	s.freeIDs.BiInsert(id, gen.Int32BiComp)
+	s.freeIDs.BiInsert(id, gen.IntBiComp)
 	s.vec[id].occupied = false
 }
 
@@ -113,8 +114,8 @@ func (s *ElementStorage) Count() int {
 func (s *ElementStorage) update() {
 	s.outdated = false
 	s.occupied = s.occupied[:0]
-	l := int32(len(s.vec))
-	for i := int32(0); i < l; i++ {
+	l := len(s.vec)
+	for i := 0; i < l; i++ {
 		if s.vec[i].occupied {
 			s.occupied = append(s.occupied, i)
 		}
@@ -123,7 +124,7 @@ func (s *ElementStorage) update() {
 
 // Occupied return all occupied ids in ElementStorage, this method panics if ElementStorage is outdated
 // See Update method.
-func (s *ElementStorage) Occupied() []int32 {
+func (s *ElementStorage) Occupied() []int {
 	if s.outdated {
 		s.update()
 	}
@@ -143,7 +144,7 @@ func (s *ElementStorage) Clear() {
 func (s *ElementStorage) SlowClear() {
 	for i := range s.vec {
 		if s.vec[i].occupied {
-			s.freeIDs = append(s.freeIDs, int32(i))
+			s.freeIDs = append(s.freeIDs, i)
 			s.vec[i].occupied = false
 		}
 	}
