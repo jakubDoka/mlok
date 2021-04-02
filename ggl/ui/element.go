@@ -2,6 +2,7 @@ package ui
 
 import (
 	"io/ioutil"
+	"strconv"
 	"strings"
 
 	"github.com/jakubDoka/mlok/ggl"
@@ -233,7 +234,7 @@ func (e *Element) AddGoml(source []byte) error {
 
 	for _, ch := range elems {
 		if ch.noName {
-			ch.name = ""
+			ch.name = strconv.Itoa(e.ChildCount())
 		}
 		e.AddChild(ch.name, ch)
 	}
