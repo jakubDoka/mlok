@@ -49,13 +49,13 @@ func (o *KeyValueOrdered) Put(key Key, value Value) {
 }
 
 // Remove removes the key value pair
-func (o *KeyValueOrdered) Remove(key Key) (Value, int, bool) {
+func (o *KeyValueOrdered) Remove(key Key) (v Value, i int, b bool) {
 	val, idx, ok := o.Value(key)
 
 	if ok {
 		o.RemoveIndex(idx)
 	} else {
-		return nil, 0, false
+		return
 	}
 
 	return *val, idx, ok
