@@ -1,16 +1,85 @@
 package load
 
 import (
+	"encoding/json"
+	"fmt"
+	"image"
+	"image/draw"
 	"io/fs"
 	"io/ioutil"
 	"os"
 	"path"
 	"strings"
+
+	"github.com/golang/freetype/truetype"
+	"github.com/jakubDoka/sterr"
+	"golang.org/x/image/font"
 )
+
+// errors
+var (
+	ErrNotOnDisc = sterr.New("%s file not found on disc")
+)
+
+// OS is default os loader
+var OS = Util{OSFS{}}
 
 // Util brings some utility for Loader
 type Util struct {
 	Loader
+}
+
+// Json unmarshal-s json from given path to dest
+func (l Util) Json(path string, dest interface{}) error {
+	bts, err := l.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	return json.Unmarshal(bts, dest)
+}
+
+// LoadTTF loads TTF file into font.Face
+func (l Util) LoadTTF(path string, size float64) (font.Face, error) {
+	bytes, err := l.ReadFile(path)
+	if err != nil {
+		return nil, ErrNotOnDisc.Args("ttf").Wrap(err)
+	}
+
+	font, err := truetype.Parse(bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return truetype.NewFace(font, &truetype.Options{
+		Size:              size,
+		GlyphCacheEntries: 1,
+	}), nil
+}
+
+// LoadImage loads image from disk
+func (l Util) LoadImage(p string) (*image.NRGBA, error) {
+	imgFile, err := l.Open(p)
+	if err != nil {
+		return nil, ErrNotOnDisc.Args("image").Wrap(err)
+	}
+
+	img, _, err := image.Decode(imgFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode %q: %v", p, err)
+	}
+
+	var res *image.NRGBA
+
+	switch v := img.(type) {
+	case *image.NRGBA:
+		res = v
+	default:
+		res = image.NewNRGBA(v.Bounds())
+		draw.Draw(res, res.Rect, img, img.Bounds().Min, 0)
+	}
+
+	return res, nil
 }
 
 // Walk calls fs.WalkDir on Loader

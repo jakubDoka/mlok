@@ -1,15 +1,11 @@
 package txt
 
 import (
-	"io/ioutil"
 	"math"
-	"os"
 
 	"github.com/jakubDoka/mlok/mat"
 
-	"github.com/golang/freetype/truetype"
 	"github.com/jakubDoka/gogen/str"
-	"golang.org/x/image/font"
 )
 
 // key markdown sintax is stored in variable  so it can be customized
@@ -316,28 +312,4 @@ func (m *Markdown) ResolveChunks(p *Paragraph) {
 	})
 
 	p.chunks = append(p.chunks, m.buff...)
-}
-
-// LoadTTF loads TTF file into font.Face
-func LoadTTF(path string, size float64) (font.Face, error) {
-	file, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	bytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-
-	font, err := truetype.Parse(bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return truetype.NewFace(font, &truetype.Options{
-		Size:              size,
-		GlyphCacheEntries: 1,
-	}), nil
 }

@@ -8,6 +8,7 @@ import (
 	"unicode"
 
 	"github.com/jakubDoka/mlok/ggl"
+	"github.com/jakubDoka/mlok/load"
 	"github.com/jakubDoka/mlok/mat"
 
 	"golang.org/x/image/font"
@@ -277,4 +278,9 @@ func makeMapping(face font.Face, runes []rune, padding, width fixed.Int26_6, spa
 
 func i2f(i fixed.Int26_6) float64 {
 	return float64(i) / (1 << 6)
+}
+
+// LoadTTF loads TTF file into font.Face
+func LoadTTF(path string, size float64) (font.Face, error) {
+	return load.OS.LoadTTF(path, size)
 }

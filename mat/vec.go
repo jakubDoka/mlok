@@ -227,6 +227,11 @@ func (v Vec) AngleTo(u Vec) float64 {
 	return a
 }
 
+// Floored applyes math.Floor on both componenets and returns resulting vector
+func (v Vec) Floored() Vec {
+	return Vec{math.Floor(v.X), math.Floor(v.Y)}
+}
+
 // Map applies the function f to both x and y components of the vector v and returns the modified
 // vector.
 //

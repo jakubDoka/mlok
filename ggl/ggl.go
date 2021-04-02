@@ -16,22 +16,16 @@ import (
 	"image"
 	"image/draw"
 	"io/ioutil"
-	"os"
 	"reflect"
-	"runtime"
 	"strings"
 	"unsafe"
 
+	"github.com/jakubDoka/mlok/load"
 	"github.com/jakubDoka/mlok/mat"
 	"github.com/jakubDoka/mlok/refl"
 
 	"github.com/go-gl/gl/v3.3-core/gl"
 )
-
-func init() {
-	// GLFW event handling must run on the main OS thread
-	runtime.LockOSThread()
-}
 
 // VertexData is what you use to hand data to opengl, its very important for you to pass
 // a Slice containing doubles or structs composed only from doubles. If you are not sure
@@ -493,27 +487,7 @@ func (p Ptr) ID() uint32 {
 
 // LoadImage loads image from disk
 func LoadImage(p string) (*image.NRGBA, error) {
-	imgFile, err := os.Open(p)
-	if err != nil {
-		return nil, fmt.Errorf("image %q not found on disk: %v", p, err)
-	}
-
-	img, _, err := image.Decode(imgFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to decode %q: %v", p, err)
-	}
-
-	var res *image.NRGBA
-
-	switch v := img.(type) {
-	case *image.NRGBA:
-		res = v
-	default:
-		res = image.NewNRGBA(v.Bounds())
-		draw.Draw(res, res.Rect, img, img.Bounds().Min, 0)
-	}
-
-	return res, nil
+	return load.OS.LoadImage(p)
 }
 
 // FlipNRGBA flips image over the X-axis

@@ -3,6 +3,7 @@ package main
 import (
 	_ "image/png"
 
+	"github.com/go-gl/gl/v3.3-core/gl"
 	"github.com/jakubDoka/mlok/ggl"
 	"github.com/jakubDoka/mlok/ggl/pck"
 	"github.com/jakubDoka/mlok/ggl/ui"
@@ -60,6 +61,9 @@ func main() {
 	l := frame.Limitter{}
 
 	l.SetFPS(60)
+
+	gl.Enable(gl.SCISSOR_TEST)
+	gl.Scissor(0, 0, 1000, 1000)
 
 	// stay open and update so os will not report issue
 	for !window.ShouldClose() {
