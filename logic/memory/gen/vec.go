@@ -91,15 +91,15 @@ func (v *IntVec) Pop() int {
 }
 
 // Insert inserts value to given index
-func (v *IntVec) Insert(idx int, val int) {
+func (v *IntVec) Insert(idx int, val ...int) {
 	dv := *v
-	*v = append(append(append(make(IntVec, 0, len(dv)+1), dv[:idx]...), val), dv[idx:]...)
-}
-
-// InsertSlice inserts slice to given index
-func (v *IntVec) InsertSlice(idx int, val []int) {
-	dv := *v
-	*v = append(append(append(make(IntVec, 0, len(dv)+1), dv[:idx]...), val...), dv[idx:]...)
+	e := len(dv)
+	dv = append(dv, val...)
+	for i := e - 1; i >= idx; i-- {
+		dv[i+len(val)] = dv[i]
+	}
+	copy(dv[idx:], val)
+	*v = dv
 }
 
 // Reverse reverses content of slice
@@ -114,14 +114,15 @@ func (v IntVec) Last() int {
 	return v[len(v)-1]
 }
 
-// Sort is quicksort for IntVec, because this is part of a template comp function is necessary
-func (v IntVec) Sort(comp func(a, b int) bool) {
+// Sort is quicksort for IntVec, if returns true, item will be swapped to left side from pivot
+// so a > pivot will sort in descending order
+func (v IntVec) Sort(buff []int, comp func(a, pivot int) bool) []int {
 	if len(v) < 2 {
-		return
+		return buff
 	}
 
-	var ps = make([]int, len(v)/5)
-	ps[0], ps[1] = -1, len(v)
+	// hopefully go will not allocate as buff does not escape
+	buff = append(buff, -1, len(v))
 
 	var (
 		p int
@@ -132,14 +133,14 @@ func (v IntVec) Sort(comp func(a, b int) bool) {
 	)
 
 	for {
-		l = len(ps)
+		l = len(buff)
 
-		e = ps[l-1] - 1
+		e = buff[l-1] - 1
 		if e <= 0 {
-			return
+			return buff
 		}
 
-		s = ps[l-2] + 1
+		s = buff[l-2] + 1
 		p = v[e]
 
 		if s < e {
@@ -152,18 +153,18 @@ func (v IntVec) Sort(comp func(a, b int) bool) {
 			}
 
 			v.Swap(e, s)
-			ps = append(ps, ps[l-1])
-			if len(ps) > m {
-				m = len(ps)
+			buff = append(buff, buff[l-1])
+			if len(buff) > m {
+				m = len(buff)
 			}
-			ps[l-1] = s
+			buff[l-1] = s
 		} else {
-			ps = ps[:l-1]
+			buff = buff[:l-1]
 		}
 	}
 }
 
-// Swap swaps two elements
+// Swap swabuff two elements
 func (v IntVec) Swap(a, b int) {
 	v[a], v[b] = v[b], v[a]
 }
@@ -209,7 +210,7 @@ func (v IntVec) Find(find func(e int) bool) (idx int, res int) {
 func (v IntVec) BiSearch(value int, cmp func(a, b int) uint8) (int, bool) {
 	start, end := 0, len(v)
 	if start == end {
-		return -1, false
+		return 0, false
 	}
 	for {
 		mid := start + (end-start)/2
@@ -228,7 +229,7 @@ func (v IntVec) BiSearch(value int, cmp func(a, b int) uint8) (int, bool) {
 	}
 }
 
-// BiInsert inserts inserts value in a way that keeps vec sorted, binary search is used to determinate
+// BiInsert inserts inserts value in a way that keebuff vec sorted, binary search is used to determinate
 // where to insert
 func (v *IntVec) BiInsert(value int, cmp func(a, b int) uint8) {
 	i, _ := v.BiSearch(value, cmp)
@@ -351,15 +352,15 @@ func (v *Int32Vec) Pop() int32 {
 }
 
 // Insert inserts value to given index
-func (v *Int32Vec) Insert(idx int, val int32) {
+func (v *Int32Vec) Insert(idx int, val ...int32) {
 	dv := *v
-	*v = append(append(append(make(Int32Vec, 0, len(dv)+1), dv[:idx]...), val), dv[idx:]...)
-}
-
-// InsertSlice inserts slice to given index
-func (v *Int32Vec) InsertSlice(idx int, val []int32) {
-	dv := *v
-	*v = append(append(append(make(Int32Vec, 0, len(dv)+1), dv[:idx]...), val...), dv[idx:]...)
+	e := len(dv)
+	dv = append(dv, val...)
+	for i := e - 1; i >= idx; i-- {
+		dv[i+len(val)] = dv[i]
+	}
+	copy(dv[idx:], val)
+	*v = dv
 }
 
 // Reverse reverses content of slice
@@ -374,14 +375,15 @@ func (v Int32Vec) Last() int32 {
 	return v[len(v)-1]
 }
 
-// Sort is quicksort for Int32Vec, because this is part of a template comp function is necessary
-func (v Int32Vec) Sort(comp func(a, b int32) bool) {
+// Sort is quicksort for Int32Vec, if returns true, item will be swapped to left side from pivot
+// so a > pivot will sort in descending order
+func (v Int32Vec) Sort(buff []int, comp func(a, pivot int32) bool) []int {
 	if len(v) < 2 {
-		return
+		return buff
 	}
 
-	var ps = make([]int, len(v)/5)
-	ps[0], ps[1] = -1, len(v)
+	// hopefully go will not allocate as buff does not escape
+	buff = append(buff, -1, len(v))
 
 	var (
 		p int32
@@ -392,14 +394,14 @@ func (v Int32Vec) Sort(comp func(a, b int32) bool) {
 	)
 
 	for {
-		l = len(ps)
+		l = len(buff)
 
-		e = ps[l-1] - 1
+		e = buff[l-1] - 1
 		if e <= 0 {
-			return
+			return buff
 		}
 
-		s = ps[l-2] + 1
+		s = buff[l-2] + 1
 		p = v[e]
 
 		if s < e {
@@ -412,18 +414,18 @@ func (v Int32Vec) Sort(comp func(a, b int32) bool) {
 			}
 
 			v.Swap(e, s)
-			ps = append(ps, ps[l-1])
-			if len(ps) > m {
-				m = len(ps)
+			buff = append(buff, buff[l-1])
+			if len(buff) > m {
+				m = len(buff)
 			}
-			ps[l-1] = s
+			buff[l-1] = s
 		} else {
-			ps = ps[:l-1]
+			buff = buff[:l-1]
 		}
 	}
 }
 
-// Swap swaps two elements
+// Swap swabuff two elements
 func (v Int32Vec) Swap(a, b int) {
 	v[a], v[b] = v[b], v[a]
 }
@@ -469,7 +471,7 @@ func (v Int32Vec) Find(find func(e int32) bool) (idx int, res int32) {
 func (v Int32Vec) BiSearch(value int32, cmp func(a, b int32) uint8) (int, bool) {
 	start, end := 0, len(v)
 	if start == end {
-		return -1, false
+		return 0, false
 	}
 	for {
 		mid := start + (end-start)/2
@@ -488,7 +490,7 @@ func (v Int32Vec) BiSearch(value int32, cmp func(a, b int32) uint8) (int, bool) 
 	}
 }
 
-// BiInsert inserts inserts value in a way that keeps vec sorted, binary search is used to determinate
+// BiInsert inserts inserts value in a way that keebuff vec sorted, binary search is used to determinate
 // where to insert
 func (v *Int32Vec) BiInsert(value int32, cmp func(a, b int32) uint8) {
 	i, _ := v.BiSearch(value, cmp)
