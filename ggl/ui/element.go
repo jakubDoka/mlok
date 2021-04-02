@@ -97,7 +97,7 @@ type Element struct {
 	size   mat.Vec
 
 	children        Children
-	hidden          bool
+	hidden, noName  bool
 	id, group, name string
 	index           int
 }
@@ -232,6 +232,9 @@ func (e *Element) AddGoml(source []byte) error {
 	}
 
 	for _, ch := range elems {
+		if ch.noName {
+			ch.name = ""
+		}
 		e.AddChild(ch.name, ch)
 	}
 

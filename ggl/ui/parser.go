@@ -86,6 +86,7 @@ func (p *Parser) translateElement(i int, elem goml.Element) (*Element, error) {
 		e.name = val[0]
 	} else {
 		e.name = strconv.Itoa(i)
+		e.noName = true
 	}
 	if _, ok := elem.Attributes["hidden"]; ok {
 		e.hidden = true
