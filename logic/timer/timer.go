@@ -36,6 +36,11 @@ func (t *Timer) Reset() {
 	t.Progress = 0
 }
 
+// Skip skips timer cycle
+func (t *Timer) Skip() {
+	t.Progress = t.Period
+}
+
 // DoneReset returns true and resets the timer
 func (t *Timer) DoneReset() bool {
 	if t.Progress >= t.Period {

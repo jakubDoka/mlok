@@ -7,8 +7,8 @@ type Value generic.Type
 
 // KeyValueCapsule is component of ordered map that stores key and a value
 type KeyValueCapsule struct {
-	Key   Key
-	Value Value
+	K Key
+	V Value
 }
 
 // KeyValueOrdered stores its items in underlying slice and map just keeps indexes
@@ -35,13 +35,13 @@ func (o *KeyValueOrdered) Value(key Key) (val *Value, idx int, ok bool) {
 	if !k {
 		return
 	}
-	return &o.s[idx].Value, idx, true
+	return &o.s[idx].V, idx, true
 }
 
 // Put puts a value under key
 func (o *KeyValueOrdered) Put(key Key, value Value) {
 	if i, ok := o.m[key]; ok {
-		o.s[i].Value = value
+		o.s[i].V = value
 	} else {
 		o.m[key] = len(o.s)
 		o.s = append(o.s, KeyValueCapsule{key, value})
@@ -64,7 +64,7 @@ func (o *KeyValueOrdered) Remove(key Key) (v Value, i int, b bool) {
 // RemoveIndex removes by index
 func (o *KeyValueOrdered) RemoveIndex(idx int) (cell KeyValueCapsule) {
 	cell = o.s[idx]
-	delete(o.m, o.s[idx].Key)
+	delete(o.m, o.s[idx].K)
 	o.shift(idx+1, len(o.s), -1)
 	o.s = append(o.s[:idx], o.s[idx+1:]...)
 	return
@@ -113,7 +113,7 @@ func (o *KeyValueOrdered) ReIndex(old, new int) {
 	cell := o.s[ol]
 	o.shift(old-shifting, new-shifting, shifting)
 	copy(o.s[old:new], o.s[old-shifting:new-shifting])
-	o.m[cell.Key] = n
+	o.m[cell.K] = n
 	o.s[n] = cell
 }
 
@@ -124,7 +124,7 @@ func (o *KeyValueOrdered) Rename(old, new Key) bool {
 		o.Remove(new)
 		delete(o.m, old)
 		o.m[new] = val
-		o.s[val].Key = new
+		o.s[val].K = new
 		return true
 	}
 	return false
@@ -132,6 +132,6 @@ func (o *KeyValueOrdered) Rename(old, new Key) bool {
 
 func (o *KeyValueOrdered) shift(start, end, dif int) {
 	for i := start; i < end; i++ {
-		o.m[o.s[i].Key] += dif
+		o.m[o.s[i].K] += dif
 	}
 }
