@@ -8,7 +8,7 @@ import (
 )
 
 func TestUtil(t *testing.T) {
-	loader := Util{OSFS{}}
+	loader := OS
 
 	root := "C:/Users/jakub/Documents/programming/golang/src/github.com/jakubDoka/mlok/load/test_data"
 
