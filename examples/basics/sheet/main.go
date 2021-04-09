@@ -17,7 +17,9 @@ func main() {
 
 	sheet := pck.Sheet{}
 
-	sheet.AddImages("fish.png", "face_32_32.png", "something.png")
+	for i := 0; i < 5; i++ {
+		sheet.AddImages("fish.png", "face_32_32.png", "something.png")
+	}
 
 	sheet.Pack()
 

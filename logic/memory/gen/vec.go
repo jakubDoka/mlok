@@ -93,11 +93,8 @@ func (v *IntVec) Pop() int {
 // Insert inserts value to given index
 func (v *IntVec) Insert(idx int, val ...int) {
 	dv := *v
-	e := len(dv)
 	dv = append(dv, val...)
-	for i := e - 1; i >= idx; i-- {
-		dv[i+len(val)] = dv[i]
-	}
+	copy(dv[idx+len(val):], dv[idx:])
 	copy(dv[idx:], val)
 	*v = dv
 }
@@ -354,11 +351,8 @@ func (v *Int32Vec) Pop() int32 {
 // Insert inserts value to given index
 func (v *Int32Vec) Insert(idx int, val ...int32) {
 	dv := *v
-	e := len(dv)
 	dv = append(dv, val...)
-	for i := e - 1; i >= idx; i-- {
-		dv[i+len(val)] = dv[i]
-	}
+	copy(dv[idx+len(val):], dv[idx:])
 	copy(dv[idx:], val)
 	*v = dv
 }

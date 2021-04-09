@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/jakubDoka/goml/core"
+	"github.com/jakubDoka/mlok/logic/memory/gen"
 	"github.com/jakubDoka/mlok/mat"
 )
 
@@ -60,4 +62,46 @@ func BenchmarkHasherQuery(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		buff = h.Query(mat.ZA, buff[:0], 0, true)
 	}
+}
+
+func BenchmarkHasherNoIter(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		for y := 0; y < 10; y++ {
+			for x := 0; x < 10; x++ {
+				prj(x, y, 100)
+			}
+		}
+	}
+}
+
+func BenchmarkHahsMap(b *testing.B) {
+	ln := 100
+	mp := make(map[int]struct{}, ln)
+	for i := 0; i < b.N; i++ {
+		for i := 0; i < ln; i++ {
+			mp[i] = struct{}{}
+		}
+		for i := 0; i < ln; i++ {
+			delete(mp, i)
+		}
+	}
+}
+
+func BenchmarkVecInsert(b *testing.B) {
+	ln := 100
+	v := make(gen.IntSet, ln)
+	for i := 0; i < b.N; i++ {
+		for i := 0; i < ln; i++ {
+			v.Insert(i)
+		}
+		for i := 0; i < ln; i++ {
+			v = v[:0]
+		}
+	}
+}
+
+func Test(t *testing.T) {
+	v := []int{0, 1, 2, 3, 4, 5}
+	copy(v[2:], v[1:])
+	core.TestEqual(t, v, []int{0, 0, 1, 2, 3, 4})
 }

@@ -227,6 +227,11 @@ func (v Vec) AngleTo(u Vec) float64 {
 	return a
 }
 
+// If cross of two vectors returns 0, this can relayably tell if they are heading same direction
+func (v Vec) SameDir(u Vec) bool {
+	return (v.X < 0) == (u.X < 0) && (v.Y < 0) == (u.Y < 0)
+}
+
 // Floored applyes math.Floor on both componenets and returns resulting vector
 func (v Vec) Floored() Vec {
 	return Vec{math.Floor(v.X), math.Floor(v.Y)}

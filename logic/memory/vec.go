@@ -97,11 +97,8 @@ func (v *ItemVec) Pop() Item {
 // Insert inserts value to given index
 func (v *ItemVec) Insert(idx int, val ...Item) {
 	dv := *v
-	e := len(dv)
 	dv = append(dv, val...)
-	for i := e - 1; i >= idx; i-- {
-		dv[i+len(val)] = dv[i]
-	}
+	copy(dv[idx+len(val):], dv[idx:])
 	copy(dv[idx:], val)
 	*v = dv
 }

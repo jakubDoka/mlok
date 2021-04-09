@@ -218,7 +218,7 @@ o:
 		// deciding if we should stop, as long as ratio is decreasing continue, when it goes up, stop
 		if ratio < lowestRatio {
 			lowestRatio = ratio
-			best = breakpoints
+			best = append(best[:0], breakpoints...)
 			width = int(length)
 			height = int(tollness)
 		} else if ratio > lowestRatio {

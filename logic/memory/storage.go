@@ -20,7 +20,7 @@ type ElementCapsule struct {
 // components. Its highly unlikely you will run out of ids as they are reused
 type ElementStorage struct {
 	vec      []ElementCapsule
-	freeIDs  gen.IntVec
+	freeIDs  gen.IntSet
 	occupied []int
 	count    int
 	outdated bool
@@ -34,12 +34,17 @@ func (s *ElementStorage) Blanc() {
 
 // Allocate id allocates if it is free, else it returns nil
 func (s *ElementStorage) AllocateID(id int) *Element {
-	if int(id) >= len(s.vec) || s.vec[id].occupied {
+	if id >= len(s.vec) {
+		for len(s.vec) < id {
+			s.Blanc()
+		}
+	} else if s.vec[id].occupied {
 		return nil
 	}
 
-	idx, _ := s.freeIDs.BiSearch(id, gen.IntBiComp)
-	s.freeIDs.Remove(idx)
+	s.freeIDs.Remove(id)
+
+	s.vec[id].occupied = true
 
 	return &s.vec[id].value
 }
@@ -61,9 +66,8 @@ func (s *ElementStorage) Allocate() (*Element, int) {
 	}
 
 	id := len(s.vec)
-	s.vec = append(s.vec, ElementCapsule{})
+	s.vec = append(s.vec, ElementCapsule{occupied: true})
 
-	s.vec[id].occupied = true
 	return &s.vec[id].value, id
 }
 
@@ -78,7 +82,7 @@ func (s *ElementStorage) Remove(id int) {
 	s.count--
 	s.outdated = true
 
-	s.freeIDs.BiInsert(id, gen.IntBiComp)
+	s.freeIDs.Insert(id)
 	s.vec[id].occupied = false
 }
 

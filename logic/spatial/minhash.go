@@ -10,7 +10,8 @@ import (
 type MinHash struct {
 	nodeSize mat.Vec
 	w, h     int
-	Nodes    []Node
+	Nodes    []IntNode
+	buff     []int
 }
 
 // NMinHash is MinHash constructor
@@ -19,7 +20,7 @@ func NMinHash(w, h int, tileSize mat.Vec) MinHash {
 		nodeSize: mat.V(1, 1).Div(tileSize),
 		w:        w,
 		h:        h,
-		Nodes:    make([]Node, h*w),
+		Nodes:    make([]IntNode, h*w),
 	}
 }
 
@@ -63,7 +64,7 @@ func (h *MinHash) Query(rect mat.AABB, coll []int, group int, including bool) []
 	for y := min.Y; y < max.Y; y++ {
 		for x := min.X; x < max.X; x++ {
 			n := &h.Nodes[prj(x, y, h.w)]
-			if n.Count != 0 {
+			if len(n.Ints) != 0 {
 				coll = n.Collect(group, including, coll)
 			}
 		}

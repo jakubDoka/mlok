@@ -3,62 +3,43 @@ package spatial
 import (
 	"testing"
 
-	"github.com/jakubDoka/mlok/mat"
+	"github.com/jakubDoka/goml/core"
 )
 
-func TestTree(t *testing.T) {
-	tree := NTree(1, mat.A(0, 0, 1000, 1000))
-	d := dummy{
-		pos:  mat.V(200, 100),
-		size: 10,
+func TestNode(t *testing.T) {
+	n := IntNode{}
+	n.Insert(0, 0)
+	n.Remove(0, 0)
+
+	core.TestEqual(t, len(n.Groups), 0)
+	core.TestEqual(t, len(n.Ints), 0)
+
+	n.Insert(0, 0)
+	n.Insert(3, 0)
+	n.Insert(1, 1)
+	n.Insert(2, 1)
+
+	coll := n.Collect(1, true, nil)
+	core.TestEqual(t, coll, []int{2, 1})
+
+	coll = n.Collect(1, false, nil)
+	core.TestEqual(t, coll, []int{3, 0})
+
+	core.TestEqual(t, len(n.Groups), 2)
+	core.TestEqual(t, len(n.Ints), 4)
+
+	n.Remove(0, 0)
+	n.Remove(3, 0)
+
+	core.TestEqual(t, len(n.Groups), 1)
+	core.TestEqual(t, len(n.Ints), 2)
+
+}
+
+func Benchmark(b *testing.B) {
+	n := IntNode{}
+	for i := 0; i < b.N; i++ {
+		n.Insert(0, 0)
+		n.Remove(0, 0)
 	}
-	for i := 0; i < 10; i++ {
-		tree.Insert(&d)
-	}
-	t.Error(tree.TotalCount(), "\n", tree.FormatDebug(-1))
-	for i := 0; i < 10; i++ {
-		tree.Remove(&d)
-	}
-	t.Error(tree.TotalCount(), "\n", tree.FormatDebug(-1))
-	tree.Update()
-	t.Error(tree.TotalCount(), "\n", tree.FormatDebug(-1))
-	for i := 0; i < 10; i++ {
-		tree.Insert(&d)
-	}
-	d.dead = true
-	tree.Update()
-	tree.Update()
-	tree.Update()
-	tree.Update()
-	tree.Update()
-	tree.Update()
-	tree.Update()
-	tree.Update()
-	tree.Update()
-	tree.Update()
-	t.Error(tree.TotalCount(), "\n", tree.FormatDebug(-1))
-
-}
-
-type dummy struct {
-	pos   mat.Vec
-	size  float64
-	group int
-	dead  bool
-}
-
-func (d *dummy) Group() int {
-	return d.group
-}
-
-func (d *dummy) Dead() bool {
-	return d.dead
-}
-
-func (d *dummy) Pos() mat.Vec {
-	return d.pos
-}
-
-func (d *dummy) Bounds() mat.AABB {
-	return mat.Square(d.pos, d.size)
 }

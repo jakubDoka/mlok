@@ -7,23 +7,23 @@ import (
 
 // Delta is delta time messuring
 type Delta struct {
-	time.Time
+	t    time.Time
 	fps  int
 	time float64
 }
 
 // Init initializes delta to get rid of firs very long frame
 func (d Delta) Init() Delta {
-	d.Time = time.Now()
+	d.t = time.Now()
 	return d
 }
 
 // Tick updates delta
 func (d *Delta) Tick() float64 {
-	delta := time.Since(d.Time).Seconds()
+	delta := time.Since(d.t).Seconds()
 	d.time += delta
 	d.fps++
-	d.Time = time.Now()
+	d.t = time.Now()
 	return delta
 }
 

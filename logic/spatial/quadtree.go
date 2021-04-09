@@ -7,246 +7,227 @@ import (
 	"github.com/jakubDoka/mlok/mat"
 )
 
-// Tree is a quadtree that prefers updating over reinseting. If you
-// have to detect collizions between big amount of objects with variety
-// of shape sizes this is a good pick, use hasher instead if you are using
-// lot of same sized objects
-//
-// Tree has to be initialized with NTree as Tree.Globals is pointer
-//
-// Tree is not fully tested feature
-type Tree struct {
-	*Globals
-	TNode
-
-	Bounds          mat.AABB
-	Ch              []Tree
-	Branch, NotRoot bool
+type QuadTree struct {
+	Bounds            mat.AABB
+	Nodes             []QuadNode
+	NodeCap, DepthCap int
 }
 
-// Globals stored data shared by all tree nodes
-type Globals struct {
-	tmp, tmp2 []TreeEntity
-	Cap       int
-}
-
-// NTree returns ready to use tree
-func NTree(cap int, bounds mat.AABB) *Tree {
-	return &Tree{
-		Globals: &Globals{
-			Cap: cap,
-		},
-		Bounds: bounds,
+func (t *QuadTree) Query(group int, include bool, area mat.AABB, helpers ...[]int) (coll, frontier, temp []int) {
+	if len(t.Nodes) == 0 {
+		return
 	}
-}
 
-// Query returns all entities that can intersect with area, if include is false only entities with
-// different group are returned, othervise entities with sam group are returned, using QueryAll if
-// you don't need all groups and filtering them your self is slower as Quadterr si structured to
-// optimize the process
-func (t *Tree) Query(group int, include bool, coll []TreeEntity, area mat.AABB) []TreeEntity {
-	t.Collect(group, include, coll)
-	for i := range t.Ch {
-		if t.Bounds.Intersects(area) {
-			coll = t.Ch[i].Query(group, include, coll, area)
+	switch len(helpers) {
+	case 3:
+		coll = helpers[0][:0]
+		fallthrough
+	case 2:
+		frontier = helpers[1][:0]
+		fallthrough
+	case 1:
+		temp = helpers[2][:0]
+	}
+
+	frontier = append(frontier[:0], 0)
+	for len(frontier) != 0 {
+		for _, i := range frontier {
+			n := &t.Nodes[i]
+			if !n.Intersects(area) {
+				continue
+			}
+			coll = n.Collect(group, include, coll)
+			if !n.Branch {
+				continue
+			}
+			ptr := n.Children
+			temp = append(temp, ptr, ptr+1, ptr+2, ptr+3)
 		}
+		frontier, temp = temp, frontier
+		temp = temp[:0]
 	}
-	return coll
+
+	return
 }
 
-// QueryAll returns all Entities that area can intersect with
-func (t *Tree) QueryAll(coll *[]TreeEntity, area mat.AABB) {
-	t.CollectAll(coll)
-	for i := range t.Ch {
-		if t.Bounds.Intersects(area) {
-			t.Ch[i].QueryAll(coll, area)
-		}
+func (t *QuadTree) Insert(address *int, bounds mat.AABB, id, group int) bool {
+	if len(t.Nodes) == 0 {
+		t.Nodes = append(t.Nodes, QuadNode{AABB: t.Bounds})
 	}
-}
 
-// Insert inserts entity to tree, returns false if entity cannot
-// be inserted
-func (t *Tree) Insert(te TreeEntity) bool {
-	if t.Branch {
-		for i := range t.Ch {
-			if t.Ch[i].Insert(te) {
-				return true
+	n := &t.Nodes[0]
+	for n.Branch {
+		var next *QuadNode
+		for i, e := slice(n.Children); i < e; i++ {
+			n := &t.Nodes[i]
+			if !n.Closed && bounds.Fits(n.AABB) {
+				next = n
+				break
 			}
 		}
-	} else {
-		if t.Count+1 > t.Cap {
-			t.tmp = t.tmp[:0]
-			t.Bail()
-			t.Split()
-			for _, e := range t.tmp {
-				if !t.Insert(e) { // does not fit to any quadrant
-					t.TNode.Insert(e, e.Group())
-				}
-			}
-			if t.Insert(te) {
-				return true
-			}
+
+		if next == nil {
+			break
 		}
+		n = next
 	}
 
-	if te.Bounds().Fits(t.Bounds) || !t.NotRoot {
-		t.TNode.Insert(te, te.Group())
-		return true
+	n.Insert(id, group)
+	*address = n.Self
+
+	if t.ShouldSplit(n) {
+		t.Split(n.Self)
 	}
+
 	return false
 }
 
-// Remove removes the entity, if there is no such entity, false is returned
-func (t *Tree) Remove(te TreeEntity) bool {
-	if t.Branch {
-		for i := range t.Ch {
-			if te.Bounds().Fits(t.Ch[i].Bounds) {
-				return t.Ch[i].Remove(te)
+func (t *QuadTree) Update(address *int, bounds mat.AABB, id, group int) {
+	n := &t.Nodes[*address]
+	if !bounds.Fits(n.AABB) {
+		n.Remove(id, group)
+		if len(n.Ints) == 0 && t.Count(n.Self) == 0 {
+			n.Branch = false
+		}
+		t.Insert(address, bounds, id, group)
+	} else if n.Closed {
+		n.Remove(id, group)
+		if len(n.Ints) == 0 && t.Count(n.Self) == 0 {
+			n.Branch = false
+		}
+		for n.Closed && n.Self != 0 {
+			n = &t.Nodes[n.Parent]
+		}
+		n.Insert(id, group)
+		*address = n.Self
+	} else {
+		if n.Branch {
+			for i, e := slice(n.Children); i < e; i++ {
+				if bounds.Fits(t.Nodes[i].AABB) {
+					n.Remove(id, group)
+					t.Nodes[i].Insert(id, group)
+					*address = i
+					if t.ShouldSplit(n) {
+						t.Split(i)
+					}
+				}
 			}
 		}
 	}
-	return t.TNode.Remove(te, te.Group())
+
 }
 
-// Update does two things, it moves
-func (t *Tree) Update() (count int) {
-	if t.Branch {
-		for i := range t.Ch {
-			count += t.Ch[i].Update()
-		}
-		if count < t.Cap {
-			t.tmp = t.tmp[:0]
-			t.Branch = false
-			for i := range t.Ch {
-				t.Ch[i].Bail()
-			}
-			for _, e := range t.tmp {
-				t.TNode.Insert(e, e.Group())
-			}
-			count += t.Cap // this will keep update time stable
-		}
-	}
-
-	var j int
-	for _, e := range t.tmp2 {
-		if e.Dead() {
-			continue
-		}
-		if !e.Bounds().Fits(t.Bounds) && t.NotRoot {
-			t.tmp2[j] = e
-			j++
-			continue
-		}
-		t.TNode.Insert(e, e.Group())
-	}
-	for k := j; k < len(t.tmp2); k++ {
-		t.tmp2[k] = nil
-	}
-	t.tmp2 = t.tmp2[:j]
-
-	t.Count = 0
-	for i := range t.Sets {
-		ids := t.Sets[i].IDs
-		var j int
-		for _, e := range ids {
-			if e.Dead() {
-				continue
-			}
-			if e.Bounds().Fits(t.Bounds) {
-				ids[j] = e
-				j++
-				t.Count++
-				continue
-			}
-			t.tmp2 = append(t.tmp2, e)
-		}
-		for k := j; k < len(ids); k++ {
-			ids[k] = nil
-		}
-		t.Sets[i].IDs = ids[:j]
-	}
-
-	return count + t.Count
+func (t *QuadTree) ShouldSplit(n *QuadNode) bool {
+	return len(n.Ints) >= t.NodeCap && n.Level < t.DepthCap || t.DepthCap == 0
 }
 
-// TotalCount returns total count of children in Tree
-func (t *Tree) TotalCount() (total int) {
-	if t.Branch {
-		for i := range t.Ch {
-			total += t.Ch[i].TotalCount()
-		}
+func (t *QuadTree) Remove(address, id, group int) bool {
+	ok := t.Nodes[address].Remove(id, group)
+	if ok && t.Count(address) < t.NodeCap {
+		t.Close(address)
 	}
-
-	return total + t.Count
+	return ok
 }
 
-// Split allocates Quadtree children
-func (t *Tree) Split() {
-	t.Branch = true
-	if len(t.Ch) == 0 {
-		t.Ch = make([]Tree, 4)
+func (t *QuadTree) Count(node int) (count int) {
+	n := &t.Nodes[node]
+	if n.Branch {
+		ptr := n.Children
+		count += t.Count(ptr) + t.Count(ptr+1) + t.Count(ptr+2) + t.Count(ptr+3)
+	}
+	return count + len(n.Ints)
+}
 
-		cet := t.Bounds.Center()
-		t.Ch[0].Bounds = mat.AABB{
-			Min: t.Bounds.Min,
-			Max: cet,
-		}
-		t.Ch[1].Bounds = mat.AABB{
-			Min: mat.V(cet.X, t.Bounds.Min.Y),
-			Max: mat.V(t.Bounds.Max.X, cet.Y),
-		}
-		t.Ch[2].Bounds = mat.AABB{
-			Min: cet,
-			Max: t.Bounds.Max,
-		}
-		t.Ch[3].Bounds = mat.AABB{
-			Min: mat.V(t.Bounds.Min.X, cet.Y),
-			Max: mat.V(cet.X, t.Bounds.Max.Y),
-		}
+func (t *QuadTree) Close(node int) {
+	n := &t.Nodes[node]
 
-		for i := range t.Ch {
-			t.Ch[i].Globals = t.Globals
-			t.Ch[i].NotRoot = true
-		}
+	if n.Branch {
+		ptr := n.Children
+		t.Close(ptr)
+		t.Close(ptr + 1)
+		t.Close(ptr + 2)
+		t.Close(ptr + 3)
 	}
 }
 
-// Bail retrives all objects from TNode into coll
-func (t *Tree) Bail() {
-	t.Count = 0
-	for i := range t.Sets {
-		ids := t.Sets[i].IDs
-		t.tmp = append(t.tmp, ids...)
-		for j := range ids {
-			ids[j] = nil
-		}
-		t.Sets[i].IDs = ids[:0]
+func (t *QuadTree) Split(node int) {
+	n := &t.Nodes[node]
+	n.Branch = true
+	if n.Children != 0 {
+		return
 	}
-}
 
-// FormatDebug makes a readable formatting of tree structure
-func (t *Tree) FormatDebug(depth int) string {
-	depth++
-	if !t.Branch {
-		return fmt.Sprintf("%s%d", strings.Repeat("  ", depth), t.Count)
-	}
-	return fmt.Sprintf(
-		"%s%d\n%s\n%s\n%s\n%s\n",
-		strings.Repeat("  ", depth),
-		t.Count,
-		t.Ch[0].FormatDebug(depth),
-		t.Ch[1].FormatDebug(depth),
-		t.Ch[2].FormatDebug(depth),
-		t.Ch[3].FormatDebug(depth),
+	n.Children = len(t.Nodes)
+	level := n.Level + 1
+	cet := n.Center()
+
+	t.Nodes = append(t.Nodes,
+		QuadNode{
+			AABB: mat.AABB{
+				Min: n.Min,
+				Max: cet,
+			},
+			Level:  level,
+			Self:   n.Children,
+			Parent: n.Self,
+		},
+		QuadNode{
+			AABB: mat.AABB{
+				Min: mat.V(cet.X, n.Min.Y),
+				Max: mat.V(n.Max.X, cet.Y),
+			},
+			Level:  level,
+			Self:   n.Children + 1,
+			Parent: n.Self,
+		},
+		QuadNode{
+			AABB: mat.AABB{
+				Min: cet,
+				Max: n.Max,
+			},
+			Level:  level,
+			Self:   n.Children + 2,
+			Parent: n.Self,
+		},
+		QuadNode{
+			AABB: mat.AABB{
+				Min: mat.V(n.Min.X, cet.Y),
+				Max: mat.V(cet.X, n.Max.Y),
+			},
+			Level:  level,
+			Self:   n.Children + 3,
+			Parent: n.Self,
+		},
 	)
 }
 
-// TreeEntity represents insertabel data for Tree
-type TreeEntity interface {
-	// Bounds returns bounding rectangle
-	Bounds() mat.AABB
-	// Group returns a entity group
-	Group() int
-	// Dead returns whether entity should be removed
-	Dead() bool
+// FormatDebug makes a readable formatting of tree structure
+func (t *QuadTree) Debug(depth, node int) string {
+	depth++
+	n := &t.Nodes[node]
+	if !n.Branch {
+		return fmt.Sprintf("%s%d", strings.Repeat("  ", depth), len(n.Ints))
+	}
+	ptr := n.Children
+	return fmt.Sprintf(
+		"%s%d\n%s\n%s\n%s\n%s\n",
+		strings.Repeat("  ", depth),
+		len(n.Ints),
+		t.Debug(depth, ptr),
+		t.Debug(depth, ptr+1),
+		t.Debug(depth, ptr+2),
+		t.Debug(depth, ptr+3),
+	)
+}
+
+func slice(start int) (s, e int) {
+	return start, start + 4
+}
+
+type QuadNode struct {
+	IntNode
+	mat.AABB
+
+	Children, Level, Parent, Self int
+	Branch, Closed                bool
 }
