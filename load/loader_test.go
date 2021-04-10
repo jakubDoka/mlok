@@ -7,6 +7,18 @@ import (
 	"github.com/jakubDoka/goml/core"
 )
 
+func TestAppDataDir(t *testing.T) {
+	dir, err := AppDataDir()
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if dir != "C:\\Users\\jakub\\AppData\\Roaming" {
+		t.Error(dir)
+	}
+}
+
 func TestUtil(t *testing.T) {
 	loader := OS
 

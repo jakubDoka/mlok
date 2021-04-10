@@ -757,7 +757,7 @@ func (b *Bar) Move(vel float64) {
 //	text_background:		rgba					// works as moduleBase background
 //	text_selection_color:	rgba					// color if text selection
 //	text_align:				float|left|middle|right	// text align
-//	text_effects:			bool					// makes text effects like color and differrent fonts active
+//	text_no_effects:		bool					// makes text effects like color and differrent fonts disabled
 //	text_markdown:			name					// sets a markdown that text will use to render
 type Text struct {
 	ModuleBase
@@ -784,7 +784,7 @@ func (t *Text) DefaultStyle() goss.Style {
 		"text_background":      {"inherit"},
 		"text_selection_color": {"inherit"},
 		"text_align":           {"inherit"},
-		"text_effects":         {"inherit"},
+		"text_no_effects":      {"inherit"},
 		"text_markdown":        {"inherit"},
 	}
 }
@@ -813,7 +813,7 @@ func (t *Text) Init(e *Element) {
 		t.Background = t.RGBA("text_background", t.Background)
 		t.Props.Padding = t.AABB("text_padding", mat.ZA)
 	}
-	t.NoEffects = t.Bool("text_effects", false)
+	t.NoEffects = t.Bool("text_no_effects", false)
 	t.Content = str.NString(t.Raw.Attributes.Ident("text", string(t.Content)))
 
 	t.Dirty()

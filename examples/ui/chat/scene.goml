@@ -14,7 +14,7 @@
 			"/>
 			<scroll style="
 				size: fill;
-				resize_mode: ignore;
+				resizing_y: ignore;
 				bar_y: true;
 				padding: 0 0 20 0;
 				background: .3 .3 .3;

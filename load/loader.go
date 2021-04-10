@@ -44,10 +44,13 @@ func AppDataDir() (string, error) {
 	}
 
 	if home == "" {
-		return "", sterr.New("unable to optain AppData directory path")
+		home = os.Getenv("APPDATA")
+		if home == "" {
+			return "", sterr.New("unable to optain AppData directory path")
+		}
+	} else {
+		home = path.Join(home, "AppData", "Roaming")
 	}
-
-	home += "\\AppData"
 
 	return home, nil
 }
@@ -70,6 +73,16 @@ func (l Util) Json(p string, dest interface{}) error {
 	}
 
 	return json.Unmarshal(bts, dest)
+}
+
+// Save json saves the json representation of given value to disk
+func (l Util) SaveJson(p string, value interface{}) error {
+	bts, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(l.path(p), bts, os.ModePerm)
 }
 
 // LoadTTF loads TTF file into font.Face
