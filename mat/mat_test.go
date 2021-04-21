@@ -2,6 +2,8 @@ package mat
 
 import (
 	"math"
+	"reflect"
+	"regexp"
 	"testing"
 )
 
@@ -57,5 +59,16 @@ func TestTran(t *testing.T) {
 	sup := Mat{Vec{0, 10}, Vec{-10, 0}, Vec{10, 10}}
 	if !tran.Mat().Approx(sup, 6) {
 		t.Fail()
+	}
+}
+
+func Test(t *testing.T) {
+	regex, err := regexp.Compile("{(.+)}")
+	if err != nil {
+		panic(err)
+	}
+	res := regex.FindAll([]byte("{hello}{world}"), -1)
+	if !reflect.DeepEqual(res, [][]byte{[]byte("{hello}"), []byte("{world}")}) {
+		t.Error(res)
 	}
 }

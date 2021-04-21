@@ -84,3 +84,6 @@ func main() {
 
 // 70203421
 // noK.uqo.3.ixo
+
+// 14016
+// specificky simbol 5757
