@@ -65,6 +65,21 @@ type Part struct {
 	Rotation      float64
 }
 
+// TotalOffset returns total offset of part, taking PartDefs into account
+func (p *Part) TotalOffset() mat.Vec {
+	return p.Offset.Add(p.Def.Offset)
+}
+
+// TotalMask returns total mask of part, taking PartDefs into account
+func (p *Part) TotalMask() mat.RGBA {
+	return p.Mask.Mul(p.Def.Mask)
+}
+
+// TotalRotation returns total rotation of part, taking PartDefs into account
+func (p *Part) TotalRotation() float64 {
+	return p.Rotation + p.Def.Rotation
+}
+
 // PartDefs stores the default values for Part
 type PartDefs struct {
 	Offset, Pivot, Scale mat.Vec
