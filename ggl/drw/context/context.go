@@ -17,12 +17,14 @@ func (c *C) Init(parts ...PartDefs) {
 	v = v[:0]
 
 	for len(parts) > len(v) {
+		p := parts[len(v)]
 		v = append(v, Part{
-			Def:   parts[len(v)],
-			Spr:   ggl.NSprite(parts[len(v)].Region),
+			Def:   p,
+			Spr:   ggl.NSprite(p.Region),
 			Mask:  rgba.White,
 			Scale: mat.V(1, 1),
 		})
+		v[len(v)-1].Spr.SetPivot(p.Pivot)
 	}
 
 	*c = v
