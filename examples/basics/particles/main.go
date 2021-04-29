@@ -5,7 +5,6 @@ import (
 	"runtime"
 
 	"github.com/jakubDoka/mlok/ggl"
-	"github.com/jakubDoka/mlok/ggl/drw"
 	"github.com/jakubDoka/mlok/ggl/drw/particle"
 	"github.com/jakubDoka/mlok/logic/frame"
 	"github.com/jakubDoka/mlok/logic/gate"
@@ -37,18 +36,21 @@ func main() {
 		Velocity:          lerp.Random(400, 800),
 		Spread:            lerp.Random(0, math.Pi*.7), // random number in range between 0 - math.Pi*.7
 
-		Color: lerpc.Chained(lerpc.Point(0, mat.Alpha(0)), lerpc.Point(.2, mat.Alpha(.7)), lerpc.Point(1, mat.Alpha(0))), // fading out
+		Color: lerpc.Chained(lerpc.Point(0, mat.Alpha(0)), lerpc.Point(.2, mat.Alpha(.2)), lerpc.Point(1, mat.Alpha(0))), // fading out
 		//random color in folloving range, each channel is independently randomized
-		Mask: lerpc.Const(rgba.Almond),
+		Mask: lerpc.Random(rgba.OrangePeel, rgba.OrangeRed),
 
 		EmissionShape: particle.Point{},
 		Gravity:       mat.V(0, -250),
 		Friction:      1,
 	}
 
+	drawer := particle.Sprite{Sprite: ggl.NSprite(mat.A(0, 0, 10, 10))}
+	drawer.SetIntensity(0)
+	drawer.SetPivot(mat.V(5, 5))
 	// ew need something to draw the partiles, circle is good enough
 	// and to make it more exciting it will be 2D sphere
-	tp.SetDrawer(&particle.Circle{Circle: drw.NCircle(10, 0, 20)})
+	tp.SetDrawer(&drawer)
 
 	batch := ggl.Batch{}
 
@@ -70,8 +72,8 @@ func main() {
 				func(tIdx, count int) {
 					thr.Update(delta)
 					thr.Request(particle.Request{
-						Amount: 1,
-						Pos:    mat.V(-100, -300),
+						Amount: 10,
+						Pos:    mat.V(-100, -200),
 						Mask:   mat.White,
 						Type:   &tp,
 						Dir:    math.Pi / 8,
@@ -99,7 +101,7 @@ func main() {
 		// need it on separate thread
 		system.RunSpawner()
 
-		win.Clear(rgba.DarkBlue)
+		win.Clear(rgba.Black)
 
 		system.Fetch(&batch) // no need to clear system, you actually should never do that
 		batch.Draw(win)
