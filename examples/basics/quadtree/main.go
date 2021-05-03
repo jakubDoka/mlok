@@ -37,13 +37,10 @@ func main() {
 	storage := EntityStorage{}
 	for i := 0; i < 10000; i++ {
 		e, id := storage.Allocate()
-		e.pos = rnd.AABB(rect)                           // random point within bounds
-		e.vel = mat.Rad(rnd.Angle(), rnd.Range(50, 300)) // velocity in random direction with random length
-		e.size = rnd.Range(10, 100)                      // random size
-		if i%100 == 0 {
-			e.size *= 10 * rnd.Float64()
-			e.vel.Scaled(100 * rnd.Float64())
-		}
+		e.pos = rnd.AABB(rect)                            // random point within bounds
+		e.vel = mat.Rad(rnd.Angle(), rnd.Range(50, 1000)) // velocity in random direction with random length
+		val := rnd.Range(2, 7)
+		e.size = val * val * val // random size
 		// Now we are inserting into tree. Notice the address we added to entity. With this very little
 		// modification, quadtree can easily locate the entity next time we update it. Next are bounds that
 		// will determinate where shape will be inserted. Last two values are identifiers. Tree can manage
